@@ -90,8 +90,8 @@
 
 | 网盘类型                     | 下载链接                                                                                              | 提取码  | 版本    |是否最新|
 |-----------------------------|-------------------------------------------------------------------------------------------------------|--------|---------|-------|
-| **百度网盘**                 |[点击下载](https://pan.baidu.com/s/11MVGpnRPoBBcaSErA8DbpA)                                            |itnx    |V2.1.3    |✅     |
-| **移动云盘**                 |[点击下载](https://caiyun.139.com/w/i/2oxwFrbm3E0qx)                                                   |mr8z    |V2.1.3    |✅     |
+| **百度网盘**                 |[点击下载](https://pan.baidu.com/s/11MVGpnRPoBBcaSErA8DbpA)                                            |itnx    |V2.1.3    |❌     |
+| **移动云盘**                 |[点击下载](https://caiyun.139.com/w/i/2oRgXDXwt9osh)                                                   |x6j5    |V2.1.4    |✅     |
 | **Microsoft OneDrive**      |[点击下载](https://1drv.ms/u/c/c831e3cc9be11110/EZm8ErtLJGlDhY2xkPdc_zcBJ6ya9SaYyEsufezcJlzJEg?e=TaT0Yh)|/      |V2.1      |❌     |
 | **Google Drive**            |[点击下载](https://drive.google.com/file/d/1L3LWwxnBmkXMnu1E80aqoLEomp-fZUlR/view?usp=sharing)          |/      |V2.1      |❌     |
 
@@ -204,7 +204,8 @@
 > *3、目前模板无法很好的应对暗色模式，这和微信僵硬的处理有关*  
 
  ## 📢 后续计划
-- **优化配图管理相关功能**
+- **最近正在研发AIForge，AIWriteX新功能后续奉上，敬请期待**
+- 优化配图管理相关功能
 - 陆续新增创意性功能，使得软件更好玩、更强大
 - 增加功能，使输出效果更好（持续）
 - 优化模板，减少token消耗（持续）
@@ -269,8 +270,6 @@
 
 ## 📜 许可证 / License
 本项目采用 [Apache License 2.0](./LICENSE) 开源，并附带额外使用限制，详见 [NOTICE](./NOTICE) 文件。
-
-请在使用、修改、分发本项目前，务必阅读并遵守这两个文件中的条款。
 
 特别提醒：未经授权，禁止分发软件或利用软件向第三方提供服务。
 如需授权，请联系作者邮箱：iniwaper@gmail.com / 522765228@qq.com

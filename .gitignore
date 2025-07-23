@@ -9,6 +9,8 @@ image/*
 !image/preview/
 aipy_work/*
 !aipy_work/.gitkeep
+aiforge_work/*
+!aiforge_work/.gitkeep
 config.bk
 output/*/*
 !output/article/.gitkeep
