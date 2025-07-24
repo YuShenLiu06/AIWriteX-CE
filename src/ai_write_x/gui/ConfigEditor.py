@@ -31,9 +31,18 @@ class ConfigEditor:
 
     def set_global_font(self, font_name, size=10):
         """设置全局字体"""
-        font_string = f"{font_name} {size}"
-        sg.set_options(font=font_string)
-        sg.user_settings_set_entry("-global_font-", font_string)
+        try:
+            # 使用元组格式，避免空格解析问题
+            if isinstance(font_name, str) and " " in font_name:
+                font_tuple = (font_name, size)
+            else:
+                font_tuple = f"{font_name} {size}"
+
+            sg.set_options(font=font_tuple)
+            # 保存时使用特殊格式标记
+            sg.user_settings_set_entry("-global_font-", f"{font_name}|{size}")
+        except Exception:
+            sg.set_options(font="Helvetica 10")
 
     def __get_icon(self):
         return utils.get_res_path("UI\\icon.ico", os.path.dirname(__file__))
@@ -321,9 +330,31 @@ class ConfigEditor:
         is_template_empty = len(categories) == 0
 
         if self.global_font:
-            is_sys_font = self.global_font.split(" ")[0] == "Helvetica"
+            # 从保存的字体字符串中提取字体名称
+            if "|" in self.global_font:
+                # 新格式：字体名|大小
+                font_name = self.global_font.split("|")[0]
+            else:
+                # 旧格式：字体名 大小
+                font_parts = self.global_font.split()
+                if len(font_parts) >= 2:
+                    font_name = " ".join(font_parts[:-1])
+                else:
+                    font_name = font_parts[0] if font_parts else "Helvetica"
+
+            # 当字体为 Helvetica 时，设置为系统默认字体
+            is_sys_font = font_name == "Helvetica"
         else:
             is_sys_font = True
+            font_name = "Helvetica"
+
+        # 设置字体下拉列表的默认值
+        if is_sys_font:
+            # 系统默认字体时，下拉列表显示为空或None
+            font_default_value = None
+        else:
+            # 非系统默认字体时，显示完整字体名称（如果在列表中）
+            font_default_value = font_name if font_name in self.fonts else None
 
         # Define tooltips for each relevant element
         tips = {
@@ -481,14 +512,14 @@ class ConfigEditor:
                 sg.Text("界面字体：", size=(15, 1), tooltip=tips["ui_font"]),
                 sg.Combo(
                     self.fonts,
-                    default_value=(self.global_font.split(" ")[0] if not is_sys_font else None),
+                    default_value=font_default_value,
                     key="-FONT_COMBO-",
                     size=(27, 1),
-                    disabled=is_sys_font,
+                    disabled=is_sys_font,  # 当为系统默认字体时禁用
                 ),
                 sg.Checkbox(
                     "默认字体",
-                    default=is_sys_font,
+                    default=is_sys_font,  # 当字体为Helvetica时自动勾选
                     key="-SYS_FONT-",
                     tooltip="使用系统默认字体",
                     enable_events=True,
@@ -514,20 +545,41 @@ class ConfigEditor:
         # 获取当前提供商的配置，防止键不存在
         provider_config = aipy_config["llm"].get(default_provider, {})
 
+        # Define tooltips for each relevant element
+        tips = {
+            "workdir": "工作目录：AIPy的工作输出目录",
+            "record": "记录控制台输出：用于控制流式响应的记录",
+            "llm_provider": "模型提供商：AIPy使用的LLM 提供商",
+            "type": "类型：提供商的类型标识",
+            "model": "模型：使用的具体模型名称",
+            "api_key": "API KEY：模型提供商的API KEY（必填）",
+            "base_url": "基础URL：API的基础地址",
+            "enable": "启用：是否启用该提供商",
+            "default": "默认提供商：是否为默认选择的提供商",
+            "timeout": "超时时间：API请求的超时时间（秒）",
+            "max_tokens": "最大 Tokens：控制生成内容的长度，建议根据模型支持范围设置",
+        }
+
         layout = [
             [
-                sg.Text("工作目录:", size=(15, 1)),
-                sg.InputText(aipy_config["workdir"], key="-AIPY_WORKDIR-", size=(45, 1)),
+                sg.Text("工作目录:", size=(15, 1), tooltip=tips["workdir"]),
+                sg.InputText(
+                    aipy_config["workdir"],
+                    key="-AIPY_WORKDIR-",
+                    size=(45, 1),
+                    tooltip=tips["workdir"],
+                ),
             ],
             [
                 sg.Checkbox(
                     "记录控制台输出",
                     default=aipy_config["record"],
                     key="-AIPY_RECORD-",
+                    tooltip=tips["record"],
                 ),
             ],
             [
-                sg.Text("模型提供商*:", size=(15, 1)),
+                sg.Text("模型提供商*:", size=(15, 1), tooltip=tips["llm_provider"]),
                 sg.Combo(
                     llm_providers,
                     default_value=default_provider,
@@ -535,39 +587,44 @@ class ConfigEditor:
                     size=(15, 1),
                     readonly=True,
                     enable_events=True,  # 启用事件以动态更新
+                    tooltip=tips["llm_provider"],
                 ),
             ],
             [
-                sg.Text("类型:", size=(15, 1)),
+                sg.Text("类型:", size=(15, 1), tooltip=tips["type"]),
                 sg.InputText(
                     provider_config.get("type", ""),
                     key="-AIPY_TYPE-",
                     size=(45, 1),
                     disabled=True,  # 类型通常不可编辑
+                    tooltip=tips["type"],
                 ),
             ],
             [
-                sg.Text("模型*:", size=(15, 1)),
+                sg.Text("模型*:", size=(15, 1), tooltip=tips["model"]),
                 sg.InputText(
                     provider_config.get("model", ""),
                     key="-AIPY_MODEL-",
                     size=(45, 1),
+                    tooltip=tips["model"],
                 ),
             ],
             [
-                sg.Text("API KEY*:", size=(15, 1)),
+                sg.Text("API KEY*:", size=(15, 1), tooltip=tips["api_key"]),
                 sg.InputText(
                     provider_config.get("api_key", ""),
                     key="-AIPY_API_KEY-",
                     size=(45, 1),
+                    tooltip=tips["api_key"],
                 ),
             ],
             [
-                sg.Text("Base URL*:", size=(15, 1)),
+                sg.Text("Base URL*:", size=(15, 1), tooltip=tips["base_url"]),
                 sg.InputText(
                     provider_config.get("base_url", ""),
                     key="-AIPY_BASE_URL-",
                     size=(45, 1),
+                    tooltip=tips["base_url"],
                 ),
             ],
             [
@@ -575,6 +632,7 @@ class ConfigEditor:
                     "启用",
                     default=provider_config.get("enable", True),
                     key="-AIPY_ENABLE-",
+                    tooltip=tips["enable"],
                 ),
             ],
             [
@@ -582,38 +640,31 @@ class ConfigEditor:
                     "默认提供商",
                     default=provider_config.get("default", False),
                     key="-AIPY_DEFAULT-",
+                    tooltip=tips["default"],
                 ),
             ],
             [
-                sg.Text("超时时间 (秒):", size=(15, 1)),
+                sg.Text("超时时间 (秒):", size=(15, 1), tooltip=tips["timeout"]),
                 sg.InputText(
                     provider_config.get("timeout", 30),
                     key="-AIPY_TIMEOUT-",
                     size=(45, 1),
+                    tooltip=tips["timeout"],
                 ),
             ],
             [
-                sg.Text("最大 Tokens:", size=(15, 1)),
+                sg.Text("最大 Tokens:", size=(15, 1), tooltip=tips["max_tokens"]),
                 sg.InputText(
                     provider_config.get("max_tokens", 8192),
                     key="-AIPY_MAX_TOKENS-",
                     size=(45, 1),
+                    tooltip=tips["max_tokens"],
                 ),
             ],
             [
                 sg.Text(
-                    "Tips：\n"
-                    "1、工作目录：AIPy的工作输出目录；\n"
-                    "2、记录控制台输出：用于控制流式响应的记录；\n"
-                    "3、模型提供商：AIPy使用的LLM 提供商；\n"
-                    "4、模型：使用的具体模型名称；\n"
-                    "5、API KEY：模型提供商的API KEY（必填）；\n"
-                    "6、基础URL：API的基础地址；\n"
-                    "7、启用：是否启用该提供商；\n"
-                    "8、默认提供商：是否为默认选择的提供商；\n"
-                    "9、超时时间：API请求的超时时间（秒）；\n"
-                    "10、最大 Tokens：控制生成内容的长度，建议根据模型支持范围设置。",
-                    size=(70, 11),
+                    "Tips：鼠标悬停标签/输入框，可查看该条目的详细说明。",
+                    size=(70, 1),
                     text_color="gray",
                 ),
             ],
@@ -1056,7 +1107,7 @@ class ConfigEditor:
                         self.set_global_font(values["-FONT_COMBO-"])
                     else:
                         self.set_global_font("Helvetica")
-                      
+
                 if str(values["-AIPY_SEARCH_MAX_RESULTS-"]).isdigit():
                     input_value = int(values["-AIPY_SEARCH_MAX_RESULTS-"])
                     config["aipy_search_max_results"] = (

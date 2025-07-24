@@ -78,10 +78,14 @@
 1. 克隆仓库：
     - `git clone https://github.com/iniwap/AIWriteX.git`
 2. 安装依赖：
-   - `pip install -r requirements.txt`
-   - `pip install PySimpleGUI-4.60.5-py3-none-any.whl`
-4. 配置 `config.yaml`、`aipyapp.toml`（*微信公众号AppID/AppSecret、大模型提供商的API KEY*）
-5. 运行：
+```shell
+pip install uv
+uv venv
+uv pip install ./PySimpleGUI-4.60.5-py3-none-any.whl
+uv pip install -r requirements.txt
+```
+3. 配置 `config.yaml`、`aipyapp.toml`（*微信公众号AppID/AppSecret、大模型提供商的API KEY*）
+4. 运行：
     - 有UI界面：`python .\main.py -d` (**推荐**)
     - 无UI界面：`python -m src.ai_write_x.crew_main` （**不支持文章、模板、配图管理**）
 
@@ -91,7 +95,7 @@
 | 网盘类型                     | 下载链接                                                                                              | 提取码  | 版本    |是否最新|
 |-----------------------------|-------------------------------------------------------------------------------------------------------|--------|---------|-------|
 | **百度网盘**                 |[点击下载](https://pan.baidu.com/s/11MVGpnRPoBBcaSErA8DbpA)                                            |itnx    |V2.1.3    |❌     |
-| **移动云盘**                 |[点击下载](https://caiyun.139.com/w/i/2oRgXDXwt9osh)                                                   |x6j5    |V2.1.4    |✅     |
+| **移动云盘**                 |[点击下载](https://caiyun.139.com/w/i/2oRgXGXKJhSwx)                                                   |3v18    |V2.1.5    |✅     |
 | **Microsoft OneDrive**      |[点击下载](https://1drv.ms/u/c/c831e3cc9be11110/EZm8ErtLJGlDhY2xkPdc_zcBJ6ya9SaYyEsufezcJlzJEg?e=TaT0Yh)|/      |V2.1      |❌     |
 | **Google Drive**            |[点击下载](https://drive.google.com/file/d/1L3LWwxnBmkXMnu1E80aqoLEomp-fZUlR/view?usp=sharing)          |/      |V2.1      |❌     |
 
@@ -270,6 +274,3 @@
 
 ## 📜 许可证 / License
 本项目采用 [Apache License 2.0](./LICENSE) 开源，并附带额外使用限制，详见 [NOTICE](./NOTICE) 文件。
-
-特别提醒：未经授权，禁止分发软件或利用软件向第三方提供服务。
-如需授权，请联系作者邮箱：iniwaper@gmail.com / 522765228@qq.com
