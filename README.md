@@ -208,7 +208,7 @@ uv pip install -r requirements.txt
 > *3、目前模板无法很好的应对暗色模式，这和微信僵硬的处理有关*  
 
  ## 📢 后续计划
-- **最近正在研发[AIForge](https://iniwap.github.io/AIForge)，AIWriteX新功能后续奉上，敬请期待**
+- **最近正在研发[AIForge](https://iniwap.github.io/AIForge)，AIWriteX新功能后续奉上（借助强大的AIForge），敬请期待**
 - 优化配图管理相关功能
 - 陆续新增创意性功能，使得软件更好玩、更强大
 - 增加功能，使输出效果更好（持续）
