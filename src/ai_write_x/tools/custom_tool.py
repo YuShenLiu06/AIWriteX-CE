@@ -7,15 +7,14 @@ from typing import List, Type
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
-from rich.console import Console
-from aipyapp.aipy.taskmgr import TaskManager
-
 from src.ai_write_x.tools.wx_publisher import pub2wx
 from src.ai_write_x.utils import utils
 from src.ai_write_x.config.config import Config
-from src.ai_write_x.tools.search_service import SearchService
 from src.ai_write_x.utils import log
 from src.ai_write_x.tools import search_template
+
+from aiforge import AIForgeEngine
+from aiforge.utils.field_mapper import map_result_to_format
 
 
 class ReadTemplateToolInput(BaseModel):
@@ -158,8 +157,8 @@ class PublisherTool:
         log.print_log(result, msg_type)
 
 
-# 3. AIPy Search Tool
-class AIPySearchToolInput(BaseModel):
+# 3. AIForge Search Tool
+class AIForgeSearchToolInput(BaseModel):
     """输入参数模型"""
 
     topic: str = Field(..., description="要搜索的话题")
@@ -167,30 +166,29 @@ class AIPySearchToolInput(BaseModel):
     reference_ratio: float = Field(..., description="参考文章借鉴比例")
 
 
-class AIPySearchTool(BaseTool):
-    """AIPy搜索工具"""
+class AIForgeSearchTool(BaseTool):
+    """AIForge搜索工具"""
 
-    name: str = "aipy_search_tool"
+    name: str = "aiforge_search_tool"
     description: str = "搜索关于特定主题的最新信息、数据和趋势。"
 
-    args_schema: type[BaseModel] = AIPySearchToolInput
+    args_schema: type[BaseModel] = AIForgeSearchToolInput
 
     def _run(self, topic: str, urls: List[str], reference_ratio: float) -> str:
-        """执行AIPy搜索"""
+        """执行AIForge搜索"""
         results = None
         config = Config.get_instance()
         original_cwd = os.getcwd()
 
         if len(urls) == 0:
             log.print_log("开始执行搜索，请耐心等待...")
-            if config.use_search_service:
-                results = self._use_search_service(
-                    topic, config.aipy_search_max_results, config.aipy_search_min_results
-                )
-            else:
-                results = self._nouse_search_service(
-                    topic, config.aipy_search_max_results, config.aipy_search_min_results
-                )
+            results = self._excute_search(
+                topic,
+                config.aiforge_search_max_results,
+                config.aiforge_search_min_results,
+                config.aiforge_api_key,
+            )
+
             source_type = "搜索"
         else:
             log.print_log("开始提取参考链接中的文章信息，请耐心等待...")
@@ -205,7 +203,12 @@ class AIPySearchTool(BaseTool):
 
         os.chdir(original_cwd)
 
-        return self._formatted_result(topic, urls, reference_ratio, source_type, results)
+        try:
+            fmt_result = self._formatted_result(topic, urls, reference_ratio, source_type, results)
+        except Exception:
+            fmt_result = "未找到最新信息"
+
+        return fmt_result
 
     def _formatted_result(self, topic, urls, reference_ratio, source_type, results):
         if results:
@@ -220,7 +223,9 @@ class AIPySearchTool(BaseTool):
                     content_field = result.get("content", "").strip()
                 else:
                     # 搜索模式：检查abstract字段
-                    content_field = result.get("abstract", "").strip()
+                    content_field = (
+                        result.get("abstract", "").strip() or result.get("content", "").strip()
+                    )
 
                 # 如果标题和对应的内容字段都不为空，则保留该条目
                 if title and content_field:
@@ -249,96 +254,26 @@ class AIPySearchTool(BaseTool):
         else:
             return f"未能找到关于'{topic}'的{source_type}结果。"
 
-    def _use_search_service(self, topic, max_results, min_results):
+    def _excute_search(self, topic, max_results, min_results, aiforge_api_key):
         try:
-            # 执行搜索
-            return SearchService().aipy_search(topic, max_results, min_results)
+            # 启用AIForge并且配置了key才能使用aiforge搜索
+            if not aiforge_api_key:
+                return None
+
+            # 这里可以有两种形式的传参，第2种不指定要求，需要对输出进行映射
+            # 1. f"搜索{min_results}条'{topic}'的新闻，搜索结果数据要求：title、abstract、url、pub_time字段"
+            # 2. f"搜索{min_results}条'{topic}'的新闻"
+            results = AIForgeEngine(config_file=Config.get_instance().config_aiforge_path)(
+                f"搜索{min_results}条'{topic}'的新闻"
+            )
+            # 因为没输出格式要求，这里需要获取到后进行映射
+            # 即使指定也不一定能保证，所以最好固定进行映射
+            return map_result_to_format(
+                results.get("data", []), ["title", "abstract", "url", "pub_time"]
+            )
         except Exception as e:
             log.print_traceback("搜索过程中发生错误：", e)
             return None
-
-    def _nouse_search_service(self, topic, max_results, min_results):
-        try:
-            # 第一步：尝试使用本地模板代码
-            template_result = search_template.search_web(topic, max_results, min_results)
-            if template_result:
-                return template_result.get("results")
-
-            # 只有配置了key才能使用aipy搜索，否则只能用本地搜索
-            if Config.get_instance().aipy_api_key:
-                # 第二步：渐进式AI生成
-                console = Console()
-                console.print(
-                    "[yellow]本地模板搜索失败，尝试基于模板的约束性生成搜索代码...[/yellow]"
-                )
-                task_manager = TaskManager(
-                    Config.get_instance().get_aipy_settings(), console=console
-                )
-
-                # 先尝试基于模板的约束性生成
-                constrained_result = self._try_template_guided_ai(
-                    topic, max_results, min_results, task_manager
-                )
-                if search_template.validate_search_result(
-                    constrained_result, min_results, "ai_guided"
-                ):
-                    return constrained_result.get("results")
-
-                console.print(
-                    "[yellow]基于模板的约束性生成搜索失败，尝试完全自由的AI生成...[/yellow]"
-                )
-                # 最后尝试完全自由的AI生成
-                free_result = self._try_free_form_ai(topic, max_results, min_results, task_manager)
-                if search_template.validate_search_result(free_result, min_results, "ai_free"):
-                    return free_result.get("results")
-
-            return None
-
-        except Exception as e:
-            log.print_traceback("搜索过程中发生错误：", e)
-            return None
-
-    def _try_template_guided_ai(self, topic, max_results, min_results, task_manager):
-        """基于模板模式的约束性AI生成"""
-        search_instruction = search_template.get_template_guided_search_instruction(
-            topic, max_results, min_results
-        )
-
-        task = None
-        try:
-            task = task_manager.new_task(search_instruction)
-            task.run()
-
-            # 反向遍历历史记录，只验证摘要和日期
-            for entry in reversed(task.runner.history):
-                result = entry.get("result", {}).get("__result__")
-                if search_template.simple_validate_search_result(result, min_results, "ai_guided"):
-                    return result
-            return None
-        finally:
-            if task:
-                task.done()
-
-    def _try_free_form_ai(self, topic, max_results, min_results, task_manager):
-        """完全自由的AI生成"""
-        search_instruction = search_template.get_free_form_ai_search_instruction(
-            topic, max_results, min_results
-        )
-
-        task = None
-        try:
-            task = task_manager.new_task(search_instruction)
-            task.run()
-
-            # 反向遍历历史记录，只验证摘要和日期
-            for entry in reversed(task.runner.history):
-                result = entry.get("result", {}).get("__result__")
-                if search_template.simple_validate_search_result(result, min_results, "ai_free"):
-                    return result
-            return None
-        finally:
-            if task:
-                task.done()
 
 
 # 3. Save article tool

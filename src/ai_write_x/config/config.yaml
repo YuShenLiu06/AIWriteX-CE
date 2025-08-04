@@ -2,7 +2,7 @@ platforms:
   - name: 微博
     weight: 0.3
   - name: 抖音
-    weight: 0.20
+    weight: 0.2
   - name: 小红书
     weight: 0.12
   - name: 今日头条
@@ -48,7 +48,6 @@ api:
     key_index: 0
     api_key:
       - ""
-      - ""
     model_index: 0
     model:
       - xai/grok-3
@@ -58,7 +57,6 @@ api:
     key_index: 0
     api_key:
       - ""
-      - ""
     model_index: 0
     model:
       - openai/qwen-plus
@@ -67,7 +65,6 @@ api:
     key: GEMINI_API_KEY
     key_index: 0
     api_key:
-      - ""
       - ""
     model_index: 0
     model:
@@ -79,7 +76,6 @@ api:
     key: OPENROUTER_API_KEY
     key_index: 0
     api_key:
-      - ""
       - ""
     model_index: 0
     model:
@@ -139,8 +135,8 @@ template: ""
 need_auditor: false
 use_compress: true
 use_search_service: false
-aipy_search_max_results: 10
-aipy_search_min_results: 1
+aiforge_search_max_results: 10
+aiforge_search_min_results: 1
 min_article_len: 1000
 max_article_len: 2000
 auto_publish: true
