@@ -15,7 +15,13 @@ class ConfigEditor:
         self.platform_count = len(self.config.platforms)
         self.wechat_count = len(self.config.wechat_credentials)
         self.fonts = sg.Text.fonts_installed_list()
+        # 应用字体过滤
+        self.fonts = self._filter_fonts()
+
         self.global_font = sg.user_settings_get_entry("-global_font-", None)
+        if not self._validate_font_selection(self.global_font):
+            self.global_font = "Helvetica"
+
         self.window = None
         self.window = sg.Window(
             "AIWriteX - 配置管理",
@@ -46,6 +52,42 @@ class ConfigEditor:
 
     def __get_icon(self):
         return utils.get_res_path("UI\\icon.ico", os.path.dirname(__file__))
+
+    def _filter_fonts(self):
+        """过滤掉横向字体，只保留适合界面显示的字体"""
+        if not hasattr(self, "fonts") or not self.fonts:
+            return []
+
+        # 定义需要排除的字体模式
+        excluded_patterns = [
+            "@",  # 横向字体通常以@开头
+            "Vertical",  # 包含Vertical的字体
+            "V-",  # 以V-开头的字体
+            "縦",  # 日文中的纵向字体标识
+            "Vert",  # 其他可能的纵向标识
+        ]
+
+        # 过滤字体列表
+        filtered_fonts = []
+        for font in self.fonts:
+            # 检查字体名称是否包含排除模式
+            should_exclude = any(pattern in font for pattern in excluded_patterns)
+            if not should_exclude:
+                filtered_fonts.append(font)
+
+        return filtered_fonts
+
+    def _validate_font_selection(self, font_name):
+        """验证字体选择是否合适"""
+        if not font_name:
+            return True
+
+        # 检查是否为横向字体
+        excluded_patterns = ["@", "Vertical", "V-", "縦", "Vert"]
+        if any(pattern in font_name for pattern in excluded_patterns):
+            return False
+
+        return True
 
     def create_platforms_tab(self):
         """创建平台 TAB 布局"""
@@ -348,13 +390,14 @@ class ConfigEditor:
             is_sys_font = True
             font_name = "Helvetica"
 
+        # 过滤字体列表，排除横向字体
+        filtered_fonts = self._filter_fonts()
+
         # 设置字体下拉列表的默认值
         if is_sys_font:
-            # 系统默认字体时，下拉列表显示为空或None
             font_default_value = None
         else:
-            # 非系统默认字体时，显示完整字体名称（如果在列表中）
-            font_default_value = font_name if font_name in self.fonts else None
+            font_default_value = font_name if font_name in filtered_fonts else None
 
         # Define tooltips for each relevant element
         tips = {
@@ -379,7 +422,8 @@ class ConfigEditor:
             "ui_font": "设置界面字体后保存，需要重新打开才能生效",
         }
 
-        layout = [
+        # 发布配置区块
+        publish_layout = [
             [
                 sg.Text("文章发布：", size=(15, 1), tooltip=tips["auto_publish"]),
                 sg.Checkbox(
@@ -389,6 +433,30 @@ class ConfigEditor:
                     tooltip=tips["auto_publish"],
                 ),
             ],
+            [
+                sg.Text("文章格式：", size=(15, 1), tooltip=tips["article_format"]),
+                sg.Combo(
+                    ["html", "markdown", "txt"],
+                    default_value=self.config.article_format,
+                    key="-ARTICLE_FORMAT-",
+                    size=(10, 1),
+                    readonly=True,
+                    tooltip=tips["article_format"],
+                    enable_events=True,
+                ),
+                sg.Text("格式化发布：", size=(13, 1), tooltip=tips["format_publish"]),
+                sg.Checkbox(
+                    "格式化",
+                    default=self.config.format_publish,
+                    key="-FORMAT_PUBLISH-",
+                    tooltip=tips["format_publish"],
+                    disabled=self.config.article_format.lower() == "html",
+                ),
+            ],
+        ]
+
+        # 模板配置区块
+        template_layout = [
             [
                 sg.Checkbox(
                     "使用模板：",
@@ -437,6 +505,10 @@ class ConfigEditor:
                     tooltip=tips["use_compress"],
                 ),
             ],
+        ]
+
+        # 生成配置区块
+        generation_layout = [
             [
                 sg.Text("审核设置：", size=(15, 1), tooltip=tips["need_auditor"]),
                 sg.Checkbox(
@@ -478,38 +550,22 @@ class ConfigEditor:
                     tooltip=tips["max_article_len"],
                 ),
             ],
-            [
-                sg.Text("文章格式：", size=(15, 1), tooltip=tips["article_format"]),
-                sg.Combo(
-                    ["html", "markdown", "txt"],
-                    default_value=self.config.article_format,
-                    key="-ARTICLE_FORMAT-",
-                    size=(10, 1),
-                    readonly=True,
-                    tooltip=tips["article_format"],
-                    enable_events=True,
-                ),
-                sg.Text("格式化发布：", size=(13, 1), tooltip=tips["format_publish"]),
-                sg.Checkbox(
-                    "格式化",
-                    default=self.config.format_publish,
-                    key="-FORMAT_PUBLISH-",
-                    tooltip=tips["format_publish"],
-                    disabled=self.config.article_format.lower() == "html",
-                ),
-            ],
+        ]
+
+        # 界面配置区块
+        ui_layout = [
             [
                 sg.Text("界面字体：", size=(15, 1), tooltip=tips["ui_font"]),
                 sg.Combo(
-                    self.fonts,
+                    filtered_fonts,
                     default_value=font_default_value,
                     key="-FONT_COMBO-",
                     size=(27, 1),
-                    disabled=is_sys_font,  # 当为系统默认字体时禁用
+                    disabled=is_sys_font,
                 ),
                 sg.Checkbox(
                     "默认字体",
-                    default=is_sys_font,  # 当字体为Helvetica时自动勾选
+                    default=is_sys_font,
                     key="-SYS_FONT-",
                     tooltip="使用系统默认字体",
                     enable_events=True,
@@ -522,9 +578,73 @@ class ConfigEditor:
                     text_color="gray",
                 ),
             ],
-            [sg.Button("保存配置", key="-SAVE_BASE-"), sg.Button("恢复默认", key="-RESET_BASE-")],
         ]
-        return [[sg.Column(layout, scrollable=False, vertical_scroll_only=False, pad=(0, 0))]]
+
+        # 使用Frame将不同配置区块分组
+        content_layout = [
+            [
+                sg.Frame(
+                    "发布配置",
+                    publish_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                )
+            ],
+            [
+                sg.Frame(
+                    "模板配置",
+                    template_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                )
+            ],
+            [
+                sg.Frame(
+                    "生成配置",
+                    generation_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                )
+            ],
+            [
+                sg.Frame(
+                    "界面配置",
+                    ui_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                )
+            ],
+            # 按钮紧贴内容下方
+            [
+                sg.Button("保存配置", key="-SAVE_BASE-"),
+                sg.Button("恢复默认", key="-RESET_BASE-"),
+            ],
+        ]
+
+        # 使用Frame包装内容，避免滚动问题
+        content_frame = sg.Frame("", content_layout, border_width=0, pad=(0, 0))
+
+        # 外层Column充满高度，不启用滚动
+        return [
+            [
+                sg.Column(
+                    [[content_frame]],
+                    expand_x=True,
+                    expand_y=True,
+                    pad=(0, 0),
+                    scrollable=True,  # 启用滚动
+                    vertical_scroll_only=True,  # 只允许垂直滚动
+                )
+            ]
+        ]
 
     def create_aiforge_tab(self):
         """创建 AIForge 配置 TAB 布局，显示选中的 LLM 提供商的所有参数"""
@@ -1155,7 +1275,16 @@ class ConfigEditor:
                     self.set_global_font("Helvetica")
                 else:
                     if values["-FONT_COMBO-"]:
-                        self.set_global_font(values["-FONT_COMBO-"])
+                        if self._validate_font_selection(values["-FONT_COMBO-"]):
+                            self.set_global_font(values["-FONT_COMBO-"])
+                        else:
+                            sg.popup_error(
+                                "所选字体不适合界面显示，已重置为默认字体",
+                                title="系统提示",
+                                icon=self.__get_icon(),
+                            )
+                            self.window["-FONT_COMBO-"].update(disabled=True)
+                            self.set_global_font("Helvetica")
                     else:
                         self.set_global_font("Helvetica")
 

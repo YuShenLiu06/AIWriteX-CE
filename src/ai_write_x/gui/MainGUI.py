@@ -34,7 +34,7 @@ __author__ = "iniwaper@gmail.com"
 __copyright__ = "Copyright (C) 2025 iniwap"
 # __date__ = "2025/04/17"
 
-__version___ = "v2.1.6"
+__version___ = "v2.1.7"
 
 
 class MainGUI(object):
@@ -249,21 +249,38 @@ class MainGUI(object):
             if "|" in saved_font:
                 # 新格式：字体名|大小
                 font_name, size = saved_font.split("|", 1)
-                font_tuple = (font_name, int(size))
             else:
                 # 兼容旧格式
                 parts = saved_font.split()
                 if len(parts) >= 2:
                     size = parts[-1]
                     font_name = " ".join(parts[:-1])
-                    font_tuple = (font_name, int(size))
                 else:
-                    font_tuple = "Helvetica 10"
+                    # 如果格式不正确，使用默认字体
+                    sg.set_options(font="Helvetica 10")
+                    return "Helvetica|10"
 
+            # 检查是否为横向字体
+            excluded_patterns = [
+                "@",  # 横向字体通常以@开头
+                "Vertical",  # 包含Vertical的字体
+                "V-",  # 以V-开头的字体
+                "縦",  # 日文中的纵向字体标识
+                "Vert",  # 其他可能的纵向标识
+            ]
+
+            # 如果是横向字体，使用默认字体
+            is_horizontal_font = any(pattern in font_name for pattern in excluded_patterns)
+            if is_horizontal_font:
+                sg.set_options(font="Helvetica 10")
+                return "Helvetica|10"
+
+            # 正常字体，应用设置
+            font_tuple = (font_name, int(size))
             sg.set_options(font=font_tuple)
             return saved_font
-        except Exception as e:
-            print(f"字体加载失败: {e}")
+
+        except Exception:
             sg.set_options(font="Helvetica 10")
             return "Helvetica|10"
 

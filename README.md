@@ -95,11 +95,9 @@ uv pip install -r requirements.txt
 | 网盘类型                     | 下载链接                                                                                              | 提取码  | 版本    |是否最新     |备注                            |
 |-----------------------------|-------------------------------------------------------------------------------------------------------|--------|---------|------------|-------------------------------|
 | **百度网盘**                 |[点击下载](https://pan.baidu.com/s/187wdcce96MdsjqyFOZY7Vw)                                            |n4gx    |V2.1.5    |❌         |搜索采用aipy版本，后续不再使用    |
-| **移动云盘**                 |[点击下载](https://caiyun.139.com/w/i/2oRgXNYcau6t0)                                                   |a6jk    |V2.1.5    |❌         |搜索采用aipy版本，后续不再使用    |
-| **Microsoft OneDrive**      |[点击下载](https://1drv.ms/u/c/c831e3cc9be11110/EUfTGJ9GiU9GkRXr7k-8R_AB64oTkjClx4HmttsRh2sz9A?e=zZ7XN7)|/      |V2.1.5    |❌         |搜索采用aipy版本，后续不再使用    |
-| **Google Drive**            |[点击下载](https://drive.google.com/file/d/106TcfC647TZDSLZHBOYNKJ2QDcqc-b7E/view?usp=sharing)          |/      |V2.1.5    |❌         |搜索采用aipy版本，后续不再使用    |
-| **移动云盘**                 |[点击下载](https://caiyun.139.com/w/i/2oRgXbVv65fhc)                                                   |upkj    |V2.1.6    |✅         |采用强大的AIForge重构版本，后续沿用 |
-| **Microsoft OneDrive**      |[点击下载](https://1drv.ms/u/c/c831e3cc9be11110/ETf_pfCltLdNht5QkyEfZ7AB-_bYxzdDTpe_0kecqV6xcg?e=tqAJTd)|/      |V2.1.6    |✅         |采用强大的AIForge重构版本，后续沿用 |
+| **Google Drive**            |[点击下载](https://drive.google.com/file/d/11eogDqbOc_YomsizunUmpBij5q-gWFeQ/view?usp=sharing)          |/      |V2.1.7    |✅         |采用强大的AIForge版本，后续将沿用 |
+| **移动云盘**                 |[点击下载](https://caiyun.139.com/w/i/2pbtVrtGYkb5t)                                                   |nmg9    |V2.1.7    |✅         |采用强大的AIForge版本，后续将沿用 |
+| **Microsoft OneDrive**      |[点击下载](https://1drv.ms/u/c/c831e3cc9be11110/EQu24PteUuNJv23mc-grdF0BnVKc5nrqnTf3DSdnvb08IA?e=kDNGcd)|/      |V2.1.7    |✅         |采用强大的AIForge版本，后续将沿用 |
 
 2. 打开软件，进行必须要配置（*微信公众号AppID/AppSecret、大模型提供商的API KEY*）
 3. 点击`开始执行`
