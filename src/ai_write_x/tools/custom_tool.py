@@ -258,6 +258,7 @@ class AIForgeSearchTool(BaseTool):
         try:
             # 启用AIForge并且配置了key才能使用aiforge搜索
             if not aiforge_api_key:
+                print("未配置AIForge API KEY，将不使用搜索结果生成文章")
                 return None
 
             # 这里可以有两种形式的传参，第2种不指定要求，需要对输出进行映射

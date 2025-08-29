@@ -2,7 +2,7 @@
 
 ![Python](https://img.shields.io/badge/Python-3.10+-blue) ![PySimpleGUI](https://img.shields.io/badge/PySimpleGUI-4.60.5+-green) ![CrewAI](https://img.shields.io/badge/CrewAI-0.102.0+-red) ![AIForge](https://img.shields.io/badge/aiforge-0.0.5+-pink) ![PyWinGUIBuilder](https://img.shields.io/badge/PyWinGUIBuilder-1.0.0+-yellow) ![Stars](https://img.shields.io/github/stars/iniwap/AIWriteX?label=收藏)
 
-**AIWriteX**是一款基于 CrewAI 、AIForge 的微信公众号自动化工具软件，自动获取抖音、微博等平台热点，融合“搜索+借鉴+AI”，生成**高时效（实时）**、高质量、排版高大上的文章并发布到微信公众号。  
+**AIWriteX**是一款基于 CrewAI 、[AIForge](https://iniwap.github.io/AIForge/) 的微信公众号自动化工具软件，自动获取抖音、微博等平台热点，融合“搜索+借鉴+AI”，生成**高时效（实时）**、高质量、排版高大上的文章并发布到微信公众号。  
 
 > **想先看看效果？** 👉 [文章预览](#-微信公众号模板效果预览)  
 > **心动不如行动？** 👉 [马上开始](#-快速开始)  
@@ -94,10 +94,10 @@ uv pip install -r requirements.txt
 
 | 网盘类型                     | 下载链接                                                                                              | 提取码  | 版本    |是否最新     |备注                            |
 |-----------------------------|-------------------------------------------------------------------------------------------------------|--------|---------|------------|-------------------------------|
-| **百度网盘**                 |[点击下载](https://pan.baidu.com/s/187wdcce96MdsjqyFOZY7Vw)                                            |n4gx    |V2.1.5    |❌         |搜索采用aipy版本，后续不再使用    |
-| **Google Drive**            |[点击下载](https://drive.google.com/file/d/11eogDqbOc_YomsizunUmpBij5q-gWFeQ/view?usp=sharing)          |/      |V2.1.7    |✅         |采用强大的AIForge版本，后续将沿用 |
-| **移动云盘**                 |[点击下载](https://caiyun.139.com/w/i/2pbtVrtGYkb5t)                                                   |nmg9    |V2.1.7    |✅         |采用强大的AIForge版本，后续将沿用 |
-| **Microsoft OneDrive**      |[点击下载](https://1drv.ms/u/c/c831e3cc9be11110/EQu24PteUuNJv23mc-grdF0BnVKc5nrqnTf3DSdnvb08IA?e=kDNGcd)|/      |V2.1.7    |✅         |采用强大的AIForge版本，后续将沿用 |
+| **百度网盘**                 |[点击下载](https://pan.baidu.com/s/1F6gr2BD5RIBTYshzRyF9tA?pwd=56yt)                                   |56yt    |V2.1.8    |✅         |搜索采用aipy版本，后续不再使用    |
+| **Google Drive**            |[点击下载](https://drive.google.com/file/d/1Ja11R5yaHbGSuw6uGJXeYVfvP5B75EaG/view?usp=sharing)          |/      |V2.1.8    |✅         |采用强大的AIForge版本，后续将沿用 |
+| **移动云盘**                 |[点击下载](https://caiyun.139.com/w/i/2prAJm8oVjP2i)                                                   |lfdc    |V2.1.8    |✅         |采用强大的AIForge版本，后续将沿用 |
+| **Microsoft OneDrive**      |[点击下载](https://1drv.ms/u/c/c831e3cc9be11110/EYknOyGhhshPjO4Ky2I1O1kBNlSu0G_n8r_dCmXhMMIz8Q?e=AWUxXN)|/      |V2.1.8    |✅         |采用强大的AIForge版本，后续将沿用 |
 
 2. 打开软件，进行必须要配置（*微信公众号AppID/AppSecret、大模型提供商的API KEY*）
 3. 点击`开始执行`

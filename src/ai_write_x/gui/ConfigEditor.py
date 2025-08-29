@@ -253,10 +253,18 @@ class ConfigEditor:
     def __default_select_api_tab(self):
         # 设置 API TabGroup 的默认选中子 TAB
         api_data = self.config.get_config()["api"]
+        api_type = api_data["api_type"]
+
+        # 转换为显示名称
+        if api_type == "SiliconFlow":
+            target_tab_text = "硅基流动"
+        else:
+            target_tab_text = api_type
+
         tab_group = self.window["-API_TAB_GROUP-"]
         for tab in tab_group.Widget.tabs():
             tab_text = tab_group.Widget.tab(tab, "text")
-            if tab_text == api_data["api_type"]:
+            if tab_text == target_tab_text:
                 tab_group.Widget.select(tab)
                 break
         self.window.refresh()
@@ -264,12 +272,18 @@ class ConfigEditor:
     def create_api_tab(self):
         """创建 API TAB 布局"""
         api_data = self.config.get_config()["api"]
+        current_api_type = api_data["api_type"]
+        if current_api_type == "SiliconFlow":
+            display_api_type = "硅基流动"
+        else:
+            display_api_type = current_api_type
+
         layout = [
             [
                 sg.Text("API 类型"),
                 sg.Combo(
-                    self.config.api_list,
-                    default_value=api_data["api_type"],
+                    self.config.api_list_display,
+                    default_value=display_api_type,
                     key="-API_TYPE-",
                     enable_events=True,
                 ),
@@ -301,6 +315,7 @@ class ConfigEditor:
                         ],
                     ],
                     key="-API_TAB_GROUP-",
+                    enable_events=True,
                 )
             ],
             [
@@ -1182,7 +1197,11 @@ class ConfigEditor:
             # 保存 API 配置
             elif event.startswith("-SAVE_API-"):
                 config = self.config.get_config().copy()
-                config["api"]["api_type"] = values["-API_TYPE-"]
+                api_type = values["-API_TYPE-"]
+                if api_type == "硅基流动":
+                    api_type = "SiliconFlow"
+
+                config["api"]["api_type"] = api_type
                 for api_name in self.config.api_list:
                     try:
                         model_index = int(values[f"-{api_name}_MODEL_INDEX-"])
@@ -1232,6 +1251,26 @@ class ConfigEditor:
                             title="系统提示",
                             icon=self.__get_icon(),
                         )
+            elif event == "-API_TAB_GROUP-":
+                try:
+                    tab_group = self.window["-API_TAB_GROUP-"]
+                    selected_tab_index = tab_group.Widget.index("current")
+                    selected_tab_text = tab_group.Widget.tab(selected_tab_index, "text")
+
+                    # 转换 tab 文本为显示名称（保持一致性）
+                    if selected_tab_text == "硅基流动":
+                        display_api_type = "硅基流动"
+                    else:
+                        display_api_type = selected_tab_text
+
+                    # 更新 API TYPE 下拉框，避免触发循环事件
+                    current_value = self.window["-API_TYPE-"].get()
+                    if current_value != display_api_type:
+                        self.window["-API_TYPE-"].update(value=display_api_type)
+
+                except Exception:
+                    # 静默处理异常，避免影响用户体验
+                    pass
 
             # 保存图像 API 配置
             elif event.startswith("-SAVE_IMG_API-"):

@@ -34,7 +34,7 @@ __author__ = "iniwaper@gmail.com"
 __copyright__ = "Copyright (C) 2025 iniwap"
 # __date__ = "2025/04/17"
 
-__version___ = "v2.1.7"
+__version___ = "v2.1.8"
 
 
 class MainGUI(object):
@@ -79,165 +79,201 @@ class MainGUI(object):
 
         layout = [
             [sg.Menu(menu_list, key="-MENU-")],
+            # 顶部品牌区域
             [
                 sg.Image(
-                    s=(640, 160),
+                    s=(640, 120),
                     filename=utils.get_res_path("UI\\bg.png", os.path.dirname(__file__)),
                     key="-BG-IMG-",
                     expand_x=True,
                 )
             ],
+            # 使用提示区域
             [
-                sg.Column(
+                sg.Frame(
+                    "",
                     [
                         [
                             sg.Text(
-                                "自定义文章话题：",
-                                size=(12, 1),
-                                pad=((10, 5), (5, 2)),
+                                "💡 快速开始：1. 配置→配置管理 填写使用的 API KEY  2. 勾选自定义话题启用借鉴模式，默认使用热搜话题",  # noqa 501
+                                font=("", 8),
+                                text_color="#666666",
+                                pad=((10, 10), (5, 5)),
+                            )
+                        ]
+                    ],
+                    border_width=0,
+                    pad=((15, 15), (5, 10)),
+                    expand_x=True,
+                )
+            ],
+            # 主要配置区域
+            [
+                sg.Frame(
+                    "借鉴模式",
+                    [
+                        # 话题配置行
+                        [
+                            sg.Text("自定义话题", size=(10, 1), pad=((10, 5), (8, 5))),
+                            sg.Checkbox(
+                                "",
+                                key="-CUSTOM_TOPIC-",
+                                enable_events=True,
+                                pad=((8, 10), (8, 5)),
+                                tooltip="启用自定义话题和借鉴文章模式",
                             ),
                             sg.InputText(
                                 "",
                                 key="-TOPIC_INPUT-",
                                 disabled=True,
-                                size=(32, 1),
-                                pad=((5, 5), (5, 2)),
-                                tooltip="输入自定义话题，或留空以自动获取热搜作为文章标题",
-                            ),
-                            sg.Checkbox(
-                                "",
-                                key="-CUSTOM_TOPIC-",
-                                enable_events=True,
-                                tooltip="勾选以启用自定义话题，否则自动获取热搜作为文章标题",
-                                size=(2, 1),
-                                pad=((5, 10), (5, 2)),
+                                size=(35, 1),
+                                pad=((0, 10), (8, 5)),
+                                tooltip="输入自定义话题，或留空以自动获取热搜",
                             ),
                         ],
+                        # 模板配置行
                         [
-                            sg.Text(
-                                "模板分类及模板：",
-                                size=(12, 1),
-                                pad=((10, 5), (5, 2)),
-                                tooltip="指定分类及模板：\n- 优先级高于配置，优先采用此设置\n- 仅限本次运行使用，不会保存到配置",
-                            ),
+                            sg.Text("模板选择", size=(10, 1), pad=((10, 5), (5, 5))),
                             sg.Combo(
                                 ["随机分类"] + categories,
-                                default_value=(
-                                    current_category if current_category else "随机分类"
-                                ),
+                                default_value=current_category if current_category else "随机分类",
                                 key="-TEMPLATE_CATEGORY-",
                                 disabled=True,
-                                size=(15, 1),
+                                size=(17, 1),
                                 readonly=True,
                                 enable_events=True,
-                                pad=((5, 5), (5, 2)),
-                                tooltip="选择分类：\n- 随机分类：程序随机选取一个分类\n- 指定分类：选择特定分类，然后从该分类下选择模板",
+                                pad=((15, 5), (5, 5)),
                             ),
                             sg.Combo(
                                 ["随机模板"] + current_templates,
-                                default_value=(
-                                    current_template if current_template else "随机模板"
-                                ),
+                                default_value=current_template if current_template else "随机模板",
                                 key="-TEMPLATE-",
                                 disabled=True,
-                                size=(15, 1),
+                                size=(17, 1),
                                 readonly=True,
-                                pad=((5, 10), (5, 2)),
-                                tooltip="选择模板：\n- 随机模板：从选定分类中随机选取模板\n- 指定模板：使用选定分类下的特定模板文件",
+                                pad=((5, 10), (5, 5)),
                             ),
                         ],
+                        # 参考链接配置行
                         [
-                            sg.Text(
-                                "AI参考文章链接：",
-                                size=(12, 1),
-                                pad=((10, 5), (2, 5)),
-                                tooltip="参考文章链接：\n- 输入链接，生成文章将参考其内容\n- 可不填参考链接，采用搜索结果",
-                            ),
+                            sg.Text("参考链接", size=(10, 1), pad=((10, 5), (5, 8))),
                             sg.InputText(
                                 "",
                                 key="-URLS_INPUT-",
                                 disabled=True,
-                                size=(26, 1),
-                                tooltip="多个链接请用竖线(|)分隔，例如：http://site1.com|https://site2.com",
-                                pad=((5, 5), (2, 5)),
+                                size=(30, 1),
+                                pad=((15, 5), (5, 8)),
+                                tooltip="多个链接用竖线(|)分隔",
                             ),
+                            sg.Text("借鉴比例", size=(8, 1), pad=((10, 5), (5, 8))),
                             sg.Combo(
                                 ["10%", "20%", "30%", "50%", "75%"],
                                 default_value="30%",
                                 key="-REFERENCE_RATIO-",
                                 disabled=True,
-                                size=(6, 1),
-                                pad=((5, 10), (2, 5)),
-                                tooltip="参考链接文章内容的借鉴比例",
+                                size=(8, 1),
+                                pad=((5, 10), (5, 8)),
                             ),
                         ],
                     ],
-                    justification="center",
-                    element_justification="left",
-                    pad=(0, 0),
+                    border_width=1,
+                    relief=sg.RELIEF_RIDGE,
+                    pad=((15, 15), (5, 15)),
+                    expand_x=True,
+                    font=("", 9, "bold"),
                 )
             ],
+            # 操作按钮区域
             [
-                sg.Push(),
-                sg.Button(
-                    button_text="开始执行",
-                    size=(12, 2),
-                    key="-START_BTN-",
-                    pad=((10, 15), (5, 5)),
-                ),
-                sg.Button(
-                    button_text="结束执行",
-                    size=(12, 2),
-                    key="-STOP_BTN-",
-                    disabled=not self._is_running,
-                    pad=((15, 10), (5, 5)),
-                ),
-                sg.Push(),
+                sg.Frame(
+                    "",
+                    [
+                        [
+                            sg.Push(),
+                            sg.Button(
+                                "开始执行",
+                                size=(15, 2),
+                                key="-START_BTN-",
+                                button_color=("#FFFFFF", "#2E8B57"),
+                                font=("", 10, "bold"),
+                                pad=((10, 15), (10, 10)),
+                            ),
+                            sg.Button(
+                                "停止执行",
+                                size=(15, 2),
+                                key="-STOP_BTN-",
+                                disabled=not self._is_running,
+                                button_color=("#FFFFFF", "#CD5C5C"),
+                                font=("", 10, "bold"),
+                                pad=((15, 10), (10, 10)),
+                            ),
+                            sg.Push(),
+                        ]
+                    ],
+                    border_width=0,
+                    pad=((15, 15), (5, 10)),
+                    expand_x=True,
+                )
             ],
+            # 分隔线
+            [sg.HSeparator(pad=((20, 20), (10, 10)))],
+            # 日志控制区域
             [
-                sg.HSeparator(pad=((10, 10), (5, 5))),
-            ],
-            [
-                sg.Text("日志:", size=(6, 1), pad=((10, 5), (5, 5))),
-                sg.Spin(
-                    [10, 20, 50, 100, 200, 500, 1000],
-                    initial_value=100,
-                    key="-LOG_LIMIT-",
-                    size=(6, 1),
-                    pad=((5, 5), (5, 5)),
-                ),
-                sg.Button(
-                    "设置显示条数",
-                    key="-SET_LOG_LIMIT-",
-                    size=(12, 1),
-                    pad=((5, 5), (5, 5)),
-                ),
-                sg.Button(
-                    "清空日志",
-                    key="-CLEAR_LOG-",
-                    size=(12, 1),
-                    pad=((5, 10), (5, 5)),
-                ),
-            ],
-            [
-                sg.Push(),
-                sg.Multiline(
-                    size=(100, 18),
-                    key="-STATUS-",
-                    autoscroll=True,
-                    pad=((10, 10), (5, 10)),
-                ),
-                sg.Push(),
+                sg.Frame(
+                    "运行日志",
+                    [
+                        [
+                            sg.Text("显示条数:", size=(8, 1), pad=((10, 5), (5, 5))),
+                            sg.Spin(
+                                [10, 20, 50, 100, 200, 500, 1000],
+                                initial_value=100,
+                                key="-LOG_LIMIT-",
+                                size=(8, 1),
+                                pad=((5, 10), (5, 5)),
+                            ),
+                            sg.Button(
+                                "应用",
+                                key="-SET_LOG_LIMIT-",
+                                size=(8, 1),
+                                pad=((5, 10), (5, 5)),
+                            ),
+                            sg.Button(
+                                "清空",
+                                key="-CLEAR_LOG-",
+                                size=(8, 1),
+                                pad=((5, 10), (5, 5)),
+                            ),
+                        ],
+                        [
+                            sg.Multiline(
+                                size=(90, 16),
+                                key="-STATUS-",
+                                autoscroll=True,
+                                pad=((10, 10), (5, 10)),
+                                # font=("Consolas", 9),
+                                background_color="#F8F8F8",
+                                text_color="#333333",
+                            )
+                        ],
+                    ],
+                    border_width=1,
+                    relief=sg.RELIEF_RIDGE,
+                    pad=((15, 15), (5, 15)),
+                    expand_x=True,
+                    font=("", 9, "bold"),
+                )
             ],
         ]
-
         self._window = sg.Window(
             f"AIWriteX - {__version___}",
             layout,
             default_element_size=(12, 1),
-            size=(640, 640),
+            size=(650, 720),
             icon=self.__get_icon(),
             finalize=True,
+            resizable=False,
+            element_justification="left",
+            margins=(10, 10),
         )
         self._menu = self._window["-MENU-"].TKMenu
 

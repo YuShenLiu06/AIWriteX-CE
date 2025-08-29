@@ -440,11 +440,31 @@ class Config:
                 raise ValueError("配置未加载")
 
             api_keys_list = list(self.config["api"].keys())
-            # 移除 "api_type" 这个键，得到您需要的列表
             if "api_type" in api_keys_list:
                 api_keys_list.remove("api_type")
 
             return api_keys_list
+
+    @property
+    def api_list_display(self):
+        """返回用于界面显示的API类型列表"""
+        with self._lock:
+            if self.config is None:
+                raise ValueError("配置未加载")
+
+            api_keys_list = list(self.config["api"].keys())
+            if "api_type" in api_keys_list:
+                api_keys_list.remove("api_type")
+
+            # 转换为显示名称
+            display_list = []
+            for api_type in api_keys_list:
+                if api_type == "SiliconFlow":
+                    display_list.append("硅基流动")
+                else:
+                    display_list.append(api_type)
+
+            return display_list
 
     # aiforge 配置
     @property
@@ -556,13 +576,12 @@ class Config:
                     cred["appid"] and cred["appsecret"] for cred in self.wechat_credentials
                 )
                 if not valid_cred:
-                    self.error_message = "未配置有效的微信公众号appid和appsecret，请打开配置填写"
+                    self.error_message = "【自动发布】时，需配置微信公众号appid和appsecret"
                     return False
 
             # 检查是否配置了aiforge api_key
             if not self.aiforge_api_key:
-                self.error_message = "AIForge未配置有效的llm提供商的api_key"
-                return False
+                print("AIForge未配置有效的llm提供商的api_key，将不使用搜索功能")
 
             total_weight = sum(platform["weight"] for platform in self.platforms)
             if abs(total_weight - 1.0) > 0.01:
