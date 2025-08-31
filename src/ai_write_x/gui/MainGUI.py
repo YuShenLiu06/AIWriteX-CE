@@ -77,13 +77,23 @@ class MainGUI(object):
             ["帮助", ["帮助", "关于", "官网"]],
         ]
 
+        # 根据平台选择菜单组件
+        import sys
+
+        if sys.platform == "darwin":  # macOS
+            menu_component = [sg.MenubarCustom(menu_list, key="-MENU-")]
+        else:  # Windows 和 Linux
+            menu_component = [sg.Menu(menu_list, key="-MENU-")]
+
         layout = [
-            [sg.Menu(menu_list, key="-MENU-")],
+            menu_component,
             # 顶部品牌区域
             [
                 sg.Image(
                     s=(640, 120),
-                    filename=utils.get_res_path("UI\\bg.png", os.path.dirname(__file__)),
+                    filename=utils.get_res_path(
+                        os.path.join("UI", "bg.png"), os.path.dirname(__file__)
+                    ),
                     key="-BG-IMG-",
                     expand_x=True,
                 )
@@ -275,7 +285,14 @@ class MainGUI(object):
             element_justification="left",
             margins=(10, 10),
         )
-        self._menu = self._window["-MENU-"].TKMenu
+
+        # 根据平台和菜单类型初始化菜单引用
+        if sys.platform == "darwin":  # macOS 使用 MenubarCustom
+            self._menu = None  # MenubarCustom 没有 TKMenu 属性
+            self._use_menubar_custom = True
+        else:  # Windows 和 Linux 使用标准 Menu
+            self._menu = self._window["-MENU-"].TKMenu
+            self._use_menubar_custom = False
 
     def load_saved_font(self):
         """加载保存的字体设置"""
@@ -321,7 +338,7 @@ class MainGUI(object):
             return "Helvetica|10"
 
     def __get_icon(self):
-        return utils.get_res_path("UI\\icon.ico", os.path.dirname(__file__))
+        return utils.get_res_path(os.path.join("UI", "icon.ico"), os.path.dirname(__file__))
 
     def __save_ui_log(self, log_entry):
         # 如果日志不存在，则更新日志列表
@@ -358,8 +375,16 @@ class MainGUI(object):
             return ["更多..."]
 
     def __update_menu(self):
+        if self._use_menubar_custom:
+            # MenubarCustom 需要重新创建整个菜单
+            self.update_log_menu(self._log_list)
+            return
+
+        if self._menu is None:
+            return  # 跳过菜单更新
+
         try:
-            # 缓存“日志”菜单引用，初始化时查找一次
+            # 缓存"日志"菜单引用，初始化时查找一次
             if not hasattr(self, "_log_menu"):
                 for i in range(self._menu.index(tk.END) + 1):
                     if self._menu.entrycget(i, "label") == "日志":
@@ -368,13 +393,30 @@ class MainGUI(object):
                 else:
                     return
 
-            # 清空“日志”菜单并更新
+            # 清空"日志"菜单并更新
             self._log_menu.delete(0, tk.END)
             for log_item in self._log_list:
                 self._log_menu.add_command(
                     label=log_item,
                     command=lambda item=log_item: self._window.write_event_value(item, None),
                 )
+        except Exception:
+            pass
+
+    def update_log_menu(self, log_list):
+        """更新日志菜单（用于 MenubarCustom）"""
+        self._log_list = log_list
+        # 重建菜单
+        menu_list = [
+            ["配置", ["配置管理", "CrewAI文件", "AIForge文件"]],
+            ["发布", ["文章管理"]],
+            ["模板", ["模板管理"]],
+            ["日志", self._log_list],
+            ["帮助", ["帮助", "关于", "官网"]],
+        ]
+        # 刷新菜单
+        try:
+            self._window["-MENU-"].update(menu_definition=menu_list)
         except Exception:
             pass
 
@@ -451,11 +493,50 @@ class MainGUI(object):
                             log.print_log("警告：任务终止超时，可能未完全停止")
 
                     break
-                elif event == "配置管理":
+
+                # 处理 MenubarCustom 事件（格式为 "菜单::子菜单"）
+                if self._use_menubar_custom and "::" in str(event):
+                    menu_parts = event.split("::")
+                    if len(menu_parts) == 2:
+                        main_menu, submenu = menu_parts
+                        if main_menu == "配置":
+                            if submenu == "配置管理":
+                                event = "配置管理"
+                            elif submenu == "CrewAI文件":
+                                event = "CrewAI文件"
+                            elif submenu == "AIForge文件":
+                                event = "AIForge文件"
+                        elif main_menu == "发布":
+                            if submenu == "文章管理":
+                                event = "文章管理"
+                        elif main_menu == "模板":
+                            if submenu == "模板管理":
+                                event = "模板管理"
+                        elif main_menu == "日志":
+                            event = submenu  # 日志文件名
+                        elif main_menu == "帮助":
+                            if submenu == "帮助":
+                                event = "帮助"
+                            elif submenu == "关于":
+                                event = "关于"
+                            elif submenu == "官网":
+                                event = "官网"
+
+                # 原有的事件处理逻辑保持不变
+                if event == "配置管理":
                     ConfigEditor.gui_start()
                 elif event == "CrewAI文件":
                     try:
-                        os.system("start /B  notepad " + Config.get_instance().get_config_path())
+                        import sys
+
+                        if sys.platform == "win32":
+                            os.system(
+                                "start /B  notepad " + Config.get_instance().get_config_path()
+                            )
+                        elif sys.platform == "darwin":  # macOS
+                            os.system("open -a TextEdit " + Config.get_instance().get_config_path())
+                        else:  # Linux
+                            os.system("gedit " + Config.get_instance().get_config_path() + " &")
                     except Exception as e:
                         sg.popup(
                             "无法打开CrewAI配置文件 :( \n错误信息：" + str(e),
@@ -464,7 +545,18 @@ class MainGUI(object):
                         )
                 elif event == "AIForge文件":
                     try:
-                        os.system("start /B  notepad " + Config.get_instance().config_aiforge_path)
+                        import sys
+
+                        if sys.platform == "win32":
+                            os.system(
+                                "start /B  notepad " + Config.get_instance().config_aiforge_path
+                            )
+                        elif sys.platform == "darwin":  # macOS
+                            os.system(
+                                "open -a TextEdit " + Config.get_instance().config_aiforge_path
+                            )
+                        else:  # Linux
+                            os.system("gedit " + Config.get_instance().config_aiforge_path + " &")
                     except Exception as e:
                         sg.popup(
                             "无法打开AIForge配置文件 :( \n错误信息：" + str(e),
@@ -648,7 +740,10 @@ class MainGUI(object):
                 elif event in self._log_list:
                     if event == "更多...":
                         logs_path = os.path.abspath(utils.get_current_dir("logs"))
-                        logs_path = logs_path.replace("/", "\\")
+                        import sys
+
+                        if sys.platform == "win32":
+                            logs_path = logs_path.replace("/", "\\")
                         filename = sg.popup_get_file(
                             "打开文件",
                             default_path=logs_path,
@@ -660,7 +755,12 @@ class MainGUI(object):
                             continue
 
                         try:
-                            os.system("start /B  notepad " + filename)
+                            if sys.platform == "win32":
+                                os.system("start /B  notepad " + filename)
+                            elif sys.platform == "darwin":  # macOS
+                                os.system("open -a TextEdit " + filename)
+                            else:  # Linux
+                                os.system("gedit " + filename + " &")
                         except Exception as e:
                             sg.popup(
                                 "无法打开日志文件 :( \n错误信息：" + str(e),
@@ -669,10 +769,15 @@ class MainGUI(object):
                             )
                     else:
                         try:
-                            os.system(
-                                "start /B  notepad "
-                                + os.path.join(utils.get_current_dir("logs"), event)
-                            )
+                            import sys
+
+                            log_file_path = os.path.join(utils.get_current_dir("logs"), event)
+                            if sys.platform == "win32":
+                                os.system("start /B  notepad " + log_file_path)
+                            elif sys.platform == "darwin":  # macOS
+                                os.system("open -a TextEdit " + log_file_path)
+                            else:  # Linux
+                                os.system("gedit " + log_file_path + " &")
                         except Exception as e:
                             sg.popup(
                                 "无法打开日志文件 :( \n错误信息：" + str(e),

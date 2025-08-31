@@ -4,6 +4,7 @@ __pycache__/
 .git-backup/
 logs/*.log
 make_exe/
+make_app/
 image/*
 !image/preview/
 aiforge_work/*
@@ -12,5 +13,8 @@ config.bk
 output/*/*
 !output/article/.gitkeep
 !output/exe/.gitkeep
+!output/app/.gitkeep
 AIWriteX_云盘版_Setup*.exe
 AIWriteX_云盘版_Setup*.zip
+AIWriteX.app
+AIWriteX.dmg

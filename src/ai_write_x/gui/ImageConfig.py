@@ -849,7 +849,7 @@ class ImageConfigWindow:
     def _get_icon(self):
         """获取窗口图标"""
         try:
-            return utils.get_res_path("UI\\icon.ico", os.path.dirname(__file__))
+            return utils.get_res_path(os.path.join("UI", "icon.ico"), os.path.dirname(__file__))
         except Exception:
             return None
 

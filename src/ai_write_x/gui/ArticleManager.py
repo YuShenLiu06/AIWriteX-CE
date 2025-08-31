@@ -761,7 +761,7 @@ class ArticleManager:
 
     def __get_icon(self):
         """获取窗口图标"""
-        return utils.get_res_path("UI\\icon.ico", os.path.dirname(__file__))
+        return utils.get_res_path(os.path.join("UI", "icon.ico"), os.path.dirname(__file__))
 
 
 def gui_start():

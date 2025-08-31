@@ -269,9 +269,7 @@ class AIForgeSearchTool(BaseTool):
             )
             # 因为没输出格式要求，这里需要获取到后进行映射
             # 即使指定也不一定能保证，所以最好固定进行映射
-            return map_result_to_format(
-                results.get("data", []), ["title", "abstract", "url", "pub_time"]
-            )
+            return map_result_to_format(results.data, ["title", "abstract", "url", "pub_time"])
         except Exception as e:
             log.print_traceback("搜索过程中发生错误：", e)
             return None

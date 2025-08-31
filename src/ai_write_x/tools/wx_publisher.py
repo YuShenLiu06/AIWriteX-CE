@@ -427,7 +427,9 @@ def pub2wx(title, digest, article, appid, appsecret, author):
 
     if image_url is None:
         log.print_log("生成图片出错，使用默认图片")
-        image_url = utils.get_res_path("UI\\bg.png", os.path.dirname(__file__) + "/../gui/")
+        image_url = utils.get_res_path(
+            os.path.join("UI", "bg.png"), os.path.dirname(__file__) + "/../gui/"
+        )
 
     # 封面图片
     media_id, _, err_msg = publisher.upload_image(image_url)

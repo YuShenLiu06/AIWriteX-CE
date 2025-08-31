@@ -51,7 +51,7 @@ class ConfigEditor:
             sg.set_options(font="Helvetica 10")
 
     def __get_icon(self):
-        return utils.get_res_path("UI\\icon.ico", os.path.dirname(__file__))
+        return utils.get_res_path(os.path.join("UI", "icon.ico"), os.path.dirname(__file__))
 
     def _filter_fonts(self):
         """过滤掉横向字体，只保留适合界面显示的字体"""
