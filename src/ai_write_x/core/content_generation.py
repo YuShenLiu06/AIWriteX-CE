@@ -5,6 +5,7 @@ from .base_framework import BaseWorkflowFramework, WorkflowConfig, ContentResult
 from .agent_factory import AgentFactory
 from .creative_modules import CreativeModule
 from .monitoring import WorkflowMonitor
+from ..utils import log
 
 
 class ContentGenerationEngine(BaseWorkflowFramework):
@@ -130,3 +131,40 @@ class ContentGenerationEngine(BaseWorkflowFramework):
 
         module = self.creative_modules[creative_mode]
         return module.transform(base_content, **kwargs)
+
+    def _create_publisher_callback(self):
+        """创建平台无关的发布回调"""
+
+        def callback_function(output):
+            # 获取目标平台
+            target_platform = self.callback_params.get("target_platform", "wechat")
+
+            # 通过平台适配器处理发布
+            from ..core.system_init import get_platform_adapter
+
+            adapter = get_platform_adapter(target_platform)
+
+            if adapter:
+                # 将所有参数传递给平台适配器，让适配器决定需要哪些参数
+                publish_result = adapter.publish_content(
+                    output.raw, **self.callback_params  # 传递所有参数，让适配器自行筛选
+                )
+                log.print_log(
+                    publish_result.message, "status" if publish_result.success else "error"
+                )
+            else:
+                log.print_log(f"不支持的平台: {target_platform}", "error")
+
+        return callback_function
+
+    def _create_saver_callback(self):
+        """创建平台无关的保存回调"""
+
+        def callback_function(output):
+            from ..tools.unified_content_tools import ContentSaver
+
+            saver = ContentSaver()
+            result = saver.process(output.raw)
+            log.print_log(result["message"], "status" if result["success"] else "error")
+
+        return callback_function

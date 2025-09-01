@@ -19,6 +19,7 @@ from ..adapters.platform_adapters import (
     DoubanAdapter,
 )
 from .monitoring import WorkflowMonitor
+from ..config.config import Config
 
 
 class UnifiedContentWorkflow:
@@ -42,53 +43,113 @@ class UnifiedContentWorkflow:
         }
         self.monitor = WorkflowMonitor.get_instance()
 
-    def get_base_content_config(self) -> WorkflowConfig:
-        """获取基础内容生成配置（复用现有的微信创作流程）"""
+    def get_base_content_config(self, target_platform: str = "wechat", **kwargs) -> WorkflowConfig:
+        """动态生成基础内容配置，根据平台和需求定制"""
+        config = Config.get_instance()
+
+        # 获取平台适配器能力
+        from ..core.system_init import get_platform_adapter
+
+        adapter = get_platform_adapter(target_platform)
+
+        # 基础配置
         agents = [
             AgentConfig(
                 role="researcher",
                 goal="解析话题，确定文章的核心要点和结构",
-                backstory="你是一位内容策略师，擅长从复杂的话题中提炼出关键信息",
+                backstory="你是一位内容策略师",
             ),
             AgentConfig(
                 role="writer",
-                goal="根据给定的热门话题和最新搜索数据，撰写高质量文章",
-                backstory="你是一位才华横溢的作家，擅长各种文风",
+                goal="撰写高质量文章",
+                backstory="你是一位作家",
                 tools=["AIForgeSearchTool"],
-            ),
-            AgentConfig(
-                role="auditor",
-                goal="对生成的文章进行全面质量审核",
-                backstory="你是内容质量专家，能够发现文章中的错误和不足",
             ),
         ]
 
         tasks = [
             TaskConfig(
                 name="analyze_topic",
-                description="解析话题'{topic}'，确定文章的核心要点和结构",
+                description="解析话题'{topic}'",
                 agent_role="researcher",
-                expected_output="文章大纲和核心要点",
+                expected_output="文章大纲",
             ),
             TaskConfig(
                 name="write_content",
-                description="基于分析结果和搜索工具获取的信息，撰写高质量文章",
+                description="撰写文章。平台：{platform}，参考链接：{urls}，借鉴比例：{reference_ratio}",
                 agent_role="writer",
-                expected_output="完整的文章内容（Markdown格式）",
+                expected_output="完整文章",
                 context=["analyze_topic"],
-            ),
-            TaskConfig(
-                name="audit_content",
-                description="对生成的文章进行质量审核和优化",
-                agent_role="auditor",
-                expected_output="审核优化后的最终文章",
-                context=["write_content"],
             ),
         ]
 
+        # 动态添加审核（基于配置）
+        if config.need_auditor:
+            agents.append(AgentConfig(role="auditor", goal="质量审核", backstory="质量专家"))
+            tasks.append(
+                TaskConfig(
+                    name="audit_content",
+                    description="质量审核",
+                    agent_role="auditor",
+                    expected_output="审核后文章",
+                    context=["write_content"],
+                )
+            )
+
+        # 动态添加格式处理（基于平台能力和配置）
+        last_task_context = ["audit_content"] if config.need_auditor else ["write_content"]
+
+        if adapter and adapter.supports_html() and config.article_format.upper() == "HTML":
+            if config.use_template and adapter.supports_template():
+                # 模板处理路径
+                agents.append(
+                    AgentConfig(
+                        role="templater",
+                        goal="模板处理",
+                        backstory="模板专家",
+                        tools=["ReadTemplateTool"],
+                    )
+                )
+                tasks.append(
+                    TaskConfig(
+                        name="template_content",
+                        description="使用模板格式化内容",
+                        agent_role="templater",
+                        expected_output="模板HTML",
+                        context=last_task_context,
+                        callback="publisher_callback",
+                    )
+                )
+            else:
+                # 设计器处理路径
+                agents.append(AgentConfig(role="designer", goal="HTML设计", backstory="设计专家"))
+                tasks.append(
+                    TaskConfig(
+                        name="design_content",
+                        description="HTML设计",
+                        agent_role="designer",
+                        expected_output="设计HTML",
+                        context=last_task_context,
+                        callback="publisher_callback",
+                    )
+                )
+        else:
+            # 保存路径（非HTML或不支持HTML的平台）
+            agents.append(AgentConfig(role="saver", goal="保存文章", backstory="保存专家"))
+            tasks.append(
+                TaskConfig(
+                    name="save_article",
+                    description="保存文章",
+                    agent_role="saver",
+                    expected_output="保存结果",
+                    context=last_task_context,
+                    callback="saver_callback",
+                )
+            )
+
         return WorkflowConfig(
-            name="base_content_generation",
-            description="基础内容生成工作流",
+            name=f"{target_platform}_content_generation",
+            description=f"面向{target_platform}平台的内容生成工作流",
             workflow_type=WorkflowType.SEQUENTIAL,
             content_type=ContentType.ARTICLE,
             agents=agents,
@@ -96,24 +157,33 @@ class UnifiedContentWorkflow:
         )
 
     def _generate_base_content(self, topic: str, **kwargs) -> ContentResult:
-        """生成基础内容"""
+        """生成基础内容 - 传递平台信息"""
         from .content_generation import ContentGenerationEngine
 
-        # 获取基础配置
-        base_config = self.get_base_content_config()
+        # 获取目标平台
+        target_platform = kwargs.get("target_platform", "wechat")
+
+        # 动态获取配置
+        base_config = self.get_base_content_config(target_platform=target_platform, **kwargs)
+
+        # 准备回调参数（包含平台信息）
+        callback_params = dict(kwargs)  # 复制所有参数
+        callback_params["target_platform"] = target_platform
 
         # 创建内容生成引擎
-        self.content_engine = ContentGenerationEngine(base_config)
+        self.content_engine = ContentGenerationEngine(base_config, callback_params)
 
         # 准备输入数据
+        config = Config.get_instance()
         input_data = {
             "topic": topic,
             "platform": kwargs.get("platform", ""),
             "urls": kwargs.get("urls", []),
             "reference_ratio": kwargs.get("reference_ratio", 0.0),
+            "min_article_len": config.min_article_len,
+            "max_article_len": config.max_article_len,
         }
 
-        # 执行工作流
         return self.content_engine.execute_workflow(input_data)
 
     def execute(
@@ -141,7 +211,7 @@ class UnifiedContentWorkflow:
             for platform in target_platforms or []:
                 if platform in self.platform_adapters:
                     adapter = self.platform_adapters[platform]
-                    formatted_content = adapter.format_content(final_content.content)
+                    formatted_content = adapter.format_content(final_content)
                     platform_results[platform] = {
                         "formatted_content": formatted_content,
                         "published": False,

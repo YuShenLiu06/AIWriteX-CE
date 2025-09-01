@@ -86,43 +86,36 @@ class WeChatAdapter(PlatformAdapter):
 
         return get_format_article(".md", markdown_content)
 
-    def publish_content(
-        self,
-        formatted_content: str,
-        appid: str = "",
-        appsecret: str = "",
-        author: str = "",
-        **kwargs,
-    ) -> PublishResult:
-        """发布到微信公众号"""
-        # 复用现有的发布逻辑
-        from ..tools.wx_publisher import pub2wx
-        from ..utils import utils
+    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
+        """发布到微信 - 只提取微信需要的参数"""
+        # 微信特有参数提取
+        wechat_params = {
+            "appid": kwargs.get("appid", ""),
+            "appsecret": kwargs.get("appsecret", ""),
+            "author": kwargs.get("author", ""),
+        }
 
-        try:
-            # 提取标题和摘要
-            title = utils.extract_main_title(formatted_content)
-            if not title:
-                return PublishResult(
-                    success=False, message="无法提取文章标题", platform_id="wechat"
-                )
-
-            # 生成摘要
-            _, digest = utils.extract_markdown_content(formatted_content)
-
-            # 调用现有的微信发布功能
-            result, _, _ = pub2wx(title, digest, formatted_content, appid, appsecret, author)
-
-            success = "成功" in result
-            return PublishResult(success=success, message=result, platform_id="wechat")
-
-        except Exception as e:
+        # 验证微信必需参数
+        if not all([wechat_params["appid"], wechat_params["appsecret"]]):
             return PublishResult(
                 success=False,
-                message=f"发布失败: {e}",
+                message="微信发布缺少必需参数: appid, appsecret",
                 platform_id="wechat",
-                error_code="PUBLISH_ERROR",
             )
+
+        # 调用微信发布逻辑
+        from ..tools.wx_publisher import pub2wx
+
+        try:
+            result, _, success = pub2wx(
+                title=self._extract_title(formatted_content),
+                digest=self._extract_digest(formatted_content),
+                content=formatted_content,
+                **wechat_params,
+            )
+            return PublishResult(success=success, message=result, platform_id="wechat")
+        except Exception as e:
+            return PublishResult(success=False, message=f"发布失败: {e}", platform_id="wechat")
 
 
 class XiaohongshuAdapter(PlatformAdapter):
@@ -145,12 +138,17 @@ class XiaohongshuAdapter(PlatformAdapter):
         return formatted
 
     def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
-        """小红书发布（暂时返回失败，需要接入小红书API）"""
+        """发布到小红书 - 提取小红书需要的参数"""
+        # 小红书可能需要不同的参数
+        xiaohongshu_params = {
+            "access_token": kwargs.get("access_token", ""),
+            "user_id": kwargs.get("user_id", ""),
+            # 其他小红书特有参数
+        }
+        print(xiaohongshu_params)
+        # 小红书发布逻辑
         return PublishResult(
-            success=False,
-            message="小红书发布功能待开发",
-            platform_id="xiaohongshu",
-            error_code="NOT_IMPLEMENTED",
+            success=False, message="小红书发布功能待开发", platform_id="xiaohongshu"
         )
 
 
