@@ -11,7 +11,6 @@ import time
 import queue
 import threading
 import os
-import glob
 from collections import deque
 
 import PySimpleGUI as sg
@@ -28,6 +27,7 @@ from src.ai_write_x.gui import ConfigEditor
 from src.ai_write_x.gui import ArticleManager
 from src.ai_write_x.gui import TemplateManager
 from src.ai_write_x.config.config import DEFAULT_TEMPLATE_CATEGORIES
+from src.ai_write_x.utils.path_manager import PathManager
 
 
 __author__ = "iniwaper@gmail.com"
@@ -43,7 +43,7 @@ class MainGUI(object):
         self._is_running = False  # 跟踪任务状态
         self._update_queue = comm.get_update_queue()
         self._log_buffer = deque(maxlen=100)
-        self._ui_log_path = log.get_log_path("UI")
+        self._ui_log_path = PathManager.get_log_dir() / "UI.log"
         self._log_list = self.__get_logs()
         # 配置 CrewAI 日志处理器
         log.setup_logging("crewai", self._update_queue)
@@ -358,7 +358,8 @@ class MainGUI(object):
     def __get_logs(self, max_files=5):
         try:
             # 获取所有 .log 文件
-            log_files = glob.glob(os.path.join(utils.get_current_dir("logs"), "*.log"))
+            log_dir = PathManager.get_log_dir()
+            log_files = list(log_dir.glob("*.log"))
             if not log_files:
                 return ["更多..."]
 

@@ -21,6 +21,8 @@ from ..adapters.platform_adapters import (
 from .monitoring import WorkflowMonitor
 from ..config.config import Config
 from .content_generation import ContentGenerationEngine
+from src.ai_write_x.utils.path_manager import PathManager
+from src.ai_write_x.utils import utils
 
 
 class UnifiedContentWorkflow:
@@ -303,6 +305,10 @@ class UnifiedContentWorkflow:
 
         # 确定文件格式和路径
         file_extension = self._get_file_extension(config.article_format)
+        save_path = (
+            PathManager.get_article_dir() / f"{utils.sanitize_filename(title)}.{file_extension}"
+        )
+
         save_path = self._get_save_path(title, file_extension)
 
         # 保存文件

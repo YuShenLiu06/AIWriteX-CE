@@ -6,6 +6,7 @@
 采用树状结构 + 详情面板的UI设计
 """
 
+import sys
 import os
 import glob
 import time
@@ -15,6 +16,7 @@ import shutil
 
 from src.ai_write_x.utils import utils
 from src.ai_write_x.config.config import DEFAULT_TEMPLATE_CATEGORIES
+from src.ai_write_x.utils.path_manager import PathManager
 
 
 __author__ = "iniwaper@gmail.com"
@@ -36,12 +38,13 @@ class TemplateManager:
 
     def _ensure_default_categories(self):
         """确保默认分类文件夹存在，缺失时创建"""
-        template_dir = utils.get_template_dir()
+        template_dir = PathManager.get_template_dir()
+
         # 使用中文名称作为文件夹名
         for chinese_name in DEFAULT_TEMPLATE_CATEGORIES.values():
-            category_path = os.path.join(template_dir, chinese_name)
-            if not os.path.exists(category_path):
-                os.makedirs(category_path)
+            category_path = template_dir / chinese_name
+            if not category_path.exists():
+                category_path.mkdir(parents=True, exist_ok=True)
                 print(f"创建缺失的默认分类文件夹：{chinese_name}")
 
     def _is_default_category(self, category_name):
@@ -50,7 +53,8 @@ class TemplateManager:
 
     def _get_templates(self):
         """获取所有模板列表"""
-        template_dir = utils.get_template_dir()
+        template_dir = PathManager.get_template_dir()
+
         templates = []
 
         for category in self._categories:
@@ -275,43 +279,102 @@ class TemplateManager:
         return None
 
     def _edit_template(self, template):
-        """编辑模板文件"""
+        """编辑模板文件（跨平台适配）"""
         path = template["path"]
         name = template["name"]
 
         if not os.path.exists(path):
             sg.popup_error(f"模板文件不存在：{name}", title="系统提示", icon=self.__get_icon())
             return
-        editors = [
-            "cursor",  # Cursor AI 代码编辑器
-            "trae",  # Trae AI 代码编辑器
-            "windsurf",  # Windsurf AI 代码编辑器
-            "zed",  # Zed Editor
-            "tabby",  # TabbyML
-            "code",  # Visual Studio Code
-            "subl",  # Sublime Text
-            "notepad++",  # Notepad++
-            "webstorm",  # WebStorm
-            "phpstorm",  # PhpStorm
-            "pycharm",  # PyCharm
-            "idea",  # IntelliJ IDEA
-            "brackets",  # Brackets
-            "gvim",  # Vim（图形界面）
-            "emacs",  # Emacs
-            "notepad",  # Windows 记事本
-        ]
+
+        # 根据平台定义不同的编辑器列表
+        if sys.platform == "win32":
+            editors = [
+                "cursor",
+                "trae",
+                "windsurf",
+                "zed",
+                "tabby",
+                "code",
+                "subl",
+                "notepad++",
+                "webstorm",
+                "phpstorm",
+                "pycharm",
+                "idea",
+                "brackets",
+                "gvim",
+                "emacs",
+                "notepad",
+            ]
+        elif sys.platform == "darwin":  # macOS
+            editors = [
+                "cursor",
+                "trae",
+                "windsurf",
+                "zed",
+                "tabby",
+                "code",
+                "subl",
+                "webstorm",
+                "phpstorm",
+                "pycharm",
+                "idea",
+                "brackets",
+                "vim",
+                "emacs",
+                "open -a TextEdit",
+            ]
+        else:  # Linux
+            editors = [
+                "cursor",
+                "trae",
+                "windsurf",
+                "zed",
+                "tabby",
+                "code",
+                "subl",
+                "webstorm",
+                "phpstorm",
+                "pycharm",
+                "idea",
+                "brackets",
+                "gvim",
+                "emacs",
+                "gedit",
+                "nano",
+            ]
+
         for editor in editors:
             try:
-                subprocess.run(
-                    f'{editor} "{path}"',
-                    shell=True,
-                    check=True,
-                    stderr=subprocess.DEVNULL,
-                )
+                if sys.platform == "darwin" and editor == "open -a TextEdit":
+                    subprocess.run(
+                        f'open -a TextEdit "{path}"',
+                        shell=True,
+                        check=True,
+                        stderr=subprocess.DEVNULL,
+                    )
+                else:
+                    subprocess.run(
+                        f'{editor} "{path}"',
+                        shell=True,
+                        check=True,
+                        stderr=subprocess.DEVNULL,
+                    )
                 return
             except (subprocess.CalledProcessError, FileNotFoundError):
                 continue
-        sg.popup_error("未找到可用的编辑器", title="系统提示", icon=self.__get_icon())
+
+        # 如果所有编辑器都失败，使用系统默认方式
+        try:
+            if sys.platform == "win32":
+                os.system(f'start "" "{path}"')
+            elif sys.platform == "darwin":
+                os.system(f'open "{path}"')
+            else:
+                os.system(f'xdg-open "{path}"')
+        except Exception as e:
+            sg.popup_error(f"无法打开编辑器: {str(e)}", title="系统提示", icon=self.__get_icon())
 
     def _load_template_preview(self, template):
         """加载模板预览内容"""
@@ -383,7 +446,7 @@ class TemplateManager:
                 new_category = values["-TARGET_CATEGORY-"]
                 if new_category != template["category"]:
                     old_path = template["path"]
-                    template_dir = utils.get_template_dir()
+                    template_dir = str(PathManager.get_template_dir())
                     new_path = os.path.join(template_dir, new_category, os.path.basename(old_path))
 
                     if not os.path.exists(os.path.dirname(new_path)):
@@ -601,7 +664,7 @@ class TemplateManager:
 
     def _create_new_template(self, name, category):
         """创建新模板"""
-        template_dir = utils.get_template_dir()
+        template_dir = str(PathManager.get_template_dir())
         category_path = os.path.join(template_dir, category)
         if not os.path.exists(category_path):
             os.makedirs(category_path)
@@ -641,7 +704,7 @@ class TemplateManager:
             sg.popup_error("源文件不存在", title="系统提示", icon=self.__get_icon())
             return
 
-        template_dir = utils.get_template_dir()
+        template_dir = str(PathManager.get_template_dir())
         category_path = os.path.join(template_dir, category)
         if not os.path.exists(category_path):
             os.makedirs(category_path)
@@ -676,7 +739,7 @@ class TemplateManager:
                 sg.popup_error("分类名称已存在", title="系统提示", icon=self.__get_icon())
             return
 
-        template_dir = utils.get_template_dir()
+        template_dir = str(PathManager.get_template_dir())
         category_path = os.path.join(template_dir, category_name)
 
         try:
@@ -761,7 +824,7 @@ class TemplateManager:
             sg.popup_error("分类名称已存在", title="系统提示", icon=self.__get_icon())
             return
 
-        template_dir = utils.get_template_dir()
+        template_dir = str(PathManager.get_template_dir())
         old_path = os.path.join(template_dir, old_category_name)
         new_path = os.path.join(template_dir, new_name)
 
@@ -793,7 +856,7 @@ class TemplateManager:
         if choice != "Yes":
             return
 
-        template_dir = utils.get_template_dir()
+        template_dir = str(PathManager.get_template_dir())
         category_path = os.path.join(template_dir, category_name)
 
         try:

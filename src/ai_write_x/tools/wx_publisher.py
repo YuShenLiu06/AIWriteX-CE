@@ -16,6 +16,7 @@ import time
 from src.ai_write_x.utils import utils
 from src.ai_write_x.config.config import Config
 from src.ai_write_x.utils import log
+from src.ai_write_x.utils.path_manager import PathManager
 
 
 class PublishStatus(Enum):
@@ -137,7 +138,7 @@ class WeixinPublisher:
         return ret
 
     def _generate_img_by_ali(self, prompt, size="1024*1024"):
-        image_dir = utils.get_current_dir("image")
+        image_dir = PathManager.get_image_dir()
         img_url = None
         try:
             rsp = ImageSynthesis.call(

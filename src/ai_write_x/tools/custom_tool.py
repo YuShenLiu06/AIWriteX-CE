@@ -12,6 +12,7 @@ from src.ai_write_x.utils import utils
 from src.ai_write_x.config.config import Config
 from src.ai_write_x.utils import log
 from src.ai_write_x.tools import search_template
+from src.ai_write_x.utils.path_manager import PathManager
 
 from aiforge import AIForgeEngine
 from aiforge.utils.field_mapper import map_result_to_format
@@ -33,7 +34,7 @@ class ReadTemplateTool(BaseTool):
         config = Config.get_instance()
 
         # 获取模板文件的绝对路径
-        template_dir_abs = utils.get_template_dir()
+        template_dir_abs = PathManager.get_template_dir()
 
         # 根据custom_topic是否为空选择配置源
         if config.custom_topic:
@@ -289,7 +290,7 @@ class SaveArticleTool:
             else:
                 msg_type = "info"
                 result = "文章生成完成，请手动发布（点击上方发布菜单按钮）。"
-                dir_path = utils.mkdir(utils.get_article_dir())
+                dir_path = PathManager.get_article_dir()
 
                 # 如果是纯文本需要提取，其他直接保存原始内容，不再处理
                 fmt = config.article_format.lower()

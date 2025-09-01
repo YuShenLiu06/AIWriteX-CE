@@ -11,6 +11,7 @@ import time
 import PySimpleGUI as sg
 import subprocess
 import json
+import sys
 
 from src.ai_write_x.utils import utils
 from src.ai_write_x.config.config import Config
@@ -161,7 +162,7 @@ class ArticleManager:
         return True
 
     def _edit_article(self, path, title):
-        """编辑文章，指定应用打开"""
+        """编辑文章，指定应用打开（跨平台适配）"""
         if not os.path.exists(path):
             sg.popup_error(
                 f"文章文件不存在：{title}",
@@ -170,37 +171,94 @@ class ArticleManager:
             )
             return
 
-        editors = [
-            "cursor",  # Cursor AI 代码编辑器
-            "trae",  # Trae AI 代码编辑器
-            "windsurf",  # Windsurf AI 代码编辑器
-            "zed",  # Zed Editor
-            "tabby",  # TabbyML
-            "code",  # Visual Studio Code
-            "subl",  # Sublime Text
-            "notepad++",  # Notepad++
-            "webstorm",  # WebStorm
-            "phpstorm",  # PhpStorm
-            "pycharm",  # PyCharm
-            "idea",  # IntelliJ IDEA
-            "brackets",  # Brackets
-            "gvim",  # Vim（图形界面）
-            "emacs",  # Emacs
-            "notepad",  # Windows 记事本
-        ]
+        # 根据平台定义不同的编辑器列表
+        if sys.platform == "win32":
+            editors = [
+                "cursor",
+                "trae",
+                "windsurf",
+                "zed",
+                "tabby",
+                "code",
+                "subl",
+                "notepad++",
+                "webstorm",
+                "phpstorm",
+                "pycharm",
+                "idea",
+                "brackets",
+                "gvim",
+                "emacs",
+                "notepad",
+            ]
+        elif sys.platform == "darwin":  # macOS
+            editors = [
+                "cursor",
+                "trae",
+                "windsurf",
+                "zed",
+                "tabby",
+                "code",
+                "subl",
+                "webstorm",
+                "phpstorm",
+                "pycharm",
+                "idea",
+                "brackets",
+                "vim",
+                "emacs",
+                "open -a TextEdit",
+            ]
+        else:  # Linux
+            editors = [
+                "cursor",
+                "trae",
+                "windsurf",
+                "zed",
+                "tabby",
+                "code",
+                "subl",
+                "webstorm",
+                "phpstorm",
+                "pycharm",
+                "idea",
+                "brackets",
+                "gvim",
+                "emacs",
+                "gedit",
+                "nano",
+            ]
 
         for editor_cmd in editors:
             try:
-                subprocess.run(
-                    f'{editor_cmd} "{path}"',
-                    shell=True,
-                    check=True,
-                    stderr=subprocess.DEVNULL,
-                )
-
+                if sys.platform == "darwin" and editor_cmd == "open -a TextEdit":
+                    subprocess.run(
+                        f'open -a TextEdit "{path}"',
+                        shell=True,
+                        check=True,
+                        stderr=subprocess.DEVNULL,
+                    )
+                else:
+                    subprocess.run(
+                        f'{editor_cmd} "{path}"',
+                        shell=True,
+                        check=True,
+                        stderr=subprocess.DEVNULL,
+                    )
                 return
             except (subprocess.CalledProcessError, FileNotFoundError):
                 continue
+
+        # 如果所有编辑器都失败，使用系统默认方式
+        try:
+            if sys.platform == "win32":
+                os.system(f'start "" "{path}"')
+            elif sys.platform == "darwin":
+                os.system(f'open "{path}"')
+            else:
+                os.system(f'xdg-open "{path}"')
+        except Exception as e:
+            sg.popup_error(f"无法打开编辑器: {str(e)}", title="系统提示", icon=self.__get_icon())
 
     def _view_article(self, path, title):
         """预览文章，在浏览器中打开"""

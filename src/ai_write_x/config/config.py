@@ -5,6 +5,7 @@ import tomlkit
 
 from src.ai_write_x.utils import comm
 from src.ai_write_x.utils import utils
+from src.ai_write_x.utils.path_manager import PathManager
 
 # 默认分类配置
 DEFAULT_TEMPLATE_CATEGORIES = {
@@ -182,7 +183,9 @@ class Config:
             "format_publish": True,
         }
         self.default_aiforge_config = {
-            "workdir": "aiforge_work",
+            "workdir": str(
+                PathManager.get_app_data_dir() / "aiforge_work"
+            ),  # aiforge适配后，改成：aiforge_work
             "max_rounds": 5,
             "max_tokens": 4096,
             "default_llm_provider": "openrouter",
@@ -484,14 +487,34 @@ class Config:
             ]
 
     def __get_config_path(self, file_name="config.yaml"):
-        # 配置文件不是资源，所以需要重新创建，也可以从资源先提取再创建，不能直接使用
-        config_path = f"config/{file_name}"
+        """获取配置文件路径并确保文件存在"""
+        from src.ai_write_x.utils.path_manager import PathManager
+
         if not utils.get_is_release_ver():
+            # 开发模式：使用源码目录
             config_path = os.path.join(os.path.dirname(__file__), file_name)
         else:
-            # 将资源文件复制到config目录下
-            res_config_path = utils.get_res_path(config_path)
-            utils.copy_file(res_config_path, config_path)
+            # 发布模式：使用PathManager获取跨平台可写路径
+            config_path = str(PathManager.get_config_path(file_name))
+
+            # 将资源文件复制到配置目录下（保留原有逻辑）
+            res_config_path = utils.get_res_path(f"config/{file_name}")
+            if os.path.exists(res_config_path):
+                utils.copy_file(res_config_path, config_path)
+
+                # ----- 待 aiforge 适配后 删除 ------------
+                if file_name == "aiforge.toml":
+                    import tomlkit
+
+                    with open(config_path, "r", encoding="utf-8") as f:
+                        toml_content = tomlkit.parse(f.read())
+
+                    # 更新 workdir 为用户数据目录下的路径
+                    toml_content["workdir"] = str(PathManager.get_app_data_dir() / "aiforge_work")
+
+                    with open(config_path, "w", encoding="utf-8") as f:
+                        f.write(tomlkit.dumps(toml_content))
+                # ----------------------------------------
 
         return config_path
 

@@ -63,10 +63,23 @@ from rich.console import Console  # noqa 841
 
 import src.ai_write_x.gui.MainGUI as MainGUI  # noqa 402
 
+import platform
+
 
 def is_admin():
+    """检查是否具有管理员权限（跨平台）"""
     try:
-        return ctypes.windll.shell32.IsUserAnAdmin()
+        if platform.system() == "Windows":
+            return ctypes.windll.shell32.IsUserAnAdmin()
+        elif platform.system() == "Darwin":  # macOS
+            # macOS 通常不需要管理员权限来运行GUI应用
+            return True
+        elif platform.system() == "Linux":
+            # Linux 检查是否为 root 用户
+            return os.getuid() == 0
+        else:
+            # 其他系统默认返回 True
+            return True
     except Exception as e:  # noqa841
         return False
 
@@ -76,10 +89,21 @@ def run():
 
 
 def admin_run():
-    if is_admin():
-        run()
+    """以管理员权限运行（跨平台）"""
+    if platform.system() == "Windows":
+        if is_admin():
+            run()
+        else:
+            try:
+                ctypes.windll.shell32.ShellExecuteW(
+                    None, "runas", sys.executable, __file__, None, 0
+                )
+            except Exception:
+                # 如果权限提升失败，直接运行
+                run()
     else:
-        ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 0)
+        # macOS 和 Linux 直接运行，不需要权限提升
+        run()
 
 
 if __name__ == "__main__":

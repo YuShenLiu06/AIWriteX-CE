@@ -16,6 +16,7 @@ import tempfile
 
 
 from src.ai_write_x.utils import log
+from src.ai_write_x.utils.path_manager import PathManager
 
 
 def copy_file(src_file, dest_file):
@@ -323,13 +324,9 @@ def sanitize_filename(filename):
     return sanitized or "default_filename"
 
 
-def get_template_dir():
-    return get_res_path("templates", os.path.join(get_current_dir("knowledge", False)))
-
-
 def get_all_categories(default_template_categories):
     """动态获取所有分类文件夹名称"""
-    template_dir = get_template_dir()
+    template_dir = str(PathManager.get_template_dir())
     categories = []
 
     # 添加默认分类（确保存在）
@@ -351,7 +348,7 @@ def get_templates_by_category(category):
     if not category or category == "随机分类":
         return []
 
-    template_dir = get_template_dir()
+    template_dir = str(PathManager.get_template_dir())
     category_path = os.path.join(template_dir, category)
 
     if not os.path.exists(category_path):

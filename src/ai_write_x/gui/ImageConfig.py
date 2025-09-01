@@ -4,6 +4,7 @@
 配图管理界面，负责文章配图的设置和管理
 """
 
+import sys
 import os
 import glob
 import shutil
@@ -16,6 +17,7 @@ import tempfile
 
 from src.ai_write_x.utils import utils
 from src.ai_write_x.config.config import Config
+from src.ai_write_x.utils.path_manager import PathManager
 
 
 __author__ = "iniwaper@gmail.com"
@@ -29,7 +31,7 @@ class ImageConfigWindow:
         self.article = article
         self.window = None
         self.modified_content = None
-        self.image_dir = utils.get_current_dir("image")
+        self.image_dir = str(PathManager.get_image_dir())
         self.right_clicked_item = None  # 存储右键点击的项目
         self.current_preview_file = None  # 当前预览的文件路径
         self.current_preview_filename = None  # 当前预览的文件名
@@ -488,39 +490,94 @@ class ImageConfigWindow:
                 except Exception as e:
                     sg.popup_error(f"保存失败: {str(e)}", title="系统提示", icon=self._get_icon())
             elif event == "-EDIT_ARTICLE-":
-                # 使用系统默认编辑器打开文章文件
+                # 使用系统默认编辑器打开文章文件（跨平台适配）
                 try:
-                    editors = [
-                        "cursor",  # Cursor AI 代码编辑器
-                        "trae",  # Trae AI 代码编辑器
-                        "windsurf",  # Windsurf AI 代码编辑器
-                        "zed",  # Zed Editor
-                        "tabby",  # TabbyML
-                        "code",  # Visual Studio Code
-                        "subl",  # Sublime Text
-                        "notepad++",  # Notepad++
-                        "webstorm",  # WebStorm
-                        "phpstorm",  # PhpStorm
-                        "pycharm",  # PyCharm
-                        "idea",  # IntelliJ IDEA
-                        "brackets",  # Brackets
-                        "gvim",  # Vim（图形界面）
-                        "emacs",  # Emacs
-                        "notepad",  # Windows 记事本
-                    ]
+                    # 根据平台定义不同的编辑器列表
+                    if sys.platform == "win32":
+                        editors = [
+                            "cursor",
+                            "trae",
+                            "windsurf",
+                            "zed",
+                            "tabby",
+                            "code",
+                            "subl",
+                            "notepad++",
+                            "webstorm",
+                            "phpstorm",
+                            "pycharm",
+                            "idea",
+                            "brackets",
+                            "gvim",
+                            "emacs",
+                            "notepad",
+                        ]
+                    elif sys.platform == "darwin":  # macOS
+                        editors = [
+                            "cursor",
+                            "trae",
+                            "windsurf",
+                            "zed",
+                            "tabby",
+                            "code",
+                            "subl",
+                            "webstorm",
+                            "phpstorm",
+                            "pycharm",
+                            "idea",
+                            "brackets",
+                            "vim",
+                            "emacs",
+                            "open -a TextEdit",
+                        ]
+                    else:  # Linux
+                        editors = [
+                            "cursor",
+                            "trae",
+                            "windsurf",
+                            "zed",
+                            "tabby",
+                            "code",
+                            "subl",
+                            "webstorm",
+                            "phpstorm",
+                            "pycharm",
+                            "idea",
+                            "brackets",
+                            "gvim",
+                            "emacs",
+                            "gedit",
+                            "nano",
+                        ]
 
                     for editor_cmd in editors:
                         try:
-                            subprocess.run(
-                                f'{editor_cmd} "{self.article["path"]}"',
-                                shell=True,
-                                check=True,
-                                stderr=subprocess.DEVNULL,
-                            )
-
+                            if sys.platform == "darwin" and editor_cmd == "open -a TextEdit":
+                                subprocess.run(
+                                    f'open -a TextEdit "{self.article["path"]}"',
+                                    shell=True,
+                                    check=True,
+                                    stderr=subprocess.DEVNULL,
+                                )
+                            else:
+                                subprocess.run(
+                                    f'{editor_cmd} "{self.article["path"]}"',
+                                    shell=True,
+                                    check=True,
+                                    stderr=subprocess.DEVNULL,
+                                )
                             return
                         except (subprocess.CalledProcessError, FileNotFoundError):
                             continue
+
+                    # 如果所有编辑器都失败，使用系统默认方式
+                    if sys.platform == "win32":
+                        os.system(f'start "" "{self.article["path"]}"')
+                    elif sys.platform == "darwin":
+                        os.system(f'open "{self.article["path"]}"')
+                    else:
+                        os.system(f'xdg-open "{self.article["path"]}"')
+
                 except Exception as e:
                     sg.popup_error(
                         f"打开编辑器失败: {str(e)}", title="系统提示", icon=self._get_icon()
