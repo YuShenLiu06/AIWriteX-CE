@@ -11,12 +11,52 @@ from ..utils import log
 class ContentGenerationEngine(BaseWorkflowFramework):
     """纯内容生成引擎，与平台无关"""
 
-    def __init__(self, config: WorkflowConfig):
+    def __init__(self, config: WorkflowConfig, callback_params: Dict[str, Any] = None):
         super().__init__(config)
+        self.callback_params = callback_params or {}
         self.agent_factory = AgentFactory()
         self.creative_modules: Dict[str, "CreativeModule"] = {}
         # 添加监控器
         self.monitor = WorkflowMonitor.get_instance()
+
+    def _create_unified_callback(self, callback_type: str):
+        """创建统一的回调处理器"""
+
+        def callback_function(output):
+            if callback_type == "saver_callback":
+                self._handle_save_callback(output)
+            elif callback_type == "publisher_callback":
+                self._handle_publish_callback(output)
+
+        return callback_function
+
+    def _handle_save_callback(self, output):
+        """处理保存回调"""
+        from ..tools.custom_tool import SaveArticleTool
+
+        # 提取必要参数
+        save_params = {
+            "appid": self.callback_params.get("appid", ""),
+            "appsecret": self.callback_params.get("appsecret", ""),
+            "author": self.callback_params.get("author", ""),
+        }
+
+        SaveArticleTool().run(output.raw, **save_params)
+
+    def _handle_publish_callback(self, output):
+        """处理发布回调"""
+        target_platform = self.callback_params.get("target_platform", "wechat")
+
+        # 通过平台适配器处理发布
+        from ..core.system_init import get_platform_adapter
+
+        adapter = get_platform_adapter(target_platform)
+
+        if adapter:
+            publish_result = adapter.publish_content(output.raw, **self.callback_params)
+            log.print_log(publish_result.message, "status" if publish_result.success else "error")
+        else:
+            log.print_log(f"不支持的平台: {target_platform}", "error")
 
     def setup_agents(self) -> Dict[str, Agent]:
         """设置智能体"""
@@ -161,7 +201,7 @@ class ContentGenerationEngine(BaseWorkflowFramework):
         """创建平台无关的保存回调"""
 
         def callback_function(output):
-            from ..tools.unified_content_tools import ContentSaver
+            from ..tools.custom_tool import ContentSaver
 
             saver = ContentSaver()
             result = saver.process(output.raw)

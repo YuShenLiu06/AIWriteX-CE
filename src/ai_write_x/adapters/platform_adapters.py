@@ -17,13 +17,21 @@ class PlatformAdapter(ABC):
 
     @abstractmethod
     def format_content(self, content: ContentResult) -> str:
-        """将通用内容格式化为平台特定格式"""
+        """格式化内容"""
         pass
 
     @abstractmethod
     def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
-        """发布到特定平台"""
+        """发布内容"""
         pass
+
+    def supports_html(self) -> bool:
+        """是否支持HTML格式"""
+        return True
+
+    def supports_template(self) -> bool:
+        """是否支持模板功能"""
+        return True
 
     def get_platform_name(self) -> str:
         """获取平台名称"""

@@ -1,6 +1,6 @@
 # AIWriteX - CrewAI微信公众号全自动生成排版发布工具
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue) ![PySimpleGUI](https://img.shields.io/badge/PySimpleGUI-4.60.5+-green) ![CrewAI](https://img.shields.io/badge/CrewAI-0.102.0+-red) ![AIForge](https://img.shields.io/badge/aiforge-0.0.5+-pink) ![PyWinGUIBuilder](https://img.shields.io/badge/PyWinGUIBuilder-1.0.0+-yellow) ![Stars](https://img.shields.io/github/stars/iniwap/AIWriteX?label=收藏)
+![Python](https://img.shields.io/badge/Python-3.10+-blue) ![PySimpleGUI](https://img.shields.io/badge/PySimpleGUI-4.60.5+-green) ![CrewAI](https://img.shields.io/badge/CrewAI-0.102.0+-red) ![AIForge](https://img.shields.io/badge/aiforge-0.0.13+-pink) ![PyWinGUIBuilder](https://img.shields.io/badge/PyWinGUIBuilder-1.0.0+-yellow) ![Stars](https://img.shields.io/github/stars/iniwap/AIWriteX?label=收藏)
 
 **AIWriteX**是一款基于 CrewAI 、[AIForge](https://iniwap.github.io/AIForge/) 的微信公众号自动化工具软件，自动获取抖音、微博等平台热点，融合“搜索+借鉴+AI”，生成**高时效（实时）**、高质量、排版高大上的文章并发布到微信公众号。  
 

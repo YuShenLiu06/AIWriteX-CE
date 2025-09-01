@@ -1,5 +1,5 @@
 import time
-from typing import Dict, Any, List
+from typing import Dict, Any
 from .creative_modules import StyleTransformModule, TimeTravelModule, RolePlayModule
 from .base_framework import (
     WorkflowConfig,
@@ -20,6 +20,7 @@ from ..adapters.platform_adapters import (
 )
 from .monitoring import WorkflowMonitor
 from ..config.config import Config
+from .content_generation import ContentGenerationEngine
 
 
 class UnifiedContentWorkflow:
@@ -187,18 +188,24 @@ class UnifiedContentWorkflow:
         return self.content_engine.execute_workflow(input_data)
 
     def execute(
-        self, topic: str, creative_mode: str = None, target_platforms: List[str] = None, **kwargs
+        self,
+        topic: str,
+        creative_mode: str = None,
+        target_platform: str = "wechat",
+        auto_publish: bool = None,
+        **kwargs,
     ) -> Dict[str, Any]:
-        """执行统一内容工作流并监控"""
+        """统一执行流程：输入 -> 内容生成 -> 格式处理 -> 保存 -> 发布"""
         start_time = time.time()
         success = False
-        results = {}
 
         try:
-            # 1. 生成基础内容
-            base_content = self._generate_base_content(topic, **kwargs)
+            # 1. 生成基础内容（统一Markdown格式）
+            base_content = self._generate_base_content(
+                topic, target_platform=target_platform, **kwargs
+            )
 
-            # 2. 应用创意变换
+            # 2. 可选创意变换
             if creative_mode and creative_mode in self.creative_modules:
                 final_content = self.creative_modules[creative_mode].transform(
                     base_content, **kwargs
@@ -206,34 +213,131 @@ class UnifiedContentWorkflow:
             else:
                 final_content = base_content
 
-            # 3. 平台适配和发布
-            platform_results = {}
-            for platform in target_platforms or []:
-                if platform in self.platform_adapters:
-                    adapter = self.platform_adapters[platform]
-                    formatted_content = adapter.format_content(final_content)
-                    platform_results[platform] = {
-                        "formatted_content": formatted_content,
-                        "published": False,
-                    }
+            # 3. 格式处理（template或design）
+            formatted_content = self._format_content(final_content, target_platform, **kwargs)
+
+            # 4. 保存（非AI参与）
+            save_result = self._save_content(formatted_content, target_platform, **kwargs)
+
+            # 5. 可选发布（非AI参与，开关控制）
+            publish_result = None
+            if self._should_publish(auto_publish, target_platform):
+                publish_result = self._publish_content(formatted_content, target_platform, **kwargs)
 
             results = {
                 "base_content": base_content,
                 "final_content": final_content,
-                "platform_results": platform_results,
+                "formatted_content": formatted_content,
+                "save_result": save_result,
+                "publish_result": publish_result,
+                "success": True,
             }
 
             success = True
             return results
 
         except Exception as e:
-            self.monitor.log_error(
-                "unified_workflow", str(e), {"topic": topic, "creative_mode": creative_mode}
-            )
+            self.monitor.log_error("unified_workflow", str(e), {"topic": topic})
             raise
         finally:
             duration = time.time() - start_time
             self.monitor.track_execution("unified_workflow", duration, success, {"topic": topic})
+
+    def _format_content(self, content: ContentResult, target_platform: str, **kwargs) -> str:
+        """格式处理：template或design路径"""
+        config = Config.get_instance()
+        adapter = self.platform_adapters.get(target_platform)
+
+        if not adapter:
+            raise ValueError(f"不支持的平台: {target_platform}")
+
+        # 根据配置选择格式化方式
+        if config.article_format.upper() == "HTML":
+            if config.use_template and adapter.supports_template():
+                # Template路径：AI填充本地模板
+                return self._apply_template_formatting(content, **kwargs)
+            else:
+                # Design路径：AI生成HTML
+                return self._apply_design_formatting(content, target_platform, **kwargs)
+        else:
+            # 非HTML格式，直接返回内容
+            return content.content
+
+    def _apply_template_formatting(self, content: ContentResult, **kwargs) -> str:
+        """Template路径：使用AI填充本地模板"""
+        # 创建专门的模板处理工作流
+        template_config = self._get_template_workflow_config(**kwargs)
+        engine = ContentGenerationEngine(template_config)
+
+        input_data = {"content": content.content, "title": content.title, **kwargs}
+
+        result = engine.execute_workflow(input_data)
+        return result.content
+
+    def _apply_design_formatting(
+        self, content: ContentResult, target_platform: str, **kwargs
+    ) -> str:
+        """Design路径：使用AI生成HTML设计"""
+        # 创建专门的设计工作流
+        design_config = self._get_design_workflow_config(target_platform, **kwargs)
+        engine = ContentGenerationEngine(design_config)
+
+        input_data = {
+            "content": content.content,
+            "title": content.title,
+            "platform": target_platform,
+            **kwargs,
+        }
+
+        result = engine.execute_workflow(input_data)
+        return result.content
+
+    def _save_content(
+        self, formatted_content: str, target_platform: str, **kwargs
+    ) -> Dict[str, Any]:
+        """保存内容（非AI参与）"""
+        config = Config.get_instance()
+
+        # 提取标题用于文件名
+        title = self._extract_title_from_content(formatted_content, config.article_format)
+
+        # 确定文件格式和路径
+        file_extension = self._get_file_extension(config.article_format)
+        save_path = self._get_save_path(title, file_extension)
+
+        # 保存文件
+        with open(save_path, "w", encoding="utf-8") as f:
+            f.write(formatted_content)
+
+        return {"success": True, "path": save_path, "title": title, "format": config.article_format}
+
+    def _publish_content(
+        self, formatted_content: str, target_platform: str, **kwargs
+    ) -> Dict[str, Any]:
+        """发布内容（非AI参与）"""
+        adapter = self.platform_adapters.get(target_platform)
+
+        if not adapter:
+            return {"success": False, "message": f"不支持的平台: {target_platform}"}
+
+        # 使用平台适配器发布
+        publish_result = adapter.publish_content(formatted_content, **kwargs)
+
+        return {
+            "success": publish_result.success,
+            "message": publish_result.message,
+            "platform": target_platform,
+        }
+
+    def _should_publish(self, auto_publish: bool, target_platform: str) -> bool:
+        """判断是否应该发布"""
+        config = Config.get_instance()
+
+        # 优先使用传入的参数，否则使用配置
+        if auto_publish is not None:
+            return auto_publish
+
+        return config.auto_publish
 
     def get_performance_report(self) -> Dict[str, Any]:
         """获取性能报告"""
