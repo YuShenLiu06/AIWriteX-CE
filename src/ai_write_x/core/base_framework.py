@@ -1,10 +1,11 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any, Optional
-from crewai import Agent, Crew, Task, LLM
+from crewai import Agent, Task
 from dataclasses import dataclass, field
 from enum import Enum
 import threading
 from datetime import datetime
+from .tool_registry import GlobalToolRegistry
 
 
 class WorkflowType(Enum):
@@ -78,7 +79,8 @@ class BaseWorkflowFramework(ABC):
         self.config = config
         self.agents: Dict[str, Agent] = {}
         self.tasks: Dict[str, Task] = {}
-        self.tools_registry: Dict[str, Any] = {}
+        # 使用全局工具注册表替代本地注册表
+        self.tools_registry = GlobalToolRegistry.get_instance()
         self.output_handlers: Dict[str, Any] = {}
         self._lock = threading.Lock()
 
@@ -98,9 +100,8 @@ class BaseWorkflowFramework(ABC):
         pass
 
     def register_tool(self, name: str, tool_class):
-        """注册工具"""
-        with self._lock:
-            self.tools_registry[name] = tool_class
+        """注册工具到全局注册表"""
+        self.tools_registry.register_tool(name, tool_class)
 
     def register_output_handler(self, name: str, handler):
         """注册输出处理器"""
@@ -108,13 +109,22 @@ class BaseWorkflowFramework(ABC):
             self.output_handlers[name] = handler
 
     def validate_config(self) -> bool:
-        """验证配置有效性"""
-        # 验证智能体角色是否在任务中被引用
+        # 现有验证逻辑
         agent_roles = {agent.role for agent in self.config.agents}
         task_agent_roles = {task.agent_role for task in self.config.tasks}
 
         if not task_agent_roles.issubset(agent_roles):
             missing_roles = task_agent_roles - agent_roles
-            raise ValueError(f"Missing agent roles: {missing_roles}")
+            raise ValueError(f"缺少Agents: {missing_roles}")
+
+        # 验证工具依赖
+        required_tools = set()
+        for agent in self.config.agents:
+            required_tools.update(agent.tools)
+
+        available_tools = set(self.tools_registry._tools.keys())
+        missing_tools = required_tools - available_tools
+        if missing_tools:
+            raise ValueError(f"缺少工具: {missing_tools}")
 
         return True

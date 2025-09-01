@@ -2,6 +2,7 @@ from typing import Dict, Type, Optional, Any
 from crewai import Agent, LLM
 from .base_framework import AgentConfig
 from ..config.config import Config
+from .tool_registry import GlobalToolRegistry
 
 
 class AgentFactory:
@@ -9,7 +10,8 @@ class AgentFactory:
 
     def __init__(self):
         self._agent_templates: Dict[str, Type] = {}
-        self._tool_registry: Dict[str, Any] = {}
+        # 使用全局工具注册表
+        self._tool_registry = GlobalToolRegistry.get_instance()
         self._llm_cache: Dict[str, LLM] = {}
 
     def register_agent_template(self, role: str, template_class: Type):
@@ -18,7 +20,7 @@ class AgentFactory:
 
     def register_tool(self, name: str, tool_class):
         """注册工具类"""
-        self._tool_registry[name] = tool_class
+        self._tool_registry.register_tool(name, tool_class)
 
     def _get_llm(self, llm_config: Dict[str, Any] = None) -> Optional[LLM]:
         """获取LLM实例，支持缓存"""
@@ -47,10 +49,11 @@ class AgentFactory:
         tools = []
         if config.tools:
             for tool_name in config.tools:
-                if tool_name in self._tool_registry:
-                    tools.append(self._tool_registry[tool_name]())
+                tool_class = self._tool_registry.get_tool(tool_name)
+                if tool_class:
+                    tools.append(tool_class())
                 else:
-                    print(f"Warning: Tool {tool_name} not found in registry")
+                    print(f"警告: 找不到 {tool_name} 工具")
 
         agent_kwargs = {
             "role": config.role,

@@ -1,5 +1,15 @@
 from abc import ABC, abstractmethod
 from ..core.base_framework import ContentResult
+from dataclasses import dataclass
+from typing import Optional
+
+
+@dataclass
+class PublishResult:
+    success: bool
+    message: str
+    platform_id: Optional[str] = None
+    error_code: Optional[str] = None
 
 
 class PlatformAdapter(ABC):
@@ -11,7 +21,7 @@ class PlatformAdapter(ABC):
         pass
 
     @abstractmethod
-    def publish_content(self, formatted_content: str, **kwargs) -> bool:
+    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
         """发布到特定平台"""
         pass
 
@@ -30,15 +40,15 @@ class WeChatAdapter(PlatformAdapter):
         self.publisher_tool = PublisherTool()
         self.template_tool = ReadTemplateTool()
 
-    def format_content(
-        self, content: ContentResult, use_template: bool = False, template_path: str = None
-    ) -> str:
+    def format_content(self, content: ContentResult) -> str:
         """格式化为微信公众号HTML格式"""
+        # 从 metadata 中获取模板配置
+        use_template = content.metadata.get("use_template", False)
+        template_path = content.metadata.get("template_path")
+
         if use_template and template_path:
-            # 使用模板格式化（对应现有的templater智能体功能）
             return self._apply_template(content, template_path)
         else:
-            # 使用设计器格式化（对应现有的designer智能体功能）
             return self._apply_design(content)
 
     def _apply_template(self, content: ContentResult, template_path: str) -> str:
@@ -83,7 +93,7 @@ class WeChatAdapter(PlatformAdapter):
         appsecret: str = "",
         author: str = "",
         **kwargs,
-    ) -> bool:
+    ) -> PublishResult:
         """发布到微信公众号"""
         # 复用现有的发布逻辑
         from ..tools.wx_publisher import pub2wx
@@ -93,8 +103,9 @@ class WeChatAdapter(PlatformAdapter):
             # 提取标题和摘要
             title = utils.extract_main_title(formatted_content)
             if not title:
-                print("无法提取文章标题")
-                return False
+                return PublishResult(
+                    success=False, message="无法提取文章标题", platform_id="wechat"
+                )
 
             # 生成摘要
             _, digest = utils.extract_markdown_content(formatted_content)
@@ -102,11 +113,16 @@ class WeChatAdapter(PlatformAdapter):
             # 调用现有的微信发布功能
             result, _, _ = pub2wx(title, digest, formatted_content, appid, appsecret, author)
 
-            return "成功" in result
+            success = "成功" in result
+            return PublishResult(success=success, message=result, platform_id="wechat")
 
         except Exception as e:
-            print(f"发布失败: {e}")
-            return False
+            return PublishResult(
+                success=False,
+                message=f"发布失败: {e}",
+                platform_id="wechat",
+                error_code="PUBLISH_ERROR",
+            )
 
 
 class XiaohongshuAdapter(PlatformAdapter):
@@ -128,10 +144,14 @@ class XiaohongshuAdapter(PlatformAdapter):
 
         return formatted
 
-    def publish_content(self, formatted_content: str, **kwargs) -> bool:
-        """小红书发布（暂时返回False，需要接入小红书API）"""
-        print("小红书发布功能待开发")
-        return False
+    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
+        """小红书发布（暂时返回失败，需要接入小红书API）"""
+        return PublishResult(
+            success=False,
+            message="小红书发布功能待开发",
+            platform_id="xiaohongshu",
+            error_code="NOT_IMPLEMENTED",
+        )
 
 
 class DouyinAdapter(PlatformAdapter):
@@ -153,10 +173,14 @@ class DouyinAdapter(PlatformAdapter):
 
         return script
 
-    def publish_content(self, formatted_content: str, **kwargs) -> bool:
-        """抖音发布（暂时返回False，需要接入抖音开放平台API）"""
-        print("抖音发布功能待开发")
-        return False
+    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
+        """抖音发布（暂时返回失败，需要接入抖音开放平台API）"""
+        return PublishResult(
+            success=False,
+            message="抖音发布功能待开发 - 需要接入抖音开放平台API",
+            platform_id="douyin",
+            error_code="NOT_IMPLEMENTED",
+        )
 
 
 class ToutiaoAdapter(PlatformAdapter):
@@ -181,10 +205,14 @@ class ToutiaoAdapter(PlatformAdapter):
 
         return formatted
 
-    def publish_content(self, formatted_content: str, **kwargs) -> bool:
+    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
         """今日头条发布（需要接入今日头条开放平台API）"""
-        print("今日头条发布功能待开发 - 需要接入头条号开放平台API")
-        return False
+        return PublishResult(
+            success=False,
+            message="今日头条发布功能待开发 - 需要接入头条号开放平台API",
+            platform_id="toutiao",
+            error_code="NOT_IMPLEMENTED",
+        )
 
 
 class BaijiahaoAdapter(PlatformAdapter):
@@ -216,10 +244,14 @@ class BaijiahaoAdapter(PlatformAdapter):
 
         return formatted
 
-    def publish_content(self, formatted_content: str, **kwargs) -> bool:
+    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
         """百家号发布（需要接入百度百家号API）"""
-        print("百家号发布功能待开发 - 需要接入百度百家号API")
-        return False
+        return PublishResult(
+            success=False,
+            message="百家号发布功能待开发 - 需要接入百度百家号API",
+            platform_id="baijiahao",
+            error_code="NOT_IMPLEMENTED",
+        )
 
 
 class ZhihuAdapter(PlatformAdapter):
@@ -262,10 +294,14 @@ class ZhihuAdapter(PlatformAdapter):
 
         return formatted
 
-    def publish_content(self, formatted_content: str, **kwargs) -> bool:
+    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
         """知乎发布（需要接入知乎API或使用自动化工具）"""
-        print("知乎发布功能待开发 - 需要接入知乎API或使用浏览器自动化")
-        return False
+        return PublishResult(
+            success=False,
+            message="知乎发布功能待开发 - 需要接入知乎API或使用浏览器自动化",
+            platform_id="zhihu",
+            error_code="NOT_IMPLEMENTED",
+        )
 
 
 class DoubanAdapter(PlatformAdapter):
@@ -300,7 +336,11 @@ class DoubanAdapter(PlatformAdapter):
 
         return formatted
 
-    def publish_content(self, formatted_content: str, **kwargs) -> bool:
+    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
         """豆瓣发布（需要使用自动化工具）"""
-        print("豆瓣发布功能待开发 - 需要使用浏览器自动化工具")
-        return False
+        return PublishResult(
+            success=False,
+            message="豆瓣发布功能待开发 - 需要使用浏览器自动化工具",
+            platform_id="douban",
+            error_code="NOT_IMPLEMENTED",
+        )

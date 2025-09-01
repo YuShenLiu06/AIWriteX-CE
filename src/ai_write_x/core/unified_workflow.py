@@ -1,7 +1,14 @@
+import time
 from typing import Dict, Any, List
-from .content_generation import ContentGenerationEngine
 from .creative_modules import StyleTransformModule, TimeTravelModule, RolePlayModule
-from .base_framework import WorkflowConfig, AgentConfig, TaskConfig, WorkflowType, ContentType
+from .base_framework import (
+    WorkflowConfig,
+    AgentConfig,
+    TaskConfig,
+    WorkflowType,
+    ContentType,
+    ContentResult,
+)
 from ..adapters.platform_adapters import (
     WeChatAdapter,
     XiaohongshuAdapter,
@@ -11,6 +18,7 @@ from ..adapters.platform_adapters import (
     ZhihuAdapter,
     DoubanAdapter,
 )
+from .monitoring import WorkflowMonitor
 
 
 class UnifiedContentWorkflow:
@@ -32,6 +40,7 @@ class UnifiedContentWorkflow:
             "zhihu": ZhihuAdapter(),
             "douban": DoubanAdapter(),
         }
+        self.monitor = WorkflowMonitor.get_instance()
 
     def get_base_content_config(self) -> WorkflowConfig:
         """获取基础内容生成配置（复用现有的微信创作流程）"""
@@ -86,19 +95,17 @@ class UnifiedContentWorkflow:
             tasks=tasks,
         )
 
-    def execute(
-        self,
-        topic: str,
-        creative_mode: str = None,
-        target_platforms: List[str] = ["wechat"],
-        **kwargs,
-    ) -> Dict[str, Any]:
-        """执行完整的内容生成和发布流程"""
+    def _generate_base_content(self, topic: str, **kwargs) -> ContentResult:
+        """生成基础内容"""
+        from .content_generation import ContentGenerationEngine
 
-        # 1. 生成基础内容（创意核心）
+        # 获取基础配置
         base_config = self.get_base_content_config()
+
+        # 创建内容生成引擎
         self.content_engine = ContentGenerationEngine(base_config)
 
+        # 准备输入数据
         input_data = {
             "topic": topic,
             "platform": kwargs.get("platform", ""),
@@ -106,38 +113,73 @@ class UnifiedContentWorkflow:
             "reference_ratio": kwargs.get("reference_ratio", 0.0),
         }
 
-        base_content = self.content_engine.execute_workflow(input_data)
+        # 执行工作流
+        return self.content_engine.execute_workflow(input_data)
 
-        # 2. 应用创意变换（如果指定）
-        final_content = base_content
-        if creative_mode and creative_mode in self.creative_modules:
-            creative_module = self.creative_modules[creative_mode]
-            final_content = creative_module.transform(base_content, **kwargs)
+    def execute(
+        self, topic: str, creative_mode: str = None, target_platforms: List[str] = None, **kwargs
+    ) -> Dict[str, Any]:
+        """执行统一内容工作流并监控"""
+        start_time = time.time()
+        success = False
+        results = {}
 
-        # 3. 多平台适配和发布
-        results = {"base_content": base_content, "final_content": final_content, "platforms": {}}
+        try:
+            # 1. 生成基础内容
+            base_content = self._generate_base_content(topic, **kwargs)
 
-        for platform in target_platforms:
-            if platform in self.platform_adapters:
-                adapter = self.platform_adapters[platform]
-
-                # 格式化内容
-                formatted_content = adapter.format_content(final_content)
-
-                # 发布内容（如果需要）
-                publish_result = False
-                if kwargs.get("auto_publish", False):
-                    publish_result = adapter.publish_content(formatted_content, **kwargs)
-
-                results["platforms"][platform] = {
-                    "formatted_content": formatted_content,
-                    "published": publish_result,
-                    "adapter": adapter.get_platform_name(),
-                }
+            # 2. 应用创意变换
+            if creative_mode and creative_mode in self.creative_modules:
+                final_content = self.creative_modules[creative_mode].transform(
+                    base_content, **kwargs
+                )
             else:
-                print(f"Warning: Platform {platform} not supported")
+                final_content = base_content
 
-        return results
+            # 3. 平台适配和发布
+            platform_results = {}
+            for platform in target_platforms or []:
+                if platform in self.platform_adapters:
+                    adapter = self.platform_adapters[platform]
+                    formatted_content = adapter.format_content(final_content.content)
+                    platform_results[platform] = {
+                        "formatted_content": formatted_content,
+                        "published": False,
+                    }
+
+            results = {
+                "base_content": base_content,
+                "final_content": final_content,
+                "platform_results": platform_results,
+            }
+
+            success = True
+            return results
+
+        except Exception as e:
+            self.monitor.log_error(
+                "unified_workflow", str(e), {"topic": topic, "creative_mode": creative_mode}
+            )
+            raise
+        finally:
+            duration = time.time() - start_time
+            self.monitor.track_execution("unified_workflow", duration, success, {"topic": topic})
+
+    def get_performance_report(self) -> Dict[str, Any]:
+        """获取性能报告"""
+        return {
+            "workflow_metrics": self.monitor.get_metrics(),
+            "recent_executions": self.monitor.get_recent_logs(limit=20),
+            "system_status": "healthy" if self._check_system_health() else "degraded",
+        }
+
+    def _check_system_health(self) -> bool:
+        """检查系统健康状态"""
+        metrics = self.monitor.get_metrics()
+        for workflow_name, workflow_metrics in metrics.items():
+            if workflow_metrics.get("success_rate", 0) < 0.8:  # 成功率低于80%
+                return False
+        return True
 
     def register_creative_module(self, name: str, module):
         """注册新的创意模块"""

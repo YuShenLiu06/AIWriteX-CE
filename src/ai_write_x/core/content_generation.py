@@ -1,9 +1,10 @@
+import time
 from typing import Dict, Any
 from crewai import Crew, Process, Task, Agent
-from .base_framework import BaseWorkflowFramework, WorkflowConfig, WorkflowType, ContentResult
+from .base_framework import BaseWorkflowFramework, WorkflowConfig, ContentResult, WorkflowType
 from .agent_factory import AgentFactory
-from ..tools.custom_tool import AIForgeSearchTool
 from .creative_modules import CreativeModule
+from .monitoring import WorkflowMonitor
 
 
 class ContentGenerationEngine(BaseWorkflowFramework):
@@ -13,9 +14,8 @@ class ContentGenerationEngine(BaseWorkflowFramework):
         super().__init__(config)
         self.agent_factory = AgentFactory()
         self.creative_modules: Dict[str, "CreativeModule"] = {}
-
-        # 注册基础工具
-        self.agent_factory.register_tool("AIForgeSearchTool", AIForgeSearchTool)
+        # 添加监控器
+        self.monitor = WorkflowMonitor.get_instance()
 
     def setup_agents(self) -> Dict[str, Agent]:
         """设置智能体"""
@@ -48,65 +48,74 @@ class ContentGenerationEngine(BaseWorkflowFramework):
         return tasks
 
     def execute_workflow(self, input_data: Dict[str, Any]) -> ContentResult:
-        """执行工作流"""
-        self.validate_config()
-        self.agents = self.setup_agents()
-        self.tasks = self.setup_tasks()
+        """执行工作流并记录监控数据"""
+        start_time = time.time()
+        success = False
 
-        # 根据工作流类型选择执行策略
-        process_map = {
-            WorkflowType.SEQUENTIAL: Process.sequential,
-            WorkflowType.HIERARCHICAL: Process.hierarchical,
-            WorkflowType.PARALLEL: Process.sequential,  # CrewAI暂不支持真正的并行
-            WorkflowType.CUSTOM: Process.sequential,
-        }
+        try:
+            self.validate_config()
+            self.agents = self.setup_agents()
+            self.tasks = self.setup_tasks()
 
-        process = process_map.get(self.config.workflow_type, Process.sequential)
+            # 根据工作流类型选择执行策略
+            process_map = {
+                WorkflowType.SEQUENTIAL: Process.sequential,
+                WorkflowType.HIERARCHICAL: Process.hierarchical,
+                WorkflowType.PARALLEL: Process.sequential,  # CrewAI暂不支持真正的并行
+                WorkflowType.CUSTOM: Process.sequential,
+            }
 
-        crew = Crew(
-            agents=list(self.agents.values()),
-            tasks=list(self.tasks.values()),
-            process=process,
-            verbose=True,
-        )
+            process = process_map.get(self.config.workflow_type, Process.sequential)
 
-        # 执行工作流
-        result = crew.kickoff(inputs=input_data)
+            crew = Crew(
+                agents=list(self.agents.values()),
+                tasks=list(self.tasks.values()),
+                process=process,
+                verbose=True,
+            )
 
-        # 解析结果为标准格式
-        return self._parse_result(result, input_data)
+            result = crew.kickoff(inputs=input_data)
+            parsed_result = self._parse_result(result, input_data)
+
+            success = True
+            return parsed_result
+
+        except Exception as e:
+            self.monitor.log_error(self.config.name, str(e), input_data)
+            raise
+        finally:
+            # 记录执行指标
+            duration = time.time() - start_time
+            self.monitor.track_execution(self.config.name, duration, success)
 
     def _parse_result(self, raw_result: Any, input_data: Dict[str, Any]) -> ContentResult:
-        """解析原始结果为标准内容格式"""
-        # 这里需要根据实际的CrewAI输出格式进行解析
-        content_str = str(raw_result)
+        from ..utils.content_parser import ContentParser
 
-        # 简单的标题提取逻辑（可以根据需要优化）
-        lines = content_str.split("\n")
-        title = input_data.get("topic", "Untitled")
-
-        # 提取第一行作为标题（如果格式合适）
-        if lines and lines[0].strip() and len(lines[0]) < 100:
-            title = lines[0].strip().lstrip("#").strip()
-            content = "\n".join(lines[1:]).strip()
-        else:
-            content = content_str
-
-        # 生成摘要（取前200字符）
-        summary = content[:200] + "..." if len(content) > 200 else content
+        parser = ContentParser()
+        parsed_content = parser.parse(str(raw_result))
 
         return ContentResult(
-            title=title,
-            content=content,
-            summary=summary,
+            title=parsed_content.title or input_data.get("topic", "Untitled"),
+            content=parsed_content.content,
+            summary=parsed_content.summary or self._generate_summary(parsed_content.content),
             content_type=self.config.content_type,
             metadata={
                 "workflow_name": self.config.name,
                 "input_data": input_data,
                 "agent_count": len(self.agents),
                 "task_count": len(self.tasks),
+                "parsing_confidence": parsed_content.confidence,
             },
         )
+
+    def _generate_summary(self, content: str) -> str:
+        """生成内容摘要"""
+        if not content:
+            return ""
+
+        # 取前200字符作为摘要
+        summary = content[:200] + "..." if len(content) > 200 else content
+        return summary
 
     def register_creative_module(self, name: str, module: "CreativeModule"):
         """注册创意模块"""
