@@ -490,13 +490,10 @@ class Config:
         """获取配置文件路径并确保文件存在"""
         from src.ai_write_x.utils.path_manager import PathManager
 
-        if not utils.get_is_release_ver():
-            # 开发模式：使用源码目录
-            config_path = os.path.join(os.path.dirname(__file__), file_name)
-        else:
-            # 发布模式：使用PathManager获取跨平台可写路径
-            config_path = str(PathManager.get_config_path(file_name))
+        config_path = str(PathManager.get_config_path(file_name))
 
+        if utils.get_is_release_ver():
+            # 发布模式：使用PathManager获取跨平台可写路径
             # 将资源文件复制到配置目录下（保留原有逻辑）
             res_config_path = utils.get_res_path(f"config/{file_name}")
             if os.path.exists(res_config_path):

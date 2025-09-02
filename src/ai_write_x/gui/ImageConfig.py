@@ -644,8 +644,8 @@ class ImageConfigWindow:
                                 ):
                                     self.window["-CURRENT_COVER_DISPLAY-"].update(new_filename)
                                 # 更新配置
-                                Config.get_instance().current_preview_cover = os.path.join(
-                                    utils.get_current_dir("image"), new_filename
+                                Config.get_instance().current_preview_cover = str(
+                                    PathManager.get_image_dir() / new_filename
                                 )
 
                             sg.popup(
@@ -804,8 +804,8 @@ class ImageConfigWindow:
                 self.window["-CURRENT_COVER_DISPLAY-"].update(self.current_cover_filename)
                 self.window["-PREVIEW_COVER-"].update(disabled=False)
                 self.window["-CLEAR_COVER-"].update(disabled=False)
-                Config.get_instance().current_preview_cover = os.path.join(
-                    utils.get_current_dir("image"), self.current_cover_filename
+                Config.get_instance().current_preview_cover = str(
+                    PathManager.get_image_dir() / new_filename
                 )
             elif event == "-PREVIEW_COVER-":
                 if self.current_cover_filename:

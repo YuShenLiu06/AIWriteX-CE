@@ -17,6 +17,8 @@ from src.ai_write_x.utils import utils
 from src.ai_write_x.config.config import Config
 from src.ai_write_x.tools.wx_publisher import pub2wx
 from src.ai_write_x.gui import ImageConfig
+from src.ai_write_x.utils.path_manager import PathManager
+
 
 __author__ = "iniwaper@gmail.com"
 __copyright__ = "Copyright (C) 2025 iniwap"
@@ -36,7 +38,7 @@ class ArticleManager:
 
     def _get_publish_status(self, title):
         """获取文章发布状态"""
-        publish_file = os.path.join(utils.get_article_dir(), "publish_records.json")
+        publish_file = os.path.join(PathManager.get_article_dir(), "publish_records.json")
         try:
             if os.path.exists(publish_file):
                 with open(publish_file, "r", encoding="utf-8") as f:
@@ -57,7 +59,7 @@ class ArticleManager:
         self, title, appid, author, publish_time, success=True, error_msg=None
     ):
         """保存发布记录"""
-        publish_file = os.path.join(utils.get_article_dir(), "publish_records.json")
+        publish_file = os.path.join(PathManager.get_article_dir(), "publish_records.json")
         try:
             records = {}
             if os.path.exists(publish_file):
@@ -90,7 +92,9 @@ class ArticleManager:
             patterns = ["*.html", "*.md", "*.txt"]
             article_files = []
             for pattern in patterns:
-                article_files.extend(glob.glob(os.path.join(utils.get_article_dir(), pattern)))
+                article_files.extend(
+                    glob.glob(os.path.join(PathManager.get_article_dir(), pattern))
+                )
 
             articles = []
             for path in article_files:

@@ -57,27 +57,6 @@ def get_res_path(file_name, basedir=""):
     return os.path.join(basedir, file_name)
 
 
-def get_article_dir():
-    return os.path.join(get_current_dir(), "output/article")
-
-
-def get_current_dir(dir_name="", need_create_dir=True):
-    current_dir = ""
-    if get_is_release_ver():
-        exe_path = sys.executable
-        install_dir = os.path.dirname(exe_path)
-        current_dir = os.path.join(os.path.normpath(install_dir), dir_name)
-    else:
-        current_dir = os.path.dirname(os.path.abspath(__file__))
-        current_dir = os.path.join(current_dir, "../../../", dir_name)
-
-    # 不为空时创建目录，为空说明只是获取根目录路径
-    if dir_name != "" and need_create_dir:
-        mkdir(current_dir)
-
-    return current_dir
-
-
 def get_random_platform(platforms):
     """
     根据权重随机选择一个平台。

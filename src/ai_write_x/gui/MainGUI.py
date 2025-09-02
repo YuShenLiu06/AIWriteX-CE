@@ -12,6 +12,7 @@ import queue
 import threading
 import os
 from collections import deque
+from datetime import datetime
 
 import PySimpleGUI as sg
 import tkinter as tk
@@ -43,7 +44,9 @@ class MainGUI(object):
         self._is_running = False  # 跟踪任务状态
         self._update_queue = comm.get_update_queue()
         self._log_buffer = deque(maxlen=100)
-        self._ui_log_path = PathManager.get_log_dir() / "UI.log"
+        self._ui_log_path = (
+            PathManager.get_log_dir() / f"UI_{datetime.now().strftime('%Y-%m-%d')}.log"
+        )
         self._log_list = self.__get_logs()
         # 配置 CrewAI 日志处理器
         log.setup_logging("crewai", self._update_queue)
@@ -740,7 +743,7 @@ class MainGUI(object):
                     self._window["-STATUS-"].update("")
                 elif event in self._log_list:
                     if event == "更多...":
-                        logs_path = os.path.abspath(utils.get_current_dir("logs"))
+                        logs_path = os.path.abspath(PathManager.get_log_dir())
                         import sys
 
                         if sys.platform == "win32":
@@ -772,7 +775,7 @@ class MainGUI(object):
                         try:
                             import sys
 
-                            log_file_path = os.path.join(utils.get_current_dir("logs"), event)
+                            log_file_path = os.path.join(PathManager.get_log_dir(), event)
                             if sys.platform == "win32":
                                 os.system("start /B  notepad " + log_file_path)
                             elif sys.platform == "darwin":  # macOS

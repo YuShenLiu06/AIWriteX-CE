@@ -119,21 +119,43 @@ class ReadTemplateTool(BaseTool):
 # - 考虑到纯本地函数执行，采用回调形式
 # - 降低token消耗，降低AI出错率
 class PublisherTool:
-    def run(self, content, **kwargs):
-        """统一的发布工具，通过平台适配器处理"""
-        from ..core.system_init import get_platform_adapter
+    def run(self, content, appid, appsecret, author):
+        try:
+            content = utils.decompress_html(content)  # 固定格式化HTML
+        except Exception as e:
+            log.print_log(f"解压html出错：{str(e)}")
 
-        # 获取目标平台
-        target_platform = kwargs.get("target_platform", "wechat")
-        adapter = get_platform_adapter(target_platform)
-
-        if not adapter:
-            log.print_log(f"不支持的平台: {target_platform}", "error")
+        # 提取审核报告中修改后的文章
+        article = utils.extract_modified_article(content)
+        msg_type = "status"
+        title, digest = None, None
+        # 提取标题和摘要
+        try:
+            title, digest = utils.extract_html(article)
+        except Exception as e:
+            log.print_log(f"从文章中提取标题、摘要信息出错: {e}", msg_type)
             return
 
-        # 通过平台适配器发布
-        publish_result = adapter.publish_content(content, **kwargs)
-        log.print_log(publish_result.message, "status" if publish_result.success else "error")
+        if title is None:
+            result = "无法提取文章标题，请检查文章是否成功生成？"
+        else:
+            # 发布到微信公众号
+            if Config.get_instance().auto_publish:
+                # 自动发布，不保存最终文章
+                result, _, _ = pub2wx(title, digest, article, appid, appsecret, author)
+            else:
+                # 非自动保存需要保存最终文章，以便后续发布
+                msg_type = "info"
+                result = "文章生成完成，请手动发布（点击上方发布菜单按钮）。"
+                dir_path = PathManager.get_article_dir()
+                with open(
+                    os.path.join(dir_path, f"{utils.sanitize_filename(title)}.html"),
+                    "w",
+                    encoding="utf-8",
+                ) as f:
+                    f.write(article)
+
+        log.print_log(result, msg_type)
 
 
 # 3. AIForge Search Tool
@@ -248,7 +270,9 @@ class AIForgeSearchTool(BaseTool):
             )
             # 因为没输出格式要求，这里需要获取到后进行映射
             # 即使指定也不一定能保证，所以最好固定进行映射
-            return map_result_to_format(results.data, ["title", "abstract", "url", "pub_time"])
+            return map_result_to_format(results.data, ["title", "abstract", "url", "pub_time"])[
+                :max_results
+            ]
         except Exception as e:
             log.print_traceback("搜索过程中发生错误：", e)
             return None

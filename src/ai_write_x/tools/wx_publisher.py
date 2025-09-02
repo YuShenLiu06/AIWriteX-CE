@@ -173,7 +173,7 @@ class WeixinPublisher:
         if self.img_api_type == "ali":
             img_url = self._generate_img_by_ali(prompt, size)
         elif self.img_api_type == "picsum":
-            image_dir = utils.get_current_dir("image")
+            image_dir = str(PathManager.get_image_dir())
             width_height = size.split("*")
             img_url = utils.download_and_save_image(
                 f"https://picsum.photos/{width_height[0]}/{width_height[1]}?random=1",
@@ -464,7 +464,7 @@ def pub2wx(title, digest, article, appid, appsecret, author):
                 # 网络URL，先下载再上传
                 local_filename = utils.download_and_save_image(
                     image_url,
-                    utils.get_current_dir("image"),
+                    str(PathManager.get_image_dir()),
                 )
                 if local_filename:
                     _, url, _ = publisher.upload_image(local_filename)

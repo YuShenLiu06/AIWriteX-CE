@@ -1,12 +1,9 @@
 import logging
 import sys
 import re
-import os
 import time
 import traceback
-from datetime import datetime
 
-from src.ai_write_x.utils import utils
 from src.ai_write_x.utils import comm
 from src.ai_write_x.config.config import Config
 
@@ -72,13 +69,6 @@ def setup_logging(log_name, queue):
             logger.removeHandler(h)
     # 捕获 print 输出
     sys.stdout = QueueStreamHandler(queue)
-
-
-# 支持多种日志文件
-def get_log_path(log_name="log"):
-    logs_path = utils.get_current_dir("logs")
-    timestamp = datetime.now().strftime("%Y-%m-%d")
-    return os.path.join(logs_path, f"{log_name}_{timestamp}.log")
 
 
 def print_log(msg, msg_type="status"):

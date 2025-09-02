@@ -13,7 +13,7 @@ class PathManager:
         # 开发模式：使用项目根目录
         if not utils.get_is_release_ver():
             # 从当前文件位置回到项目根目录
-            return Path(__file__).parent.parent.parent
+            return Path(__file__).parent.parent.parent.parent
 
         # 发布模式：使用系统用户数据目录
         if platform.system() == "Darwin":  # macOS
