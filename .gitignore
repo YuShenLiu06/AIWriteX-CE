@@ -7,8 +7,8 @@ make_exe/
 make_app/
 image/*
 !image/preview/
-aiforge_work/*
-!aiforge_work/.gitkeep
+aiforge_work/
+backup/
 config.bk
 output/*/*
 !output/article/.gitkeep

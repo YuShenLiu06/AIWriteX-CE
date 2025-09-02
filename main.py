@@ -94,15 +94,8 @@ def admin_run():
         if is_admin():
             run()
         else:
-            try:
-                ctypes.windll.shell32.ShellExecuteW(
-                    None, "runas", sys.executable, __file__, None, 0
-                )
-            except Exception:
-                # 如果权限提升失败，直接运行
-                run()
+            ctypes.windll.shell32.ShellExecuteW(None, "runas", sys.executable, __file__, None, 0)
     else:
-        # macOS 和 Linux 直接运行，不需要权限提升
         run()
 
 

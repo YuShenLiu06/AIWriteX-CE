@@ -40,10 +40,10 @@ class PathManager:
         """获取文章目录"""
         if not utils.get_is_release_ver():
             # 开发模式：使用项目根目录下的 articles
-            article_dir = PathManager.get_app_data_dir() / "articles"
+            article_dir = PathManager.get_app_data_dir() / "output/article"
         else:
             # 发布模式：使用用户数据目录
-            article_dir = PathManager.get_app_data_dir() / "articles"
+            article_dir = PathManager.get_app_data_dir() / "output/article"
 
         article_dir.mkdir(parents=True, exist_ok=True)
         return article_dir
