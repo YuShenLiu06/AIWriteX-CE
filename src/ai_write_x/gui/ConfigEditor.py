@@ -673,12 +673,13 @@ class ConfigEditor:
         # 通用配置区块
         general_layout = [
             [
-                sg.Text("工作目录:", size=(15, 1), tooltip="AIForge的工作输出目录"),
+                sg.Text("语言:", size=(15, 1), tooltip="AIForge使用的语言"),
                 sg.InputText(
-                    aiforge_config["workdir"],
-                    key="-AIFORGE_WORKDIR-",
+                    "中文",
+                    key="-AIFORGE_LOCALE-",
                     size=(35, 1),
-                    tooltip="AIForge的工作输出目录",
+                    tooltip="AIForge使用的语言",
+                    disabled=True,
                 ),
             ],
             [
@@ -1579,7 +1580,9 @@ class ConfigEditor:
                 try:
                     selected_provider = values["-AIFORGE_DEFAULT_LLM_PROVIDER-"]
                     aiforge_config["default_llm_provider"] = selected_provider
-                    aiforge_config["workdir"] = values["-AIFORGE_WORKDIR-"]
+
+                    # 不支持修改AIForge的内置语言
+                    # aiforge_config["locale"] = values["-AIFORGE_LOCALE-"]
 
                     # 处理通用配置
                     try:

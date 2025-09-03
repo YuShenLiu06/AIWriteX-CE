@@ -43,8 +43,6 @@ import hashlib  # noqa 841
 from peewee import CharField, DoubleField, IntegerField, Model, TextField, Case  # noqa 841
 from playhouse.sqlite_ext import SqliteExtDatabase  # noqa 841
 
-from aiforge import AIForgeEngine  # noqa 841
-from aiforge.utils.field_mapper import map_result_to_format  # noqa 841
 
 from crewai.tools import BaseTool  # noqa 841
 from crewai_tools import SeleniumScrapingTool  # noqa 841
@@ -64,6 +62,12 @@ from rich.console import Console  # noqa 841
 import src.ai_write_x.gui.MainGUI as MainGUI  # noqa 402
 
 import platform
+
+
+os.environ["PYTHONIOENCODING"] = "utf-8"
+
+from aiforge import AIForgeEngine  # noqa 841
+from aiforge.utils.field_mapper import map_result_to_format  # noqa 841
 
 
 def is_admin():

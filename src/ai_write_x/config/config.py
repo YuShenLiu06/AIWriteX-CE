@@ -183,7 +183,7 @@ class Config:
             "format_publish": True,
         }
         self.default_aiforge_config = {
-            "workdir": "aiforge_work",
+            "locale": "zh",
             "max_rounds": 5,
             "max_tokens": 4096,
             "default_llm_provider": "openrouter",

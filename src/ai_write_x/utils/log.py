@@ -35,11 +35,29 @@ class QueueStreamHandler:
 
     def write(self, msg):
         if msg.strip():
-            clean_msg = strip_ansi_codes(msg.rstrip())  # 移除尾部换行/空格
+            clean_msg = strip_ansi_codes(msg.rstrip())
             self.queue.put({"type": "status", "value": f"PRINT: {clean_msg}"})
-            if self.original_stdout is not None:  # 检查 stdout 是否可用
-                self.original_stdout.write(msg.rstrip() + "\n")  # 强制换行
-                self.original_stdout.flush()
+            if self.original_stdout is not None:
+                try:
+                    # 尝试正常写入
+                    self.original_stdout.write(msg.rstrip() + "\n")
+                    self.original_stdout.flush()
+                except UnicodeEncodeError:
+                    # 如果编码失败，使用错误处理策略
+                    try:
+                        # 方案1：使用 errors='replace' 替换无法编码的字符
+                        encoded_msg = (
+                            msg.rstrip()
+                            .encode(self.original_stdout.encoding or "utf-8", errors="replace")
+                            .decode(self.original_stdout.encoding or "utf-8")
+                        )
+                        self.original_stdout.write(encoded_msg + "\n")
+                        self.original_stdout.flush()
+                    except Exception:
+                        # 方案2：完全跳过有问题的字符
+                        safe_msg = msg.rstrip().encode("ascii", errors="ignore").decode("ascii")
+                        self.original_stdout.write(safe_msg + "\n")
+                        self.original_stdout.flush()
 
     def flush(self):
         if self.original_stdout is not None:  # 检查 stdout 是否可用
