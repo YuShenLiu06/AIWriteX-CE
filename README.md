@@ -94,6 +94,7 @@ uv pip install -r requirements.txt
 
 | 网盘类型                     | 下载链接                                                                                              | 提取码  | 版本    |是否最新     |操作系统                            |
 |-----------------------------|-------------------------------------------------------------------------------------------------------|--------|---------|------------|-------------------------------|
+| **百度网盘**                 |[点击下载](https://pan.baidu.com/s/1MxuIbi2SQrcvWHSkGm5WGw?pwd=dsey)                                   |dsey    |V2.1.8    |✅         |Mac    |
 | **百度网盘**                 |[点击下载](https://pan.baidu.com/s/1F6gr2BD5RIBTYshzRyF9tA?pwd=56yt)                                   |56yt    |V2.1.8    |✅         |Windows    |
 | **Google Drive**            |[点击下载](https://drive.google.com/file/d/1Ja11R5yaHbGSuw6uGJXeYVfvP5B75EaG/view?usp=sharing)          |/      |V2.1.8    |✅         |Windows |
 | **移动云盘**                 |[点击下载](https://caiyun.139.com/w/i/2prAJm8oVjP2i)                                                   |lfdc    |V2.1.8    |✅         |Windows |

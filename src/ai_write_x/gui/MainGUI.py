@@ -7,6 +7,8 @@
 
 """
 
+import sys
+import subprocess
 import time
 import queue
 import threading
@@ -81,12 +83,13 @@ class MainGUI(object):
         ]
 
         # 根据平台选择菜单组件
-        import sys
-
         if sys.platform == "darwin":  # macOS
             menu_component = [sg.MenubarCustom(menu_list, key="-MENU-")]
+            button_size = (12, 1.2)
+            window_size = (650, 680)
         else:  # Windows 和 Linux
             menu_component = [sg.Menu(menu_list, key="-MENU-")]
+            window_size = (650, 720)
 
         layout = [
             menu_component,
@@ -205,7 +208,7 @@ class MainGUI(object):
                             sg.Push(),
                             sg.Button(
                                 "开始执行",
-                                size=(15, 2),
+                                size=button_size,
                                 key="-START_BTN-",
                                 button_color=("#FFFFFF", "#2E8B57"),
                                 font=("", 10, "bold"),
@@ -213,7 +216,7 @@ class MainGUI(object):
                             ),
                             sg.Button(
                                 "停止执行",
-                                size=(15, 2),
+                                size=button_size,
                                 key="-STOP_BTN-",
                                 disabled=not self._is_running,
                                 button_color=("#FFFFFF", "#CD5C5C"),
@@ -281,7 +284,7 @@ class MainGUI(object):
             f"AIWriteX - {__version___}",
             layout,
             default_element_size=(12, 1),
-            size=(650, 720),
+            size=window_size,
             icon=self.__get_icon(),
             finalize=True,
             resizable=False,
@@ -531,16 +534,16 @@ class MainGUI(object):
                     ConfigEditor.gui_start()
                 elif event == "CrewAI文件":
                     try:
-                        import sys
-
                         if sys.platform == "win32":
-                            os.system(
-                                "start /B  notepad " + Config.get_instance().get_config_path()
-                            )
+                            subprocess.run(["notepad", str(PathManager.get_config_path())])
                         elif sys.platform == "darwin":  # macOS
-                            os.system("open -a TextEdit " + Config.get_instance().get_config_path())
+                            # 使用subprocess避免路径空格问题
+                            subprocess.run(
+                                ["open", "-a", "TextEdit", str(PathManager.get_config_path())]
+                            )
                         else:  # Linux
-                            os.system("gedit " + Config.get_instance().get_config_path() + " &")
+                            # 使用subprocess避免路径空格问题
+                            subprocess.run(["gedit", str(PathManager.get_config_path())])
                     except Exception as e:
                         sg.popup(
                             "无法打开CrewAI配置文件 :( \n错误信息：" + str(e),
@@ -549,18 +552,23 @@ class MainGUI(object):
                         )
                 elif event == "AIForge文件":
                     try:
-                        import sys
-
                         if sys.platform == "win32":
-                            os.system(
-                                "start /B  notepad " + Config.get_instance().config_aiforge_path
+                            subprocess.run(
+                                ["notepad", str(Config.get_instance().config_aiforge_path)]
                             )
                         elif sys.platform == "darwin":  # macOS
-                            os.system(
-                                "open -a TextEdit " + Config.get_instance().config_aiforge_path
+                            subprocess.run(
+                                [
+                                    "open",
+                                    "-a",
+                                    "TextEdit",
+                                    str(Config.get_instance().config_aiforge_path),
+                                ]
                             )
                         else:  # Linux
-                            os.system("gedit " + Config.get_instance().config_aiforge_path + " &")
+                            subprocess.run(
+                                ["gedit", str(Config.get_instance().config_aiforge_path)]
+                            )
                     except Exception as e:
                         sg.popup(
                             "无法打开AIForge配置文件 :( \n错误信息：" + str(e),
@@ -744,8 +752,6 @@ class MainGUI(object):
                 elif event in self._log_list:
                     if event == "更多...":
                         logs_path = os.path.abspath(PathManager.get_log_dir())
-                        import sys
-
                         if sys.platform == "win32":
                             logs_path = logs_path.replace("/", "\\")
                         filename = sg.popup_get_file(
@@ -760,11 +766,11 @@ class MainGUI(object):
 
                         try:
                             if sys.platform == "win32":
-                                os.system("start /B  notepad " + filename)
+                                subprocess.run(["notepad", filename])
                             elif sys.platform == "darwin":  # macOS
-                                os.system("open -a TextEdit " + filename)
+                                subprocess.run(["open", "-a", "TextEdit", filename])
                             else:  # Linux
-                                os.system("gedit " + filename + " &")
+                                subprocess.run(["gedit", filename])
                         except Exception as e:
                             sg.popup(
                                 "无法打开日志文件 :( \n错误信息：" + str(e),
@@ -773,15 +779,13 @@ class MainGUI(object):
                             )
                     else:
                         try:
-                            import sys
-
                             log_file_path = os.path.join(PathManager.get_log_dir(), event)
                             if sys.platform == "win32":
-                                os.system("start /B  notepad " + log_file_path)
+                                subprocess.run(["notepad", log_file_path])
                             elif sys.platform == "darwin":  # macOS
-                                os.system("open -a TextEdit " + log_file_path)
+                                subprocess.run(["open", "-a", "TextEdit", log_file_path])
                             else:  # Linux
-                                os.system("gedit " + log_file_path + " &")
+                                subprocess.run(["gedit", log_file_path])
                         except Exception as e:
                             sg.popup(
                                 "无法打开日志文件 :( \n错误信息：" + str(e),

@@ -1,4 +1,5 @@
 import os
+import glob
 import platform
 from pathlib import Path
 from src.ai_write_x.utils import utils
@@ -61,7 +62,8 @@ class PathManager:
 
             # 首次运行时，从资源目录复制默认模板到用户目录
             res_template_dir = utils.get_res_path("templates")
-            if os.path.exists(res_template_dir) and not any(template_dir.iterdir()):
+            template_files = glob.glob(os.path.join(template_dir, "*", "*.html"))
+            if os.path.exists(res_template_dir) and not template_files:
                 import shutil
 
                 shutil.copytree(res_template_dir, template_dir, dirs_exist_ok=True)
