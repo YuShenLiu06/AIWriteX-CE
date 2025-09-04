@@ -64,10 +64,9 @@ def run_crew_in_process(inputs, appid, appsecret, author, log_queue, config_data
         result = run(inputs, appid, appsecret, author)
 
         # 发送成功消息
-        log.print_log("任务执行完成", "status")
         log_queue.put(
             {
-                "type": "success",
+                "type": "system",
                 "message": "任务执行完成",
                 "result": result,
                 "timestamp": time.time(),

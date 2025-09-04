@@ -445,7 +445,17 @@ class MainGUI(object):
                         # 检查退出码，如果非0表示异常退出
                         exit_code = self._crew_process.exitcode
                         self._drain_remaining_logs()
-                        self._handle_task_completion(exit_code == 0)
+                        # 添加明确的成功/失败日志
+                        if exit_code == 0:
+                            self._display_log("🎉 任务成功完成！", "success")
+                        else:
+                            self._display_log(f"❌ 任务异常退出，退出码: {exit_code}", "error")
+
+                        self._handle_task_completion(
+                            exit_code == 0,
+                            f"执行异常退出，退出码: {exit_code}" if exit_code != 0 else None,
+                        )
+
                         break
 
                 # 减少超时时间以更快检测进程状态变化
@@ -495,12 +505,12 @@ class MainGUI(object):
             return
 
         elif msg_type == "print":
-            formatted_msg = f"[{time_str}][PRINT]: {message}"
+            if not message.startswith("[AIForge]"):
+                formatted_msg = f"[{time_str}][PRINT]: {message}"
+            else:
+                formatted_msg = message
         elif msg_type == "system":
             formatted_msg = f"[{time_str}][SYSTEM]: {message}"
-        elif msg_type == "success":
-            formatted_msg = f"[{time_str}][SUCCESS]: {message}"
-            self._handle_task_completion(True)
         else:
             formatted_msg = f"[{time_str}][{msg_type.upper()}]: {message}"
 
@@ -524,20 +534,14 @@ class MainGUI(object):
 
     def _handle_task_completion(self, success, error_msg=None):
         """处理任务完成"""
+        # 发送事件到主线程
+        self._window.write_event_value("-TASK_COMPLETED-", {"success": success, "error": error_msg})
+
         with self._process_lock:
             self._is_running = False
             self._task_stopping = False
             self._crew_process = None
             self._log_queue = None
-
-        # 更新UI状态
-        if threading.current_thread() == threading.main_thread():
-            self._window["-START_BTN-"].update(disabled=False)
-            self._window["-STOP_BTN-"].update(disabled=True)
-        else:
-            self._window.write_event_value(
-                "-TASK_COMPLETED-", {"success": success, "error": error_msg}
-            )
 
     # 处理消息队列
     def process_queue(self):
@@ -548,10 +552,7 @@ class MainGUI(object):
                 # 处理日志格式
                 if msg["value"].startswith("PRINT:"):
                     original_msg = msg["value"][6:].strip()
-                    if original_msg.startswith("[AIForge]"):
-                        log_entry = f"[{time.strftime('%H:%M:%S')}][PRINT]: {original_msg}"
-                    else:
-                        log_entry = f"[{time.strftime('%H:%M:%S')}][PRINT]: {original_msg}"
+                    log_entry = f"[{time.strftime('%H:%M:%S')}][PRINT]: {original_msg}"
                 elif msg["value"].startswith("FILE_LOG:"):
                     log_entry = f"[{time.strftime('%H:%M:%S')}][FILE]: {msg['value'][9:]}"
                 elif msg["value"].startswith("LOG:"):
@@ -713,7 +714,7 @@ class MainGUI(object):
 
                 log.print_log(f"开始任务，话题：{config.custom_topic or '采用热门话题'}")
             else:
-                sg.popup_error("进程启动失败，请检查配置", title="错误", icon=self.__get_icon())
+                sg.popup_error("执行启动失败，请检查配置", title="错误", icon=self.__get_icon())
         except Exception as e:
             self._window["-START_BTN-"].update(disabled=False)
             self._window["-STOP_BTN-"].update(disabled=True)
@@ -721,7 +722,7 @@ class MainGUI(object):
                 self._is_running = False
                 self._crew_process = None
                 self._log_queue = None
-            sg.popup_error(f"启动进程时发生错误: {str(e)}", title="错误", icon=self.__get_icon())
+            sg.popup_error(f"启动执行时发生错误: {str(e)}", title="错误", icon=self.__get_icon())
 
     def _handle_stop_button(self):
         """处理停止按钮点击"""
@@ -753,16 +754,16 @@ class MainGUI(object):
 
                     # 检查是否真正终止
                     if self._crew_process.is_alive():
-                        self._display_log("进程未响应，强制终止", "system")
+                        self._display_log("执行未响应，强制终止", "system")
                         self._crew_process.kill()
                         self._crew_process.join(timeout=1.0)
 
                         if self._crew_process.is_alive():
-                            self._display_log("警告：进程可能未完全终止", "warning")
+                            self._display_log("警告：执行可能未完全终止", "warning")
                         else:
-                            self._display_log("进程已强制终止", "system")
+                            self._display_log("执行已强制终止", "system")
                     else:
-                        self._display_log("进程已优雅终止", "system")
+                        self._display_log("执行已终止", "system")
 
                 # 清理队列中的剩余消息
                 if self._log_queue:
@@ -784,7 +785,7 @@ class MainGUI(object):
                     },
                 )
             except Exception as e:
-                self._display_log(f"终止进程时出错: {str(e)}", "error")
+                self._display_log(f"终止执行时出错: {str(e)}", "error")
                 # 即使出错也要重置状态
                 self._reset_task_state()
                 self._window.write_event_value("-TASK_TERMINATED-", {"fully_stopped": False})
@@ -831,7 +832,16 @@ class MainGUI(object):
                     self._window["-STOP_BTN-"].update(disabled=True)
                     if not task_data["success"] and task_data["error"]:
                         sg.popup_error(
-                            f"任务错误: {task_data['error']}", title="错误", icon=self.__get_icon()
+                            f"任务执行出错: {task_data['error']}",
+                            title="系统提示",
+                            icon=self.__get_icon(),
+                        )
+                    else:
+                        sg.popup(
+                            "任务执行成功",
+                            title="系统提示",
+                            icon=self.__get_icon(),
+                            non_blocking=True,
                         )
                     continue
                 elif event == "-TASK_TERMINATED-":

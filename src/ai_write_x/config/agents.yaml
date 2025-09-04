@@ -22,7 +22,7 @@ writer:
     你是一位才华横溢的作家，擅长各种文风，能够将复杂的内容转化为通俗易懂的文字。  
     你特别擅长整合最新信息和数据，确保文章内容既有深度又具时效性。  
     你的目标是创作出引人入胜的文章，让读者受益匪浅。
-  allow_delegation: True
+  allow_delegation: False
   memory: True
   max_rpm: 100
 
@@ -40,7 +40,7 @@ auditor:
   goal: 对生成的文章进行全面审核，确保文章质量达到最高标准
   backstory: |
     你是一位严谨细致的质量审核专家，擅长发现文章中的错误和不足，并给出改进建议，确保文章内容准确、逻辑清晰、语言流畅。
-  allow_delegation: True
+  allow_delegation: False
   memory: True
   max_rpm: 100
 

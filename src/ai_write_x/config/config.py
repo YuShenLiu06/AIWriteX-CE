@@ -259,6 +259,8 @@ class Config:
         self.custom_template = ""  # 自定义话题时，模板
         self.current_preview_cover = ""  # 当前设置的封面
 
+        self._process_log_queue = None
+
     @classmethod
     def get_instance(cls):
         with cls._lock:

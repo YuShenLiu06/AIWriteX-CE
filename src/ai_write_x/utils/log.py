@@ -101,17 +101,10 @@ class ProcessStreamHandler:
                 for line in lines[:-1]:
                     if line.strip():
                         clean_msg = strip_ansi_codes(line.strip())
-                        # 检查是否是 AIForge 消息，统一添加时间戳
-                        if clean_msg.startswith("[AIForge]"):
-                            formatted_msg = f"[{time.strftime('%H:%M:%S')}][PRINT]: {clean_msg}"
-                        else:
-                            formatted_msg = clean_msg
-
                         self._send_to_queue(
-                            {"type": "print", "message": formatted_msg, "timestamp": current_time}
+                            {"type": "print", "message": clean_msg, "timestamp": current_time}
                         )
 
-                        self._send_to_queue(clean_msg)
                 # 保留最后一个不完整的行
                 self._buffer = lines[-1]
             else:
@@ -125,17 +118,21 @@ class ProcessStreamHandler:
         """强制刷新超长内容"""
         if self._buffer.strip():
             clean_msg = strip_ansi_codes(self._buffer.strip())
-            self._send_to_queue(clean_msg)
+            # 统一格式化
+            self._send_to_queue({"type": "print", "message": clean_msg, "timestamp": time.time()})
             self._buffer = ""
 
     def _send_to_queue(self, message):
         """安全地发送消息到队列"""
         try:
-            self.process_queue.put(
-                {"type": "print", "message": message, "timestamp": time.time()}, timeout=1.0
-            )  # 添加超时防止阻塞
+            # 确保消息格式统一
+            if isinstance(message, str):
+                formatted_message = {"type": "print", "message": message, "timestamp": time.time()}
+            else:
+                formatted_message = message
+
+            self.process_queue.put(formatted_message, timeout=1.0)
         except Exception:
-            # 如果队列发送失败，至少保证终端输出
             pass
 
     def _delayed_flush(self):
@@ -150,7 +147,7 @@ class ProcessStreamHandler:
         # 发送缓冲区中剩余的内容
         if self._buffer.strip():
             clean_msg = strip_ansi_codes(self._buffer.strip())
-            self._send_to_queue(clean_msg)
+            self._send_to_queue({"type": "print", "message": clean_msg, "timestamp": time.time()})
             self._buffer = ""
 
 
@@ -216,11 +213,7 @@ class QueueStreamHandler:
     def write(self, msg):
         if msg.strip():
             clean_msg = strip_ansi_codes(msg.rstrip())
-            if clean_msg.startswith("[AIForge]"):
-                formatted_msg = f"[{time.strftime('%H:%M:%S')}][PRINT]: {clean_msg}"
-                self.queue.put({"type": "status", "value": f"PRINT: {formatted_msg}"})
-            else:
-                self.queue.put({"type": "status", "value": f"PRINT: {clean_msg}"})
+            self.queue.put({"type": "status", "value": f"PRINT: {clean_msg}"})
 
             # 只在开发模式下输出到终端
             if not utils.get_is_release_ver() and self.original_stdout is not None:

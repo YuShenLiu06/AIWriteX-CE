@@ -124,6 +124,7 @@ class PublisherTool:
             content = utils.decompress_html(content)  # 固定格式化HTML
         except Exception as e:
             log.print_log(f"解压html出错：{str(e)}")
+            return
 
         # 提取审核报告中修改后的文章
         article = utils.extract_modified_article(content)
@@ -259,7 +260,7 @@ class AIForgeSearchTool(BaseTool):
         try:
             # 启用AIForge并且配置了key才能使用aiforge搜索
             if not aiforge_api_key:
-                print("未配置AIForge API KEY，将不使用搜索结果生成文章")
+                log.print_log("未配置AIForge API KEY，将不使用搜索结果生成文章")
                 return None
 
             # 这里可以有两种形式的传参，第2种不指定要求，需要对输出进行映射
