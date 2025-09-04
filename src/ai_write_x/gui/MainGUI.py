@@ -15,7 +15,6 @@ import threading
 import os
 from collections import deque
 from datetime import datetime
-
 import PySimpleGUI as sg
 import tkinter as tk
 
@@ -43,7 +42,6 @@ __version___ = "v2.1.8"
 class MainGUI(object):
     def __init__(self):
         self._log_list = []
-        self._is_running = False  # 跟踪任务状态
         self._update_queue = comm.get_update_queue()
         self._log_buffer = deque(maxlen=100)
         self._ui_log_path = (
@@ -52,9 +50,15 @@ class MainGUI(object):
         self._log_list = self.__get_logs()
         # 配置 CrewAI 日志处理器
         log.setup_logging("crewai", self._update_queue)
-        # 终止信号和线程
-        self._stop_event = threading.Event()
-        self._crew_thread = None
+
+        # 统一的状态管理
+        self._crew_process = None
+        self._log_queue = None  # 进程间日志队列
+        self._monitor_thread = None
+        self._process_lock = threading.Lock()
+        self._is_running = False
+        self._task_stopping = False
+
         self.load_saved_font()
 
         # 加载配置，不验证
@@ -89,6 +93,7 @@ class MainGUI(object):
             window_size = (650, 680)
         else:  # Windows 和 Linux
             menu_component = [sg.Menu(menu_list, key="-MENU-")]
+            button_size = (15, 2)
             window_size = (650, 720)
 
         layout = [
@@ -427,24 +432,126 @@ class MainGUI(object):
         except Exception:
             pass
 
+    def _monitor_process_logs(self):
+        """监控进程日志的专用线程"""
+        while True:
+            try:
+                # 更频繁地检查进程状态
+                with self._process_lock:
+                    if not self._log_queue or self._task_stopping:
+                        break
+
+                    if self._crew_process and not self._crew_process.is_alive():
+                        # 检查退出码，如果非0表示异常退出
+                        exit_code = self._crew_process.exitcode
+                        self._drain_remaining_logs()
+                        self._handle_task_completion(exit_code == 0)
+                        break
+
+                # 减少超时时间以更快检测进程状态变化
+                try:
+                    log_msg = self._log_queue.get(timeout=0.1)
+                    self._process_log_message(log_msg)
+                except queue.Empty:
+                    continue
+
+            except Exception as e:
+                self._display_log(f"日志监控错误: {str(e)}", "error")
+                break
+
+    def _drain_remaining_logs(self):
+        """处理进程结束后队列中的剩余日志"""
+        try:
+            while True:
+                log_msg = self._log_queue.get_nowait()
+                self._process_log_message(log_msg)
+        except queue.Empty:
+            pass
+
+    def _process_log_message(self, log_msg):
+        """处理单条日志消息"""
+        msg_type = log_msg.get("type", "unknown")
+        message = log_msg.get("message", "")
+        level = log_msg.get("level", "INFO")
+        timestamp = log_msg.get("timestamp", time.time())
+
+        # 格式化时间戳
+        time_str = time.strftime("%H:%M:%S", time.localtime(timestamp))
+
+        # 检查是否为错误级别的日志
+        if msg_type == "log":
+            if level == "ERROR":
+                formatted_msg = f"[{time_str}][{level}]: {message}"
+                self._display_log(formatted_msg, "error")
+                self._handle_task_completion(False, message)
+                return
+            else:
+                level = log_msg.get("level", "INFO")
+                formatted_msg = f"[{time_str}][{level}]: {message}"
+        elif msg_type == "error":
+            formatted_msg = f"[{time_str}][ERROR]: {message}"
+            self._display_log(formatted_msg, msg_type)
+            self._handle_task_completion(False, message)
+            return
+
+        elif msg_type == "print":
+            formatted_msg = f"[{time_str}][PRINT]: {message}"
+        elif msg_type == "system":
+            formatted_msg = f"[{time_str}][SYSTEM]: {message}"
+        elif msg_type == "success":
+            formatted_msg = f"[{time_str}][SUCCESS]: {message}"
+            self._handle_task_completion(True)
+        else:
+            formatted_msg = f"[{time_str}][{msg_type.upper()}]: {message}"
+
+        self._display_log(formatted_msg, msg_type)
+
+    def _display_log(self, log_entry, msg_type="info"):
+        """显示日志到界面并保存到文件"""
+        # 添加到缓冲区
+        self._log_buffer.append(log_entry)
+
+        # 保存到文件
+        if self.__save_ui_log(log_entry):
+            self.__update_menu()
+
+        # 更新界面（需要在主线程中执行）
+        if threading.current_thread() == threading.main_thread():
+            self._window["-STATUS-"].update("\n".join(self._log_buffer), append=False)
+        else:
+            # 如果在子线程中，使用线程安全的方式更新界面
+            self._window.write_event_value("-UPDATE_LOG-", log_entry)
+
+    def _handle_task_completion(self, success, error_msg=None):
+        """处理任务完成"""
+        with self._process_lock:
+            self._is_running = False
+            self._task_stopping = False
+            self._crew_process = None
+            self._log_queue = None
+
+        # 更新UI状态
+        if threading.current_thread() == threading.main_thread():
+            self._window["-START_BTN-"].update(disabled=False)
+            self._window["-STOP_BTN-"].update(disabled=True)
+        else:
+            self._window.write_event_value(
+                "-TASK_COMPLETED-", {"success": success, "error": error_msg}
+            )
+
     # 处理消息队列
     def process_queue(self):
+        """处理线程队列消息"""
         try:
             msg = self._update_queue.get_nowait()
-            if msg["type"] == "progress":
-                # 暂时不支持 进度显示
-                """[
-                    sg.Text("进度:", size=(6, 1), pad=((10, 5), (5, 5))),
-                    sg.Text("0%", size=(4, 1), key="-PROGRESS-", pad=((5, 5), (5, 5))),
-                    sg.ProgressBar(100, orientation='h', size=(20, 20), key="-PROGRESS_BAR-")
-                ],"""
-                # self._window["-PROGRESS-"].update(f"{msg['value']}%")
-                # self._window["-PROGRESS_BAR-"].update(msg["value"])
-                pass
-            elif msg["type"] in ["status", "warning", "error"]:
-                # 追加日志到缓冲区
+            if msg["type"] in ["status", "warning", "error"]:
+                # 处理日志格式
                 if msg["value"].startswith("PRINT:"):
-                    log_entry = f"[{time.strftime('%H:%M:%S')}][PRINT]: {msg['value'][6:]}"
+                    original_msg = msg["value"][6:].strip()
+                    if original_msg.startswith("[AIForge]"):
+                        log_entry = f"[{time.strftime('%H:%M:%S')}][PRINT]: {original_msg}"
+                    else:
+                        log_entry = f"[{time.strftime('%H:%M:%S')}][PRINT]: {original_msg}"
                 elif msg["value"].startswith("FILE_LOG:"):
                     log_entry = f"[{time.strftime('%H:%M:%S')}][FILE]: {msg['value'][9:]}"
                 elif msg["value"].startswith("LOG:"):
@@ -453,21 +560,23 @@ class MainGUI(object):
                     log_entry = (
                         f"[{time.strftime('%H:%M:%S')}] [{msg['type'].upper()}]: {msg['value']}"
                     )
-                self._log_buffer.append(log_entry)
-                if self.__save_ui_log(log_entry):
-                    # 需要更新日志列表
-                    self.__update_menu()
 
-                # 更新 Multiline，显示所有日志
-                self._window["-STATUS-"].update("\n".join(self._log_buffer), append=False)
+                self._display_log(log_entry, msg["type"])
+
+                # 检查任务完成状态（支持多进程架构）
                 if msg["type"] == "status" and (
-                    msg["value"].startswith("任务完成！") or msg["value"] == "CrewAI 任务被终止"
+                    msg["value"].startswith("任务完成！") or msg["value"] == "任务执行完成"
                 ):
                     self._window["-START_BTN-"].update(disabled=False)
                     self._window["-STOP_BTN-"].update(disabled=True)
-                    self._is_running = False
-                    self._crew_thread = None
-                elif msg["type"] == "error":
+                    # 使用锁保护状态更新
+                    with self._process_lock:
+                        self._is_running = False
+                        self._crew_process = None
+                        self._log_queue = None
+
+                # 处理错误和警告
+                if msg["type"] == "error":
                     sg.popup_error(
                         f"任务错误: {msg['value']}",
                         title="错误",
@@ -476,8 +585,10 @@ class MainGUI(object):
                     )
                     self._window["-START_BTN-"].update(disabled=False)
                     self._window["-STOP_BTN-"].update(disabled=True)
-                    self._is_running = False
-                    self._crew_thread = None
+                    with self._process_lock:
+                        self._is_running = False
+                        self._crew_process = None
+                        self._log_queue = None
                 elif msg["type"] == "warning":
                     sg.popup(
                         f"出现错误但不影响运行，告警信息：{msg['value']}",
@@ -488,21 +599,252 @@ class MainGUI(object):
         except queue.Empty:
             pass
 
+    def _handle_start_button(self, values):
+        """处理开始按钮点击"""
+        # 强制清理任何残留状态
+        with self._process_lock:
+            if self._crew_process:
+                if not self._crew_process.is_alive():
+                    self._crew_process = None
+                    self._log_queue = None
+                else:
+                    # 有活跃进程，不允许启动新任务
+                    sg.popup_error(
+                        "任务正在运行中，请先停止当前任务", title="系统提示", icon=self.__get_icon()
+                    )
+                    return
+
+            # 重置所有状态
+            self._is_running = False
+            self._task_stopping = False
+
+        config = Config.get_instance()
+        if not config.validate_config():
+            sg.popup_error(
+                f"无法执行，配置错误：{config.error_message}",
+                title="系统提示",
+                icon=self.__get_icon(),
+                non_blocking=True,
+            )
+            return
+
+        # 处理自定义话题、链接和借鉴比例
+        if values["-CUSTOM_TOPIC-"]:
+            topic = values["-TOPIC_INPUT-"].strip()
+            if not topic:
+                sg.popup_error(
+                    "自定义话题不能为空",
+                    title="系统提示",
+                    icon=self.__get_icon(),
+                    non_blocking=True,
+                )
+                return
+            config.custom_topic = topic
+            urls_input = values["-URLS_INPUT-"].strip()
+            if urls_input:
+                urls = [url.strip() for url in urls_input.split("|") if url.strip()]
+                valid_urls = [url for url in urls if utils.is_valid_url(url)]
+                if len(valid_urls) != len(urls):
+                    sg.popup_error(
+                        "存在无效的URL，请检查输入（确保使用http://或https://）",
+                        title="系统提示",
+                        icon=self.__get_icon(),
+                        non_blocking=True,
+                    )
+                    return
+                config.urls = valid_urls
+            else:
+                config.urls = []
+            # 将比例转换为浮点数
+            config.reference_ratio = float(values["-REFERENCE_RATIO-"].strip("%")) / 100
+            config.custom_template_category = (
+                values["-TEMPLATE_CATEGORY-"] if values["-TEMPLATE_CATEGORY-"] != "随机分类" else ""
+            )
+            config.custom_template = (
+                values["-TEMPLATE-"] if values["-TEMPLATE-"] != "随机模板" else ""
+            )
+        else:
+            config.custom_topic = ""
+            config.urls = []
+            config.reference_ratio = 0.0  # 重置为0
+            config.custom_template_category = ""  # 自定义话题时，模板分类
+            config.custom_template = ""  # 自定义话题时，模板
+
+        # 收集需要同步到子进程的配置数据
+        config_data = {
+            "ui_mode": True,  # 明确设置为 True
+            "custom_topic": config.custom_topic,
+            "urls": config.urls,
+            "reference_ratio": config.reference_ratio,
+            "custom_template_category": config.custom_template_category,
+            "custom_template": config.custom_template,
+        }
+
+        sg.popup(
+            "更多界面功能开发中，请关注项目 :)\n点击OK开始执行",
+            title="系统提示",
+            icon=self.__get_icon(),
+        )
+
+        # 启动新进程，传递配置数据
+        try:
+            result = ai_write_x_main(True, config_data)  # 传递配置数据
+            if result and result[0] and result[1]:
+                with self._process_lock:
+                    self._crew_process, self._log_queue = result
+                    self._is_running = True
+                    self._task_stopping = False
+
+                self._crew_process.start()
+
+                # 启动监控线程
+                if self._monitor_thread and self._monitor_thread.is_alive():
+                    # 等待之前的监控线程结束
+                    self._monitor_thread.join(timeout=1.0)
+
+                self._monitor_thread = threading.Thread(
+                    target=self._monitor_process_logs, daemon=True
+                )
+                self._monitor_thread.start()
+
+                # 更新UI
+                self._window["-START_BTN-"].update(disabled=True)
+                self._window["-STOP_BTN-"].update(disabled=False)
+
+                log.print_log(f"开始任务，话题：{config.custom_topic or '采用热门话题'}")
+            else:
+                sg.popup_error("进程启动失败，请检查配置", title="错误", icon=self.__get_icon())
+        except Exception as e:
+            self._window["-START_BTN-"].update(disabled=False)
+            self._window["-STOP_BTN-"].update(disabled=True)
+            with self._process_lock:
+                self._is_running = False
+                self._crew_process = None
+                self._log_queue = None
+            sg.popup_error(f"启动进程时发生错误: {str(e)}", title="错误", icon=self.__get_icon())
+
+    def _handle_stop_button(self):
+        """处理停止按钮点击"""
+        with self._process_lock:
+            if not self._is_running:
+                sg.popup("没有正在运行的任务", title="系统提示", icon=self.__get_icon())
+                return
+
+            if not self._crew_process or not self._crew_process.is_alive():
+                self._reset_task_state()
+                self._window["-START_BTN-"].update(disabled=False)
+                self._window["-STOP_BTN-"].update(disabled=True)
+                sg.popup("任务已经结束", title="系统提示", icon=self.__get_icon())
+                return
+
+            self._task_stopping = True
+            # 立即更新按钮状态，防止重复点击
+            self._window["-STOP_BTN-"].update(disabled=True)
+
+        self._display_log("正在终止任务...", "system")
+
+        # 使用线程来处理进程终止，避免阻塞 UI
+        def terminate_process():
+            try:
+                # 首先尝试优雅终止
+                if self._crew_process and self._crew_process.is_alive():
+                    self._crew_process.terminate()
+                    self._crew_process.join(timeout=2.0)
+
+                    # 检查是否真正终止
+                    if self._crew_process.is_alive():
+                        self._display_log("进程未响应，强制终止", "system")
+                        self._crew_process.kill()
+                        self._crew_process.join(timeout=1.0)
+
+                        if self._crew_process.is_alive():
+                            self._display_log("警告：进程可能未完全终止", "warning")
+                        else:
+                            self._display_log("进程已强制终止", "system")
+                    else:
+                        self._display_log("进程已优雅终止", "system")
+
+                # 清理队列中的剩余消息
+                if self._log_queue:
+                    try:
+                        while True:
+                            self._log_queue.get_nowait()
+                    except queue.Empty:
+                        pass
+
+                self._reset_task_state()
+
+                # 通过事件更新 UI
+                self._window.write_event_value(
+                    "-TASK_TERMINATED-",
+                    {
+                        "fully_stopped": (
+                            not self._crew_process.is_alive() if self._crew_process else True
+                        )
+                    },
+                )
+            except Exception as e:
+                self._display_log(f"终止进程时出错: {str(e)}", "error")
+                # 即使出错也要重置状态
+                self._reset_task_state()
+                self._window.write_event_value("-TASK_TERMINATED-", {"fully_stopped": False})
+
+        # 在后台线程中执行终止操作
+        terminate_thread = threading.Thread(target=terminate_process, daemon=True)
+        terminate_thread.start()
+
+    def _reset_task_state(self):
+        """完全重置任务状态"""
+        with self._process_lock:
+            self._is_running = False
+            self._task_stopping = False
+            self._crew_process = None
+            self._log_queue = None
+
+        # 等待监控线程结束
+        if self._monitor_thread and self._monitor_thread.is_alive():
+            self._monitor_thread.join(timeout=1.0)
+        self._monitor_thread = None
+
     def run(self):
         try:
             while True:
                 event, values = self._window.read(timeout=100)
-                if event == sg.WIN_CLOSED:  # always,  always give a way out!
-                    if self._is_running and self._crew_thread and self._crew_thread.is_alive():
-                        self._stop_event.set()
-                        self._crew_thread.join(timeout=2.0)
-                        if self._crew_thread.is_alive():
-                            log.print_log("警告：任务终止超时，可能未完全停止")
 
+                if event == sg.WIN_CLOSED:  # always,  always give a way out!
+                    if self._is_running and self._crew_process and self._crew_process.is_alive():
+                        self._crew_process.terminate()
+                        self._crew_process.join(timeout=2.0)
+                        if self._crew_process.is_alive():
+                            self._crew_process.kill()
                     break
 
+                # 处理自定义事件
+                elif event == "-UPDATE_LOG-":
+                    # 线程安全的日志更新
+                    self._window["-STATUS-"].update("\n".join(self._log_buffer), append=False)
+                    continue
+                elif event == "-TASK_COMPLETED-":
+                    # 处理任务完成事件
+                    task_data = values["-TASK_COMPLETED-"]
+                    self._window["-START_BTN-"].update(disabled=False)
+                    self._window["-STOP_BTN-"].update(disabled=True)
+                    if not task_data["success"] and task_data["error"]:
+                        sg.popup_error(
+                            f"任务错误: {task_data['error']}", title="错误", icon=self.__get_icon()
+                        )
+                    continue
+                elif event == "-TASK_TERMINATED-":
+                    # 处理任务终止事件
+                    self._window["-START_BTN-"].update(disabled=False)
+                    self._window["-STOP_BTN-"].update(disabled=True)
+                    sg.popup(
+                        "任务已终止", title="系统提示", icon=self.__get_icon(), non_blocking=True
+                    )
+                    continue
+
                 # 处理 MenubarCustom 事件（格式为 "菜单::子菜单"）
-                if self._use_menubar_custom and "::" in str(event):
+                elif self._use_menubar_custom and "::" in str(event):
                     menu_parts = event.split("::")
                     if len(menu_parts) == 2:
                         main_menu, submenu = menu_parts
@@ -529,20 +871,17 @@ class MainGUI(object):
                             elif submenu == "官网":
                                 event = "官网"
 
-                # 原有的事件处理逻辑保持不变
-                if event == "配置管理":
+                elif event == "配置管理":
                     ConfigEditor.gui_start()
                 elif event == "CrewAI文件":
                     try:
                         if sys.platform == "win32":
                             subprocess.run(["notepad", str(PathManager.get_config_path())])
                         elif sys.platform == "darwin":  # macOS
-                            # 使用subprocess避免路径空格问题
                             subprocess.run(
                                 ["open", "-a", "TextEdit", str(PathManager.get_config_path())]
                             )
                         else:  # Linux
-                            # 使用subprocess避免路径空格问题
                             subprocess.run(["gedit", str(PathManager.get_config_path())])
                     except Exception as e:
                         sg.popup(
@@ -612,106 +951,9 @@ class MainGUI(object):
 
                     self._window.refresh()
                 elif event == "-START_BTN-":
-                    config = Config.get_instance()
-                    if not config.validate_config():
-                        sg.popup_error(
-                            f"无法执行，配置错误：{config.error_message}",
-                            title="系统提示",
-                            icon=self.__get_icon(),
-                            non_blocking=True,
-                        )
-                        continue
-                    elif not self._is_running:
-                        # 处理自定义话题、链接和借鉴比例
-                        if values["-CUSTOM_TOPIC-"]:
-                            topic = values["-TOPIC_INPUT-"].strip()
-                            if not topic:
-                                sg.popup_error(
-                                    "自定义话题不能为空",
-                                    title="系统提示",
-                                    icon=self.__get_icon(),
-                                    non_blocking=True,
-                                )
-                                continue
-                            config.custom_topic = topic
-                            urls_input = values["-URLS_INPUT-"].strip()
-                            if urls_input:
-                                urls = [url.strip() for url in urls_input.split("|") if url.strip()]
-                                valid_urls = [url for url in urls if utils.is_valid_url(url)]
-                                if len(valid_urls) != len(urls):
-                                    sg.popup_error(
-                                        "存在无效的URL，请检查输入（确保使用http://或https://）",
-                                        title="系统提示",
-                                        icon=self.__get_icon(),
-                                        non_blocking=True,
-                                    )
-                                    continue
-                                config.urls = valid_urls
-                            else:
-                                config.urls = []
-                            # 将比例转换为浮点数
-                            config.reference_ratio = (
-                                float(values["-REFERENCE_RATIO-"].strip("%")) / 100
-                            )
-                            config.custom_template_category = (
-                                values["-TEMPLATE_CATEGORY-"]
-                                if values["-TEMPLATE_CATEGORY-"] != "随机分类"
-                                else ""
-                            )
-                            config.custom_template = (
-                                values["-TEMPLATE-"] if values["-TEMPLATE-"] != "随机模板" else ""
-                            )
-
-                        else:
-                            config.custom_topic = ""
-                            config.urls = []
-                            config.reference_ratio = 0.0  # 重置为0
-                            config.custom_template_category = ""  # 自定义话题时，模板分类
-                            config.custom_template = ""  # 自定义话题时，模板
-
-                        # -----这里分类模板适配完成后删除适配提醒-------------
-                        sg.popup(
-                            "更多界面功能开发中，请关注项目 :)\n点击OK开始执行",
-                            title="系统提示",
-                            icon=self.__get_icon(),
-                        )
-                        self._window["-START_BTN-"].update(disabled=True)
-                        self._window["-STOP_BTN-"].update(disabled=False)
-                        self._is_running = True
-                        self._stop_event.clear()
-                        self._crew_thread = threading.Thread(
-                            target=ai_write_x_main,
-                            args=(self._stop_event, True),
-                            daemon=True,
-                        )
-                        self._crew_thread.start()
-                        # 记录任务开始日志
-                        log.print_log(
-                            f"开始任务，话题：{config.custom_topic or '采用热门话题'}"
-                            + (
-                                f"，链接：{config.urls}，借鉴比例：{config.reference_ratio*100:.0f}%"
-                                if config.custom_topic
-                                else ""
-                            )
-                        )
+                    self._handle_start_button(values)
                 elif event == "-STOP_BTN-":
-                    if self._is_running and self._crew_thread and self._crew_thread.is_alive():
-                        self._stop_event.set()
-                        self._crew_thread.join(timeout=2.0)
-                        if self._crew_thread.is_alive():
-                            log.print_log("警告：任务终止超时，可能未完全停止")
-                        else:
-                            log.print_log("CrewAI 任务被终止")
-                        self._crew_thread = None
-                        self._window["-START_BTN-"].update(disabled=False)
-                        self._window["-STOP_BTN-"].update(disabled=True)
-                        self._is_running = False
-                        sg.popup(
-                            "任务已终止",
-                            title="系统提示",
-                            icon=self.__get_icon(),
-                            non_blocking=True,
-                        )
+                    self._handle_stop_button()
                 elif event == "关于":
                     sg.popup(
                         "关于软件 AIWriteX",
@@ -799,12 +1041,18 @@ class MainGUI(object):
                     TemplateManager.gui_start()
 
                 # 处理队列更新（非阻塞）
-                if self._is_running:
-                    self.process_queue()
+                self.process_queue()
         finally:
-            if self._is_running and self._crew_thread and self._crew_thread.is_alive():
-                self._stop_event.set()
-                self._crew_thread.join(timeout=2.0)
+            if self._is_running and self._crew_process and self._crew_process.is_alive():
+                self._crew_process.terminate()
+                self._crew_process.join(timeout=2.0)
+                if self._crew_process.is_alive():
+                    self._crew_process.kill()
+
+            # 等待监控线程结束
+            if self._monitor_thread and self._monitor_thread.is_alive():
+                self._monitor_thread.join(timeout=1.0)
+
             self._window.close()
 
 

@@ -3,7 +3,7 @@ import yaml
 import threading
 import tomlkit
 
-from src.ai_write_x.utils import comm
+from src.ai_write_x.utils import log
 from src.ai_write_x.utils import utils
 from src.ai_write_x.utils.path_manager import PathManager
 
@@ -528,7 +528,7 @@ class Config:
                             self.config = self.default_config
                 except Exception as e:
                     self.error_message = f"加载 config.yaml 失败: {e}"
-                    comm.send_update("error", self.error_message)
+                    log.print_log(self.error_message, "error")
                     self.config = self.default_config
                     ret = False
             else:
@@ -542,7 +542,7 @@ class Config:
                             self.aiforge_config = self.default_aiforge_config
                 except Exception as e:
                     self.error_message = f"加载 aiforge.toml 失败: {e}"
-                    comm.send_update("error", self.error_message)
+                    log.print_log(self.error_message, "error")
                     self.aiforge_config = self.default_aiforge_config
                     ret = False
             else:
@@ -622,7 +622,7 @@ class Config:
                     )
             except Exception as e:
                 self.error_message = f"保存 config.yaml 失败: {e}"
-                comm.send_update("error", self.error_message)
+                log.print_log(self.error_message, "error")
                 ret = False
 
             # 如果传递了
@@ -634,7 +634,7 @@ class Config:
 
                 except Exception as e:
                     self.error_message = f"保存 aiforge.toml 失败: {e}"
-                    comm.send_update("error", self.error_message)
+                    log.print_log(self.error_message, "error")
                     ret = False
 
             return ret

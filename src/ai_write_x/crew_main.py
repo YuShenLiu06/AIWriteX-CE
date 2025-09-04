@@ -2,7 +2,9 @@
 import sys
 import os
 import warnings
-import asyncio
+import multiprocessing
+import signal
+import time
 
 from src.ai_write_x.tools import hotnews
 from src.ai_write_x.crew import AIWriteXCrew
@@ -10,34 +12,74 @@ from src.ai_write_x.utils import utils
 from src.ai_write_x.utils import log
 from src.ai_write_x.config.config import Config
 
-
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic.*")
+warnings.filterwarnings("ignore", category=UserWarning, module="pydantic.*")
 
 
-# This main file is intended to be a way for you to run your
-# crew locally, so refrain from adding unnecessary logic into this file.
-# Replace with inputs you want to test with, it will automatically
-# interpolate any tasks and agents information
-
-
-# 为了能结束任务，需要异步执行
-class StopCrewException(Exception):
-    """自定义异常，用于中断 CrewAI"""
-
-    pass
-
-
-async def run_crew_async(stop_event, inputs, appid, appsecret, author):
-    """异步运行 CrewAI，检查终止信号"""
+def run_crew_in_process(inputs, appid, appsecret, author, log_queue, config_data):
+    """在独立进程中运行 CrewAI 工作流"""
     try:
-        if stop_event.is_set():
-            raise StopCrewException("CrewAI 任务被终止")
-        result = await AIWriteXCrew(appid, appsecret, author).crew().kickoff_async(inputs=inputs)
-        return result
-    except StopCrewException as e:
-        raise e
+        # 设置信号处理器
+        def signal_handler(signum, frame):
+            log_queue.put(
+                {"type": "system", "message": "收到终止信号，正在退出", "timestamp": time.time()}
+            )
+            os._exit(0)
+
+        signal.signal(signal.SIGTERM, signal_handler)
+        signal.signal(signal.SIGINT, signal_handler)
+
+        # 获取子进程的 Config 实例
+        config = Config.get_instance()
+
+        # 设置进程队列引用，让 print_log 可以访问
+        config._process_log_queue = log_queue
+
+        # 同步主进程的配置数据到子进程（包括 ui_mode）
+        if config_data:
+            for key, value in config_data.items():
+                setattr(config, key, value)
+
+        # 重新加载配置文件以确保基础配置正确
+        config.load_config()
+
+        # 设置进程专用日志系统
+        log.setup_process_logging(log_queue)
+
+        # 发送任务开始消息
+        log.print_log("CrewAI开始工作...", "status")
+
+        # 添加调试信息
+        log.print_log(
+            f"任务参数: 话题={inputs.get('topic', '未知')}, 热搜={inputs.get('platform', '未知')}",
+            "status",
+        )
+        log.print_log(
+            f"配置信息: API类型={config.api_type}, 模型={config.api_model}",
+            "status",
+        )
+
+        # 执行任务
+        result = run(inputs, appid, appsecret, author)
+
+        # 发送成功消息
+        log.print_log("任务执行完成", "status")
+        log_queue.put(
+            {
+                "type": "success",
+                "message": "任务执行完成",
+                "result": result,
+                "timestamp": time.time(),
+            }
+        )
+
     except Exception as e:
-        raise e
+        log_queue.put({"type": "error", "message": str(e), "timestamp": time.time()})
+    finally:
+        # 发送进程结束消息
+        log_queue.put({"type": "system", "message": "子进程即将退出", "timestamp": time.time()})
+        os._exit(0)
 
 
 def run(inputs, appid, appsecret, author):
@@ -45,19 +87,14 @@ def run(inputs, appid, appsecret, author):
     Run the crew.
     """
     try:
-        AIWriteXCrew(appid, appsecret, author).crew().kickoff(inputs=inputs)
+        return AIWriteXCrew(appid, appsecret, author).crew().kickoff(inputs=inputs)
     except Exception as e:
         raise Exception(f"An error occurred while running the crew: {e}")
 
 
-def ai_write_x_run(
-    config,
-    ui_mode,
-    stop_event,
-    appid="",
-    appsecret="",
-    author="",
-):
+def ai_write_x_run(config, ui_mode, appid="", appsecret="", author="", config_data=None):
+    """执行 AI 写作任务"""
+    # 准备输入参数
     if not config.custom_topic:
         platform = utils.get_random_platform(config.platforms)
         topic = hotnews.select_platform_topic(platform, 5)  # 前五个热门话题根据一定权重选一个
@@ -68,6 +105,7 @@ def ai_write_x_run(
         urls = config.urls
         reference_ratio = config.reference_ratio
         platform = ""
+
     inputs = {
         "platform": platform,
         "topic": topic,
@@ -77,44 +115,57 @@ def ai_write_x_run(
         "max_article_len": config.max_article_len,
     }
 
-    log.print_log("CrewAI开始工作...")
     if ui_mode:
         try:
-            # 运行异步 kickoff
-            loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(loop)
-            try:
-                loop.run_until_complete(
-                    run_crew_async(stop_event, inputs, appid, appsecret, author)
-                )
-                log.print_log("任务完成！")
-            finally:
-                loop.close()
-        except StopCrewException as e:
-            log.print_log(f"执行出错：{str(e)}")
+            # 创建进程间通信队列
+            log_queue = multiprocessing.Queue()
+            process = multiprocessing.Process(
+                target=run_crew_in_process,
+                args=(inputs, appid, appsecret, author, log_queue, config_data),
+                daemon=False,
+            )
+            return process, log_queue
         except Exception as e:
             log.print_log(str(e), "error")
+            return None, None
     else:
+        # 非 UI 模式直接执行
         try:
-            run(inputs, appid, appsecret, author)
+            log.print_log("任务开始执行...")
+            result = run(inputs, appid, appsecret, author)
             log.print_log("任务完成！")
+            return result
         except Exception as e:
-            log.print_log(f"执行出错：{str(e)}")
+            log.print_log(f"执行出错：{str(e)}", "error")
+            return None
 
 
-def ai_write_x_main(stop_event=None, ui_mode=False):
+def ai_write_x_main(ui_mode=False, config_data=None):
+    """主入口函数"""
     config = Config.get_instance()
+
     if not ui_mode:
         if not config.load_config():
-            log.print_log("加载配置失败，请检查是否有配置！")
-            return
+            log.print_log("加载配置失败，请检查是否有配置！", "error")
+            return None, None
         elif not config.validate_config():
-            log.print_log(f"配置填写有错误：{config.error_message}")
-            return
+            log.print_log(f"配置填写有错误：{config.error_message}", "error")
+            return None, None
 
     # 设置模式
     config.ui_mode = ui_mode
 
+    # 如果是 UI 模式且传递了配置数据，应用到当前进程
+    if ui_mode and config_data:
+        for key, value in config_data.items():
+            setattr(config, key, value)
+
+    # 重新加载配置文件以获取最新的基础配置
+    if not config.load_config():
+        log.print_log("加载配置失败，请检查是否有配置！", "error")
+        return None, None
+
+    # 设置环境变量
     os.environ[config.api_key_name] = config.api_key
     os.environ["MODEL"] = config.api_model
     os.environ["OPENAI_API_BASE"] = config.api_apibase
@@ -125,13 +176,13 @@ def ai_write_x_main(stop_event=None, ui_mode=False):
             appsecret = credential["appsecret"]
             author = credential["author"]
 
-            # 如果没用配置appid，则忽略该条
+            # 如果没有配置appid，则忽略该条
             if len(appid) == 0 or len(appsecret) == 0:
                 continue
 
-            ai_write_x_run(config, ui_mode, stop_event, appid, appsecret, author)
+            return ai_write_x_run(config, ui_mode, appid, appsecret, author, config_data)
     else:
-        ai_write_x_run(config, ui_mode, stop_event)
+        return ai_write_x_run(config, ui_mode, config_data=config_data)
 
 
 # ----------------由于参数原因，以下调用不可用------------------
@@ -144,7 +195,6 @@ def train():
         AIWriteXCrew().crew().train(
             n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs
         )
-
     except Exception as e:
         raise Exception(f"An error occurred while training the crew: {e}")
 
@@ -155,7 +205,6 @@ def replay():
     """
     try:
         AIWriteXCrew().crew().replay(task_id=sys.argv[1])
-
     except Exception as e:
         raise Exception(f"An error occurred while replaying the crew: {e}")
 
@@ -169,7 +218,6 @@ def test():
         AIWriteXCrew().crew().test(
             n_iterations=int(sys.argv[1]), openai_model_name=sys.argv[2], inputs=inputs
         )
-
     except Exception as e:
         raise Exception(f"An error occurred while testing the crew: {e}")
 
