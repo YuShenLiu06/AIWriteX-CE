@@ -1,8 +1,8 @@
-# AIWriteX - CrewAI微信公众号全自动生成排版发布工具
+# AIWriteX - 基于CrewAI的智能内容创作平台
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue) ![PySimpleGUI](https://img.shields.io/badge/PySimpleGUI-4.60.5+-green) ![CrewAI](https://img.shields.io/badge/CrewAI-0.102.0+-red) ![AIForge](https://img.shields.io/badge/aiforge-0.0.16+-pink) ![PyWinGUIBuilder](https://img.shields.io/badge/PyWinGUIBuilder-1.0.0+-yellow) ![Stars](https://img.shields.io/github/stars/iniwap/AIWriteX?label=收藏)
-
-**AIWriteX**是一款基于 CrewAI 、[AIForge](https://iniwap.github.io/AIForge/) 的微信公众号自动化工具软件，自动获取抖音、微博等平台热点，融合“搜索+借鉴+AI”，生成**高时效（实时）**、高质量、排版高大上的文章并发布到微信公众号。  
+![Python](https://img.shields.io/badge/Python-3.10+-blue) ![PySimpleGUI](https://img.shields.io/badge/PySimpleGUI-4.60.5+-green) ![CrewAI](https://img.shields.io/badge/CrewAI-0.102.0+-red) ![AIForge](https://img.shields.io/badge/aiforge-0.0.17+-pink) ![PyWinGUIBuilder](https://img.shields.io/badge/PyWinGUIBuilder-1.0.0+-yellow) ![Stars](https://img.shields.io/github/stars/iniwap/AIWriteX?label=收藏)
+  
+**AIWriteX**是基于CrewAI、[AIForge](https://iniwap.github.io/AIForge/)的新一代智能内容创作平台，从微信公众号自动化工具起步，正在重新定义AI辅助内容创作的边界，融合"搜索+借鉴+AI+创意"四重能力，自动生成高时效、高质量、排版酷炫的多平台内容。  
 
 > **想先看看效果？** 👉 [文章预览](#-微信公众号模板效果预览)  
 > **心动不如行动？** 👉 [马上开始](#-快速开始)  
@@ -27,6 +27,15 @@
 - **支持两种运行模式**：
   - **开发模式**：适合技术用户，支持灵活定制开发，适配复杂需求
   - **软件模式**：无需开发环境，安装软件并填写配置即可，适合非技术用户快速体验
+
+## 核心特性（开发中）：
+
+- 🤖 多智能体协作：基于CrewAI框架的研究员、作家、审核员、设计师团队协作
+- 🔍 实时信息融合：集成AIForge引擎，自动获取全网热点与最新资讯
+- 🎨 创意内容变换：支持文体转换、时空穿越、角色扮演等多种创意模式
+- 📱 全平台发布：支持微信公众号、小红书、抖音、知乎等主流平台
+- ⚡ 高时效性：融合"搜索+借鉴+AI"，生成实时性强的高质量内容
+- 🎯 智能排版：自动生成酷炫排版，适配各平台展示特性
 
 ### 个性化功能（配置）
 
@@ -92,13 +101,12 @@ uv pip install -r requirements.txt
 ### 软件模式
 1. 请从网盘下载`AIWriteX_云盘版_Setup.exe` 👇，并安装
 
-| 网盘类型                     | 下载链接                                                                                              | 提取码  | 版本    |是否最新     |操作系统                            |
-|-----------------------------|-------------------------------------------------------------------------------------------------------|--------|---------|------------|-------------------------------|
-| **百度网盘**                 |[点击下载](https://pan.baidu.com/s/1MxuIbi2SQrcvWHSkGm5WGw?pwd=dsey)                                   |dsey    |V2.1.8    |✅         |Mac    |
-| **百度网盘**                 |[点击下载](https://pan.baidu.com/s/1F6gr2BD5RIBTYshzRyF9tA?pwd=56yt)                                   |56yt    |V2.1.8    |✅         |Windows    |
-| **Google Drive**            |[点击下载](https://drive.google.com/file/d/1Ja11R5yaHbGSuw6uGJXeYVfvP5B75EaG/view?usp=sharing)          |/      |V2.1.8    |✅         |Windows |
-| **移动云盘**                 |[点击下载](https://caiyun.139.com/w/i/2prAJm8oVjP2i)                                                   |lfdc    |V2.1.8    |✅         |Windows |
-| **Microsoft OneDrive**      |[点击下载](https://1drv.ms/u/c/c831e3cc9be11110/EYknOyGhhshPjO4Ky2I1O1kBNlSu0G_n8r_dCmXhMMIz8Q?e=AWUxXN)|/      |V2.1.8    |✅         |Windows |
+| 网盘类型                     | 下载链接                                                                                              | 提取码  | 版本    |是否最新     |
+|-----------------------------|-------------------------------------------------------------------------------------------------------|--------|---------|------------|
+| **百度网盘**                 |[Win](https://pan.baidu.com/s/1BVRdcA0y2BtiO8Zrz3SfkA?pwd=nktk) / [Mac](https://pan.baidu.com/s/1MxuIbi2SQrcvWHSkGm5WGw?pwd=dsey) |nktk / dsey   |V2.1.9    |✅ |
+| **Google Drive**            |[Win](https://drive.google.com/file/d/1gTPITXPk6aw_xwU-MWzQ_vH2nHbSYG-K/view?usp=sharing)          |/      |V2.1.9    |✅         |
+| **移动云盘**                 |[Win](https://caiyun.139.com/w/i/2prAJy9hSHNw0)                                                   |e9q9    |V2.1.9    |✅         |
+| **Microsoft OneDrive**      |[Win](https://1drv.ms/u/c/c831e3cc9be11110/EdisfnmwKsJHp0dZqMjungsBrFxXSCwfwAaUydzeiEmGmw?e=GdOhHT)|/      |V2.1.9    |✅         |
 
 2. 打开软件，进行必须要配置（*微信公众号AppID/AppSecret、大模型提供商的API KEY*）
 3. 点击`开始执行`

@@ -47,18 +47,8 @@ def run_crew_in_process(inputs, appid, appsecret, author, log_queue, config_data
         # 设置进程专用日志系统
         log.setup_process_logging(log_queue)
 
-        # 发送任务开始消息
-        log.print_log("CrewAI开始工作...", "status")
-
         # 添加调试信息
-        log.print_log(
-            f"任务参数: 话题={inputs.get('topic', '未知')}, 热搜={inputs.get('platform', '未知')}",
-            "status",
-        )
-        log.print_log(
-            f"配置信息: API类型={config.api_type}, 模型={config.api_model}",
-            "status",
-        )
+        log.print_log(f"配置信息：API类型={config.api_type}，模型={config.api_model} ", "status")
 
         # 执行任务
         result = run(inputs, appid, appsecret, author)
@@ -222,4 +212,5 @@ def test():
 
 
 if __name__ == "__main__":
-    ai_write_x_main()
+    if not utils.get_is_release_ver():
+        ai_write_x_main()

@@ -369,11 +369,11 @@ class ArticleManager:
             ],
             [
                 sg.Text("AppID：", size=(8, 1)),
-                sg.Input("", key="-APPID-", size=(20, 1)),
+                sg.Input("", key="-APPID-", size=(20, 1), enable_events=True),
             ],
             [
                 sg.Text("AppSecret：", size=(8, 1)),
-                sg.Input("", key="-APPSECRET-", size=(20, 1)),
+                sg.Input("", key="-APPSECRET-", size=(20, 1), enable_events=True),
             ],
             [
                 sg.Text("作者：", size=(8, 1)),
@@ -534,6 +534,9 @@ class ArticleManager:
             event, values = self._window.read()
             if event == sg.WIN_CLOSED:
                 break
+            elif event in ["-APPID-", "-APPSECRET-"]:
+                if sys.platform == "darwin" and values[event]:
+                    self._window[event].update(utils.fix_mac_clipboard(values[event]))
             elif event == "-TABLE-" and values["-TABLE-"]:
                 # 显示选中文章的发布记录
                 if values["-TABLE-"]:

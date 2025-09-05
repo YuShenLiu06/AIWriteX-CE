@@ -1,3 +1,6 @@
+#!/usr/bin/python
+# -*- coding: UTF-8 -*-
+
 import copy  # noqa 841
 import asyncio  # noqa 841
 import shutil  # noqa 841
@@ -38,12 +41,9 @@ import markdown  # noqa 841
 from PIL import Image  # noqa 841
 import tempfile  # noqa 841
 import subprocess  # noqa 841
-
 import hashlib  # noqa 841
 from peewee import CharField, DoubleField, IntegerField, Model, TextField, Case  # noqa 841
 from playhouse.sqlite_ext import SqliteExtDatabase  # noqa 841
-
-
 from crewai.tools import BaseTool  # noqa 841
 from crewai_tools import SeleniumScrapingTool  # noqa 841
 from typing import Type  # noqa 841
@@ -51,19 +51,14 @@ from pydantic import BaseModel, Field  # noqa 841
 import glob  # noqa 841
 from crewai import Agent, Crew, Process, Task  # noqa 841
 from crewai.project import CrewBase, agent, crew, task  # noqa 841
-
 import importlib.util  # noqa 841
 from pathlib import Path  # noqa 841
 import tomlkit  # noqa 841
-
 from rich.console import Console  # noqa 841
-
-
-import src.ai_write_x.gui.MainGUI as MainGUI  # noqa 402
-
 import platform
+import multiprocessing
 
-
+# 设置环境变量
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
 from aiforge import AIForgeEngine  # noqa 841
@@ -76,19 +71,18 @@ def is_admin():
         if platform.system() == "Windows":
             return ctypes.windll.shell32.IsUserAnAdmin()
         elif platform.system() == "Darwin":  # macOS
-            # macOS 通常不需要管理员权限来运行GUI应用
             return True
         elif platform.system() == "Linux":
-            # Linux 检查是否为 root 用户
             return os.getuid() == 0
         else:
-            # 其他系统默认返回 True
             return True
-    except Exception as e:  # noqa841
+    except Exception:
         return False
 
 
 def run():
+    import src.ai_write_x.gui.MainGUI as MainGUI
+
     MainGUI.gui_start()
 
 
@@ -104,11 +98,17 @@ def admin_run():
 
 
 if __name__ == "__main__":
+    # 必须在所有其他导入前设置启动方法，确保一致性
+    multiprocessing.freeze_support()
+    multiprocessing.set_start_method("spawn", force=True)
 
-    if len(sys.argv) > 1:  # 第一个是文件名，如果多于1个，说明其他模式启动
-        if sys.argv[1] == "-d":
-            run()
-        else:
-            admin_run()
+    # 检查是否为AIForge子进程
+    if os.environ.get("AIFORGE_SANDBOX_SUBPROCESS") == "1":
+        # 这是AIForge的沙盒执行环境，不启动GUI
+        sys.exit(0)
+
+    # 检查启动模式
+    if len(sys.argv) > 1 and sys.argv[1] == "-d":
+        run()
     else:
         admin_run()

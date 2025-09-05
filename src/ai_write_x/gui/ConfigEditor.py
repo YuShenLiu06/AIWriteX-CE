@@ -2,6 +2,7 @@ import PySimpleGUI as sg
 import re
 import os
 import copy
+import sys
 
 from src.ai_write_x.config.config import Config, DEFAULT_TEMPLATE_CATEGORIES
 from src.ai_write_x.utils import utils
@@ -139,7 +140,12 @@ class ConfigEditor:
             wechat_rows.append(
                 [
                     sg.Text("AppID*:", size=(label_width, 1)),
-                    sg.InputText(cred["appid"], key=f"-WECHAT_APPID_{i}-", size=(20, 1)),
+                    sg.InputText(
+                        cred["appid"],
+                        key=f"-WECHAT_APPID_{i}-",
+                        size=(20, 1),
+                        enable_events=True,
+                    ),
                     sg.Text("作者:", size=(4, 1)),
                     sg.InputText(cred["author"], key=f"-WECHAT_AUTHOR_{i}-", size=(20, 1)),
                 ]
@@ -147,7 +153,12 @@ class ConfigEditor:
             wechat_rows.append(
                 [
                     sg.Text("AppSecret*:", size=(label_width, 1)),
-                    sg.InputText(cred["appsecret"], key=f"-WECHAT_SECRET_{i}-", size=(49, 1)),
+                    sg.InputText(
+                        cred["appsecret"],
+                        key=f"-WECHAT_SECRET_{i}-",
+                        size=(49, 1),
+                        enable_events=True,
+                    ),
                 ]
             )
             wechat_rows.append(
@@ -226,7 +237,9 @@ class ConfigEditor:
             ],
             [
                 sg.Text("API KEY*:", size=(15, 1)),
-                sg.InputText(", ".join(api_data["api_key"]), key=f"-{api_name}_API_KEYS-"),
+                sg.InputText(
+                    ", ".join(api_data["api_key"]), key=f"-{api_name}_API_KEYS-", enable_events=True
+                ),
             ],
             [
                 sg.Text("模型索引*:", size=(15, 1)),
@@ -339,7 +352,7 @@ class ConfigEditor:
             [sg.Text("阿里 API 配置")],
             [
                 sg.Text("API KEY:", size=(15, 1)),
-                sg.InputText(img_api["ali"]["api_key"], key="-ALI_API_KEY-"),
+                sg.InputText(img_api["ali"]["api_key"], key="-ALI_API_KEY-", enable_events=True),
             ],
             [
                 sg.Text("模型:", size=(15, 1)),
@@ -741,6 +754,7 @@ class ConfigEditor:
                     key="-AIFORGE_API_KEY-",
                     size=(35, 1),
                     tooltip="模型提供商的API KEY（必填）",
+                    enable_events=True,
                     # password_char="*",
                 ),
             ],
@@ -933,11 +947,33 @@ class ConfigEditor:
         # 强制刷新布局，确保内容正确渲染
         self.window.refresh()
 
+    def get_mac_clipboard_events(self):
+        """获取需要适配macOS剪贴板问题的输入框事件列表"""
+        mac_clipboard_events = []
+
+        # 微信凭证 - 根据实际数量动态生成
+        for i in range(self.wechat_count):
+            mac_clipboard_events.extend([f"-WECHAT_APPID_{i}-", f"-WECHAT_SECRET_{i}-"])
+
+        # 大模型API - 根据配置中实际存在的API提供商动态生成
+        for api in self.config.api_list:
+            mac_clipboard_events.append(f"-{api}_API_KEYS-")
+
+        # 图片API和AIForge
+        mac_clipboard_events.extend(["-ALI_API_KEY-", "-AIFORGE_API_KEY-"])
+
+        return mac_clipboard_events
+
     def run(self):
         while True:
             event, values = self.window.read()
             if event in (sg.WIN_CLOSED, "-EXIT-"):
                 break
+
+            # 在事件循环中使用
+            elif event in self.get_mac_clipboard_events():
+                if sys.platform == "darwin" and values[event]:
+                    self.window[event].update(utils.fix_mac_clipboard(values[event]))
             elif event == "-ARTICLE_FORMAT-":
                 if values["-ARTICLE_FORMAT-"] == "html":
                     # HTML格式禁用格式化勾选框

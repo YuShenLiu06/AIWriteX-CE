@@ -77,18 +77,36 @@ class ProcessStreamHandler:
 
         with self._lock:
             current_time = time.time()
-
-            # 累积消息
             self._buffer += msg
             self._last_write_time = current_time
 
             # 检查缓冲区大小，防止超长内容积累
             if len(self._buffer) > self._max_buffer_size:
-                # 强制刷新超长内容
                 self._force_flush()
                 return
 
-            # 如果遇到换行符，立即处理
+            # 检测AIForge标识，立即处理
+            if "[AIForge]" in self._buffer:
+                # 按AIForge标识切分并处理
+                parts = self._buffer.split("[AIForge]")
+                for i, part in enumerate(parts[:-1]):
+                    if i == 0 and part.strip():
+                        clean_msg = strip_ansi_codes(part.strip())
+                        self._send_to_queue(clean_msg)
+                    elif i > 0:
+                        aiforge_msg = f"[AIForge]{part}"
+                        clean_msg = strip_ansi_codes(aiforge_msg.strip())
+                        if clean_msg:
+                            self._send_to_queue(clean_msg)
+
+                # 保留最后一个不完整的部分
+                last_part = parts[-1]
+                if last_part.startswith("[AIForge]") or not last_part.strip():
+                    self._buffer = last_part
+                else:
+                    self._buffer = f"[AIForge]{last_part}"
+
+            # 检查换行符处理（无论是否处理了AIForge）
             if "\\n" in self._buffer:
                 # 取消任何待处理的定时器
                 if self._timer and self._timer.is_alive():
@@ -97,18 +115,14 @@ class ProcessStreamHandler:
                 self._pending_flush = False
 
                 lines = self._buffer.split("\\n")
-                # 处理除最后一个元素外的所有行
                 for line in lines[:-1]:
                     if line.strip():
                         clean_msg = strip_ansi_codes(line.strip())
-                        self._send_to_queue(
-                            {"type": "print", "message": clean_msg, "timestamp": current_time}
-                        )
+                        self._send_to_queue(clean_msg)
 
-                # 保留最后一个不完整的行
                 self._buffer = lines[-1]
             else:
-                # 如果没有换行符且没有待处理的刷新，设置延迟刷新
+                # 设置延迟刷新
                 if not self._pending_flush:
                     self._pending_flush = True
                     self._timer = threading.Timer(self._flush_delay, self._delayed_flush)

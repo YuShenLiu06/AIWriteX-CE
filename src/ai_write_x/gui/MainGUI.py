@@ -36,7 +36,7 @@ __author__ = "iniwaper@gmail.com"
 __copyright__ = "Copyright (C) 2025 iniwap"
 # __date__ = "2025/04/17"
 
-__version___ = "v2.1.8"
+__version___ = "v2.1.9"
 
 
 class MainGUI(object):
@@ -150,6 +150,7 @@ class MainGUI(object):
                                 size=(35, 1),
                                 pad=((0, 10), (8, 5)),
                                 tooltip="输入自定义话题，或留空以自动获取热搜",
+                                enable_events=True,
                             ),
                         ],
                         # 模板配置行
@@ -185,6 +186,7 @@ class MainGUI(object):
                                 size=(30, 1),
                                 pad=((15, 5), (5, 8)),
                                 tooltip="多个链接用竖线(|)分隔",
+                                enable_events=True,
                             ),
                             sg.Text("借鉴比例", size=(8, 1), pad=((10, 5), (5, 8))),
                             sg.Combo(
@@ -483,54 +485,44 @@ class MainGUI(object):
         msg_type = log_msg.get("type", "unknown")
         message = log_msg.get("message", "")
         level = log_msg.get("level", "INFO")
-        timestamp = log_msg.get("timestamp", time.time())
-
-        # 格式化时间戳
-        time_str = time.strftime("%H:%M:%S", time.localtime(timestamp))
 
         # 检查是否为错误级别的日志
         if msg_type == "log":
             if level == "ERROR":
-                formatted_msg = f"[{time_str}][{level}]: {message}"
-                self._display_log(formatted_msg, "error")
+                self._display_log(message, "error")
                 self._handle_task_completion(False, message)
                 return
             else:
-                level = log_msg.get("level", "INFO")
-                formatted_msg = f"[{time_str}][{level}]: {message}"
+                self._display_log(message, level.lower())
         elif msg_type == "error":
-            formatted_msg = f"[{time_str}][ERROR]: {message}"
-            self._display_log(formatted_msg, msg_type)
+            self._display_log(message, "error")
             self._handle_task_completion(False, message)
             return
-
         elif msg_type == "print":
-            if not message.startswith("[AIForge]"):
-                formatted_msg = f"[{time_str}][PRINT]: {message}"
-            else:
-                formatted_msg = message
+            self._display_log(message, "print")
         elif msg_type == "system":
-            formatted_msg = f"[{time_str}][SYSTEM]: {message}"
+            self._display_log(message, "system")
+        elif msg_type == "success":
+            self._display_log(message, "success")
+            self._handle_task_completion(True)
         else:
-            formatted_msg = f"[{time_str}][{msg_type.upper()}]: {message}"
+            self._display_log(message, msg_type)
 
-        self._display_log(formatted_msg, msg_type)
+    def _display_log(self, message, msg_type="info"):
+        """显示日志到界面并保存到文件，统一格式化"""
+        # 统一格式化日志条目
+        timestamp = time.strftime("%H:%M:%S")
+        formatted_log_entry = f"[{timestamp}][{msg_type.upper()}]: {message}"
 
-    def _display_log(self, log_entry, msg_type="info"):
-        """显示日志到界面并保存到文件"""
         # 添加到缓冲区
-        self._log_buffer.append(log_entry)
+        self._log_buffer.append(formatted_log_entry)
 
         # 保存到文件
-        if self.__save_ui_log(log_entry):
+        if self.__save_ui_log(formatted_log_entry):
             self.__update_menu()
 
-        # 更新界面（需要在主线程中执行）
-        if threading.current_thread() == threading.main_thread():
-            self._window["-STATUS-"].update("\n".join(self._log_buffer), append=False)
-        else:
-            # 如果在子线程中，使用线程安全的方式更新界面
-            self._window.write_event_value("-UPDATE_LOG-", log_entry)
+        #  使用线程安全的方式更新界面
+        self._window.write_event_value("-UPDATE_LOG-", formatted_log_entry)
 
     def _handle_task_completion(self, success, error_msg=None):
         """处理任务完成"""
@@ -549,32 +541,41 @@ class MainGUI(object):
         try:
             msg = self._update_queue.get_nowait()
             if msg["type"] in ["status", "warning", "error"]:
-                # 处理日志格式
-                if msg["value"].startswith("PRINT:"):
-                    original_msg = msg["value"][6:].strip()
-                    log_entry = f"[{time.strftime('%H:%M:%S')}][PRINT]: {original_msg}"
-                elif msg["value"].startswith("FILE_LOG:"):
-                    log_entry = f"[{time.strftime('%H:%M:%S')}][FILE]: {msg['value'][9:]}"
-                elif msg["value"].startswith("LOG:"):
-                    log_entry = f"[{time.strftime('%H:%M:%S')}][LOG]: {msg['value']}"
+                # 提取原始消息内容
+                original_msg = msg["value"]
+
+                # 处理特殊前缀
+                if original_msg.startswith("PRINT:"):
+                    clean_msg = original_msg[6:].strip()
+                    self._display_log(clean_msg, "print")
+                elif original_msg.startswith("FILE_LOG:"):
+                    clean_msg = original_msg[9:].strip()
+                    self._display_log(clean_msg, "file")
+                elif original_msg.startswith("LOG:"):
+                    clean_msg = original_msg[4:].strip()
+                    self._display_log(clean_msg, "log")
                 else:
-                    log_entry = (
-                        f"[{time.strftime('%H:%M:%S')}] [{msg['type'].upper()}]: {msg['value']}"
-                    )
+                    self._display_log(original_msg, msg["type"])
 
-                self._display_log(log_entry, msg["type"])
-
-                # 检查任务完成状态（支持多进程架构）
+                # 检查任务完成状态
                 if msg["type"] == "status" and (
                     msg["value"].startswith("任务完成！") or msg["value"] == "任务执行完成"
                 ):
                     self._window["-START_BTN-"].update(disabled=False)
                     self._window["-STOP_BTN-"].update(disabled=True)
-                    # 使用锁保护状态更新
                     with self._process_lock:
                         self._is_running = False
                         self._crew_process = None
                         self._log_queue = None
+
+                # 处理错误和警告
+                if msg["type"] == "error":
+                    sg.popup_error(
+                        f"任务错误: {msg['value']}",
+                        title="错误",
+                        icon=self.__get_icon(),
+                        non_blocking=True,
+                    )
 
                 # 处理错误和警告
                 if msg["type"] == "error":
@@ -711,8 +712,8 @@ class MainGUI(object):
                 # 更新UI
                 self._window["-START_BTN-"].update(disabled=True)
                 self._window["-STOP_BTN-"].update(disabled=False)
-
-                log.print_log(f"开始任务，话题：{config.custom_topic or '采用热门话题'}")
+                task_model = "自定义" if config.custom_topic else "热搜随机"
+                log.print_log(f"开始执行任务，话题模式：{task_model}")
             else:
                 sg.popup_error("执行启动失败，请检查配置", title="错误", icon=self.__get_icon())
         except Exception as e:
@@ -742,7 +743,7 @@ class MainGUI(object):
             # 立即更新按钮状态，防止重复点击
             self._window["-STOP_BTN-"].update(disabled=True)
 
-        self._display_log("正在终止任务...", "system")
+        self._display_log("正在停止任务...", "system")
 
         # 使用线程来处理进程终止，避免阻塞 UI
         def terminate_process():
@@ -761,9 +762,9 @@ class MainGUI(object):
                         if self._crew_process.is_alive():
                             self._display_log("警告：执行可能未完全终止", "warning")
                         else:
-                            self._display_log("执行已强制终止", "system")
+                            self._display_log("任务执行已强制终止", "system")
                     else:
-                        self._display_log("执行已终止", "system")
+                        self._display_log("任务执行已停止", "system")
 
                 # 清理队列中的剩余消息
                 if self._log_queue:
@@ -838,7 +839,7 @@ class MainGUI(object):
                         )
                     else:
                         sg.popup(
-                            "任务执行成功",
+                            "任务执行完成",
                             title="系统提示",
                             icon=self.__get_icon(),
                             non_blocking=True,
@@ -1049,6 +1050,9 @@ class MainGUI(object):
                     ArticleManager.gui_start()
                 elif event == "模板管理":
                     TemplateManager.gui_start()
+                elif event in ["-TOPIC_INPUT-", "-URLS_INPUT-"]:
+                    if sys.platform == "darwin" and values[event]:
+                        self._window[event].update(utils.fix_mac_clipboard(values[event]))
 
                 # 处理队列更新（非阻塞）
                 self.process_queue()

@@ -586,7 +586,7 @@ class Config:
 
             # 检查是否配置了aiforge api_key
             if not self.aiforge_api_key:
-                print("AIForge未配置有效的llm提供商的api_key，将不使用搜索功能")
+                log.print_log("AIForge未配置有效的llm提供商的api_key，将不使用搜索功能")
 
             total_weight = sum(platform["weight"] for platform in self.platforms)
             if abs(total_weight - 1.0) > 0.01:

@@ -564,3 +564,20 @@ def crop_cover_image(image_path, target_size=(900, 384)):
 
     except Exception:
         return None
+
+
+def handle_input_change(value):
+    """处理输入框变化，修复macOS重复粘贴问题"""
+    if sys.platform == "darwin" and value:  # 仅在macOS上处理
+        length = len(value)
+        if length > 0 and length % 2 == 0:
+            half_length = length // 2
+            first_half = value[:half_length]
+            second_half = value[half_length:]
+
+            # 检查是否为重复内容
+            if first_half == second_half:
+                # 修正为单份内容
+                # self._window[key].update(first_half)
+                return first_half
+    return value
