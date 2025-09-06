@@ -5,7 +5,9 @@ import warnings
 import multiprocessing
 import signal
 import time
+import json
 
+from src.ai_write_x.utils.path_manager import PathManager
 from src.ai_write_x.tools import hotnews
 from src.ai_write_x.crew import AIWriteXCrew
 from src.ai_write_x.utils import utils
@@ -30,6 +32,22 @@ def run_crew_in_process(inputs, appid, appsecret, author, log_queue, config_data
         signal.signal(signal.SIGTERM, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
 
+        # 恢复环境变量
+        env_file_path = None
+        if config_data and "env_file_path" in config_data:
+            env_file_path = config_data["env_file_path"]
+            try:
+                if os.path.exists(env_file_path):
+                    with open(env_file_path, "r", encoding="utf-8") as f:
+                        parent_env = json.load(f)
+
+                    # 更新当前进程的环境变量
+                    os.environ.update(parent_env)
+                else:
+                    pass
+            except Exception:
+                pass
+
         # 获取子进程的 Config 实例
         config = Config.get_instance()
 
@@ -39,7 +57,9 @@ def run_crew_in_process(inputs, appid, appsecret, author, log_queue, config_data
         # 同步主进程的配置数据到子进程（包括 ui_mode）
         if config_data:
             for key, value in config_data.items():
-                setattr(config, key, value)
+                # 跳过环境文件路径，这个不是配置属性
+                if key != "env_file_path":
+                    setattr(config, key, value)
 
         # 重新加载配置文件以确保基础配置正确
         config.load_config()
@@ -66,8 +86,15 @@ def run_crew_in_process(inputs, appid, appsecret, author, log_queue, config_data
     except Exception as e:
         log_queue.put({"type": "error", "message": str(e), "timestamp": time.time()})
     finally:
+        # 清理环境变量文件
+        if env_file_path and os.path.exists(env_file_path):
+            try:
+                os.remove(env_file_path)
+            except Exception:
+                pass
+
         # 发送进程结束消息
-        log_queue.put({"type": "system", "message": "子进程即将退出", "timestamp": time.time()})
+        log_queue.put({"type": "system", "message": "任务进程即将退出", "timestamp": time.time()})
         os._exit(0)
 
 
@@ -84,6 +111,7 @@ def run(inputs, appid, appsecret, author):
 def ai_write_x_run(config, ui_mode, appid="", appsecret="", author="", config_data=None):
     """执行 AI 写作任务"""
     # 准备输入参数
+    log.print_log("正在初始化配置参数，请耐心等待...")
     if not config.custom_topic:
         platform = utils.get_random_platform(config.platforms)
         topic = hotnews.select_platform_topic(platform, 5)  # 前五个热门话题根据一定权重选一个
@@ -120,7 +148,6 @@ def ai_write_x_run(config, ui_mode, appid="", appsecret="", author="", config_da
     else:
         # 非 UI 模式直接执行
         try:
-            log.print_log("任务开始执行...")
             result = run(inputs, appid, appsecret, author)
             log.print_log("任务完成！")
             return result
@@ -153,6 +180,21 @@ def ai_write_x_main(ui_mode=False, config_data=None):
     if not config.load_config():
         log.print_log("加载配置失败，请检查是否有配置！", "error")
         return None, None
+
+    # 保存环境变量到临时文件
+    if ui_mode:
+        env_file = PathManager.get_temp_dir() / f"env_{os.getpid()}.json"
+        try:
+            with open(env_file, "w", encoding="utf-8") as f:
+                json.dump(dict(os.environ), f, ensure_ascii=False, indent=2)
+
+            # 将环境文件路径添加到config_data
+            if config_data is None:
+                config_data = {}
+            config_data["env_file_path"] = str(env_file)
+
+        except Exception:
+            pass
 
     # 设置环境变量
     os.environ[config.api_key_name] = config.api_key

@@ -13,6 +13,7 @@ import time
 import queue
 import threading
 import os
+import glob
 from collections import deque
 from datetime import datetime
 import PySimpleGUI as sg
@@ -68,11 +69,11 @@ class MainGUI(object):
             log.print_log(config.error_message, "error")
 
         # 获取模板分类和当前配置
-        categories = utils.get_all_categories(DEFAULT_TEMPLATE_CATEGORIES)
+        categories = PathManager.get_all_categories(DEFAULT_TEMPLATE_CATEGORIES)
         current_category = config.custom_template_category
         current_template = config.custom_template
         current_templates = (
-            utils.get_templates_by_category(current_category) if current_category else []
+            PathManager.get_templates_by_category(current_category) if current_category else []
         )
 
         # 设置主题
@@ -292,7 +293,7 @@ class MainGUI(object):
             layout,
             default_element_size=(12, 1),
             size=window_size,
-            icon=self.__get_icon(),
+            icon=utils.get_gui_icon(),
             finalize=True,
             resizable=False,
             element_justification="left",
@@ -349,9 +350,6 @@ class MainGUI(object):
         except Exception:
             sg.set_options(font="Helvetica 10")
             return "Helvetica|10"
-
-    def __get_icon(self):
-        return utils.get_res_path(os.path.join("UI", "icon.ico"), os.path.dirname(__file__))
 
     def __save_ui_log(self, log_entry):
         # 如果日志不存在，则更新日志列表
@@ -447,12 +445,6 @@ class MainGUI(object):
                         # 检查退出码，如果非0表示异常退出
                         exit_code = self._crew_process.exitcode
                         self._drain_remaining_logs()
-                        # 添加明确的成功/失败日志
-                        if exit_code == 0:
-                            self._display_log("🎉 任务成功完成！", "success")
-                        else:
-                            self._display_log(f"❌ 任务异常退出，退出码: {exit_code}", "error")
-
                         self._handle_task_completion(
                             exit_code == 0,
                             f"执行异常退出，退出码: {exit_code}" if exit_code != 0 else None,
@@ -524,16 +516,25 @@ class MainGUI(object):
         #  使用线程安全的方式更新界面
         self._window.write_event_value("-UPDATE_LOG-", formatted_log_entry)
 
-    def _handle_task_completion(self, success, error_msg=None):
-        """处理任务完成"""
-        # 发送事件到主线程
-        self._window.write_event_value("-TASK_COMPLETED-", {"success": success, "error": error_msg})
+    def _handle_task_completion(self, success, error_message=None):
+        """处理任务完成事件"""
+        try:
+            # 清理可能残留的环境变量文件
+            temp_dir = PathManager.get_temp_dir()
+            env_files = glob.glob(str(temp_dir / "env_*.json"))
 
-        with self._process_lock:
-            self._is_running = False
-            self._task_stopping = False
-            self._crew_process = None
-            self._log_queue = None
+            for env_file in env_files:
+                try:
+                    os.remove(env_file)
+                except Exception:
+                    pass
+
+        except Exception:
+            pass
+        # 发送任务完成事件到UI
+        self._window.write_event_value(
+            "-TASK_COMPLETED-", {"success": success, "error": error_message}
+        )
 
     # 处理消息队列
     def process_queue(self):
@@ -573,8 +574,9 @@ class MainGUI(object):
                     sg.popup_error(
                         f"任务错误: {msg['value']}",
                         title="错误",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
                         non_blocking=True,
+                        keep_on_top=True,
                     )
 
                 # 处理错误和警告
@@ -582,8 +584,9 @@ class MainGUI(object):
                     sg.popup_error(
                         f"任务错误: {msg['value']}",
                         title="错误",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
                         non_blocking=True,
+                        keep_on_top=True,
                     )
                     self._window["-START_BTN-"].update(disabled=False)
                     self._window["-STOP_BTN-"].update(disabled=True)
@@ -595,8 +598,9 @@ class MainGUI(object):
                     sg.popup(
                         f"出现错误但不影响运行，告警信息：{msg['value']}",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
                         non_blocking=True,
+                        keep_on_top=True,
                     )
         except queue.Empty:
             pass
@@ -612,7 +616,10 @@ class MainGUI(object):
                 else:
                     # 有活跃进程，不允许启动新任务
                     sg.popup_error(
-                        "任务正在运行中，请先停止当前任务", title="系统提示", icon=self.__get_icon()
+                        "任务正在运行中，请先停止当前任务",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                     return
 
@@ -625,8 +632,9 @@ class MainGUI(object):
             sg.popup_error(
                 f"无法执行，配置错误：{config.error_message}",
                 title="系统提示",
-                icon=self.__get_icon(),
+                icon=utils.get_gui_icon(),
                 non_blocking=True,
+                keep_on_top=True,
             )
             return
 
@@ -637,8 +645,9 @@ class MainGUI(object):
                 sg.popup_error(
                     "自定义话题不能为空",
                     title="系统提示",
-                    icon=self.__get_icon(),
+                    icon=utils.get_gui_icon(),
                     non_blocking=True,
+                    keep_on_top=True,
                 )
                 return
             config.custom_topic = topic
@@ -650,8 +659,9 @@ class MainGUI(object):
                     sg.popup_error(
                         "存在无效的URL，请检查输入（确保使用http://或https://）",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
                         non_blocking=True,
+                        keep_on_top=True,
                     )
                     return
                 config.urls = valid_urls
@@ -685,11 +695,15 @@ class MainGUI(object):
         sg.popup(
             "更多界面功能开发中，请关注项目 :)\n点击OK开始执行",
             title="系统提示",
-            icon=self.__get_icon(),
+            icon=utils.get_gui_icon(),
+            keep_on_top=True,
         )
 
         # 启动新进程，传递配置数据
         try:
+            task_model = "自定义" if config.custom_topic else "热搜随机"
+            log.print_log(f"开始执行任务，话题模式：{task_model}")
+
             result = ai_write_x_main(True, config_data)  # 传递配置数据
             if result and result[0] and result[1]:
                 with self._process_lock:
@@ -712,10 +726,14 @@ class MainGUI(object):
                 # 更新UI
                 self._window["-START_BTN-"].update(disabled=True)
                 self._window["-STOP_BTN-"].update(disabled=False)
-                task_model = "自定义" if config.custom_topic else "热搜随机"
-                log.print_log(f"开始执行任务，话题模式：{task_model}")
+
             else:
-                sg.popup_error("执行启动失败，请检查配置", title="错误", icon=self.__get_icon())
+                sg.popup_error(
+                    "执行启动失败，请检查配置",
+                    title="错误",
+                    icon=utils.get_gui_icon(),
+                    keep_on_top=True,
+                )
         except Exception as e:
             self._window["-START_BTN-"].update(disabled=False)
             self._window["-STOP_BTN-"].update(disabled=True)
@@ -723,20 +741,35 @@ class MainGUI(object):
                 self._is_running = False
                 self._crew_process = None
                 self._log_queue = None
-            sg.popup_error(f"启动执行时发生错误: {str(e)}", title="错误", icon=self.__get_icon())
+            sg.popup_error(
+                f"启动执行时发生错误: {str(e)}",
+                title="错误",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
 
     def _handle_stop_button(self):
         """处理停止按钮点击"""
         with self._process_lock:
             if not self._is_running:
-                sg.popup("没有正在运行的任务", title="系统提示", icon=self.__get_icon())
+                sg.popup(
+                    "没有正在运行的任务",
+                    title="系统提示",
+                    icon=utils.get_gui_icon(),
+                    keep_on_top=True,
+                )
                 return
 
             if not self._crew_process or not self._crew_process.is_alive():
                 self._reset_task_state()
                 self._window["-START_BTN-"].update(disabled=False)
                 self._window["-STOP_BTN-"].update(disabled=True)
-                sg.popup("任务已经结束", title="系统提示", icon=self.__get_icon())
+                sg.popup(
+                    "任务已经结束",
+                    title="系统提示",
+                    icon=utils.get_gui_icon(),
+                    keep_on_top=True,
+                )
                 return
 
             self._task_stopping = True
@@ -835,14 +868,16 @@ class MainGUI(object):
                         sg.popup_error(
                             f"任务执行出错: {task_data['error']}",
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                     else:
                         sg.popup(
                             "任务执行完成",
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
                             non_blocking=True,
+                            keep_on_top=True,
                         )
                     continue
                 elif event == "-TASK_TERMINATED-":
@@ -850,7 +885,11 @@ class MainGUI(object):
                     self._window["-START_BTN-"].update(disabled=False)
                     self._window["-STOP_BTN-"].update(disabled=True)
                     sg.popup(
-                        "任务已终止", title="系统提示", icon=self.__get_icon(), non_blocking=True
+                        "任务已终止",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        non_blocking=True,
+                        keep_on_top=True,
                     )
                     continue
 
@@ -898,7 +937,8 @@ class MainGUI(object):
                         sg.popup(
                             "无法打开CrewAI配置文件 :( \n错误信息：" + str(e),
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                 elif event == "AIForge文件":
                     try:
@@ -923,7 +963,8 @@ class MainGUI(object):
                         sg.popup(
                             "无法打开AIForge配置文件 :( \n错误信息：" + str(e),
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                 elif event == "-CUSTOM_TOPIC-":
                     # 根据复选框状态启用/禁用输入框和下拉框
@@ -942,13 +983,14 @@ class MainGUI(object):
                             values=templates, value="随机模板", disabled=False
                         )
                     else:
-                        templates = utils.get_templates_by_category(selected_category)
+                        templates = PathManager.get_templates_by_category(selected_category)
 
                         if not templates:
                             sg.popup_error(
                                 f"分类 『{selected_category}』 的模板数量为0，不可选择",
                                 title="系统提示",
-                                icon=self.__get_icon(),
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
                             )
                             self._window["-TEMPLATE_CATEGORY-"].update(value="随机分类")
                             self._window["-TEMPLATE-"].update(
@@ -971,14 +1013,15 @@ class MainGUI(object):
                         f"当前版本 {__version___}",
                         "Copyright (C) 2025 iniwap,All Rights Reserved",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 elif event == "官网":
                     utils.open_url("https://github.com/iniwap/AIWriteX")
                 elif event == "帮助":
                     sg.popup(
                         "———————————配置说明———————————\n"
-                        "1、微信公众号AppID，AppSecrect必填（至少一个）\n"
+                        "1、微信公众号AppID，AppSecrect必填（自动发布时）\n"
                         "2、CrewAI使用的API的API KEY必填（使用的）\n"
                         "3、AIForge的模型提供商的API KEY必填（使用的）\n"
                         "4、其他使用默认即可，根据需求填写\n"
@@ -994,7 +1037,8 @@ class MainGUI(object):
                         "5、配置->CrewAI/AIForge：直接查看或编辑配置文件\n"
                         "6、部分界面内容，悬停会有提示",
                         title="使用帮助",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 elif event == "-SET_LOG_LIMIT-":
                     self._log_buffer = deque(self._log_buffer, maxlen=values["-LOG_LIMIT-"])
@@ -1013,6 +1057,7 @@ class MainGUI(object):
                             file_types=(("log文件", "*.log"),),
                             initial_folder=logs_path,
                             no_window=True,
+                            keep_on_top=True,
                         )
                         if not filename:
                             continue
@@ -1028,7 +1073,8 @@ class MainGUI(object):
                             sg.popup(
                                 "无法打开日志文件 :( \n错误信息：" + str(e),
                                 title="系统提示",
-                                icon=self.__get_icon(),
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
                             )
                     else:
                         try:
@@ -1043,7 +1089,8 @@ class MainGUI(object):
                             sg.popup(
                                 "无法打开日志文件 :( \n错误信息：" + str(e),
                                 title="系统提示",
-                                icon=self.__get_icon(),
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
                             )
 
                 elif event == "文章管理":

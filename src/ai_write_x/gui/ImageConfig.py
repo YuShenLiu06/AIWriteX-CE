@@ -438,7 +438,8 @@ class ImageConfigWindow:
             size=(700, 660),
             finalize=True,
             resizable=False,
-            icon=self._get_icon(),
+            icon=utils.get_gui_icon(),
+            keep_on_top=True,
         )
         self.window["-PREVIEW-"].update(data=self._reset_preview_to_default())
         self.window["-IMAGE_LIST-"].bind("<Button-3>", "+RIGHT_CLICK+")
@@ -476,19 +477,39 @@ class ImageConfigWindow:
                     self.temp_files.append(temp_file)
 
                     if utils.open_url(temp_file):
-                        sg.popup_error("无法打开预览", title="系统提示", icon=self._get_icon())
+                        sg.popup_error(
+                            "无法打开预览",
+                            title="系统提示",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
+                        )
 
                 except Exception as e:
-                    sg.popup_error(f"预览失败: {str(e)}", title="系统提示", icon=self._get_icon())
+                    sg.popup_error(
+                        f"预览失败: {str(e)}",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
 
             elif event == "-SAVE_CONFIG-":
                 # 保存配图配置到原文件
                 try:
                     with open(self.article["path"], "w", encoding="utf-8") as f:
                         f.write(self.modified_content)
-                    sg.popup("配图设置已保存到文章文件", title="系统提示", icon=self._get_icon())
+                    sg.popup(
+                        "配图设置已保存到文章文件",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
                 except Exception as e:
-                    sg.popup_error(f"保存失败: {str(e)}", title="系统提示", icon=self._get_icon())
+                    sg.popup_error(
+                        f"保存失败: {str(e)}",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
             elif event == "-EDIT_ARTICLE-":
                 # 使用系统默认编辑器打开文章文件（跨平台适配）
                 try:
@@ -526,9 +547,9 @@ class ImageConfigWindow:
                             "pycharm",
                             "idea",
                             "brackets",
+                            "open -a TextEdit",
                             "vim",
                             "emacs",
-                            "open -a TextEdit",
                         ]
                     else:  # Linux
                         editors = [
@@ -580,7 +601,10 @@ class ImageConfigWindow:
 
                 except Exception as e:
                     sg.popup_error(
-                        f"打开编辑器失败: {str(e)}", title="系统提示", icon=self._get_icon()
+                        f"打开编辑器失败: {str(e)}",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             elif event == "-RESTORE_DEFAULT-":
@@ -588,7 +612,8 @@ class ImageConfigWindow:
                     sg.popup_yes_no(
                         "确定要恢复到默认设置吗？所有未保存的更改将丢失。",
                         title="系统提示",
-                        icon=self._get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                     == "Yes"
                 ):
@@ -609,10 +634,18 @@ class ImageConfigWindow:
                             values=[f"{i+1}. {url}" for i, url in enumerate(display_urls)]
                         )
 
-                        sg.popup("已恢复到默认设置", title="系统提示", icon=self._get_icon())
+                        sg.popup(
+                            "已恢复到默认设置",
+                            title="系统提示",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
+                        )
                     except Exception as e:
                         sg.popup_error(
-                            f"恢复失败: {str(e)}", title="系统提示", icon=self._get_icon()
+                            f"恢复失败: {str(e)}",
+                            title="系统提示",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
             # 添加右键菜单事件处理
             elif event == "重命名":
@@ -623,7 +656,8 @@ class ImageConfigWindow:
                         "请输入新的文件名:",
                         default_text=old_filename,
                         title="系统提示",
-                        icon=self._get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                     if new_filename and new_filename != old_filename:
                         if self._rename_image(old_filename, new_filename):
@@ -651,16 +685,25 @@ class ImageConfigWindow:
                             sg.popup(
                                 f"重命名成功: {new_filename}",
                                 title="系统提示",
-                                icon=self._get_icon(),
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
                             )
                             # 刷新图片列表
                             image_filenames = self._get_image_files()
                             self.window["-IMAGE_LIST-"].update(values=image_filenames)
                         else:
-                            sg.popup_error("重命名失败", title="系统提示", icon=self._get_icon())
+                            sg.popup_error(
+                                "重命名失败",
+                                title="系统提示",
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
+                            )
                 else:
                     sg.popup_error(
-                        "请选择单个文件进行重命名", title="系统提示", icon=self._get_icon()
+                        "请选择单个文件进行重命名",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             elif event == "-IMAGE_LIST-" and values["-IMAGE_LIST-"]:
@@ -707,7 +750,12 @@ class ImageConfigWindow:
                         warning_msg += "\n\n注意：此文件是当前封面，删除后封面设置将被清空。"
 
                     if (
-                        sg.popup_yes_no(warning_msg, title="系统提示", icon=self._get_icon())
+                        sg.popup_yes_no(
+                            warning_msg,
+                            title="系统提示",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
+                        )
                         == "Yes"
                     ):
                         deleted_count = self._delete_images([self.right_clicked_item])
@@ -715,7 +763,8 @@ class ImageConfigWindow:
                             sg.popup(
                                 f"成功删除文件: {self.right_clicked_item}",
                                 title="系统提示",
-                                icon=self._get_icon(),
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
                             )
                             # 刷新图片列表
                             image_filenames = self._get_image_files()
@@ -731,10 +780,18 @@ class ImageConfigWindow:
 
                             self.right_clicked_item = None
                         else:
-                            sg.popup_error("删除失败", title="系统提示", icon=self._get_icon())
+                            sg.popup_error(
+                                "删除失败",
+                                title="系统提示",
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
+                            )
                 else:
                     sg.popup_error(
-                        "请先右键点击要删除的文件", title="系统提示", icon=self._get_icon()
+                        "请先右键点击要删除的文件",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             elif event == "打开":
@@ -742,13 +799,26 @@ class ImageConfigWindow:
                 if len(selected_files) == 1:
                     filename = selected_files[0]
                     if not self._open_image(filename):
-                        sg.popup_error("无法打开文件", title="系统提示", icon=self._get_icon())
+                        sg.popup_error(
+                            "无法打开文件",
+                            title="系统提示",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
+                        )
                 elif len(selected_files) > 1:
                     sg.popup_error(
-                        "请选择单个文件进行打开", title="系统提示", icon=self._get_icon()
+                        "请选择单个文件进行打开",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 else:
-                    sg.popup_error("请先选择要打开的文件", title="系统提示", icon=self._get_icon())
+                    sg.popup_error(
+                        "请先选择要打开的文件",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
 
             elif event == "-BATCH_DELETE-":
                 selected_files = values["-IMAGE_LIST-"]
@@ -770,7 +840,12 @@ class ImageConfigWindow:
                         confirm_message += f"\n\n⚠️ 注意：选中的文件包含当前封面图片 '{self.current_cover_filename}'，删除后封面设置将被清空。"  # noqa 501
 
                     if (
-                        sg.popup_yes_no(confirm_message, title="系统提示", icon=self._get_icon())
+                        sg.popup_yes_no(
+                            confirm_message,
+                            title="系统提示",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
+                        )
                         == "Yes"
                     ):
                         deleted_count = self._delete_images(selected_files)
@@ -785,7 +860,8 @@ class ImageConfigWindow:
                             sg.popup(
                                 f"成功删除 {deleted_count} 个文件",
                                 title="系统提示",
-                                icon=self._get_icon(),
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
                             )
 
                             # 刷新图片列表
@@ -795,9 +871,19 @@ class ImageConfigWindow:
                             # 清空预览
                             self.window["-PREVIEW-"].update(data=self._reset_preview_to_default())
                         else:
-                            sg.popup_error("删除失败", title="系统提示", icon=self._get_icon())
+                            sg.popup_error(
+                                "删除失败",
+                                title="系统提示",
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
+                            )
                 else:
-                    sg.popup_error("请先选择要删除的文件", title="系统提示", icon=self._get_icon())
+                    sg.popup_error(
+                        "请先选择要删除的文件",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
 
             elif event == "-SET_AS_COVER-":
                 self.current_cover_filename = self.current_preview_filename
@@ -833,11 +919,17 @@ class ImageConfigWindow:
             elif event == "-REPLACE_WITH_PREVIEW-":
                 if not values["-ARTICLE_IMAGES-"]:
                     sg.popup_error(
-                        "请先选择要替换的图片链接", title="系统提示", icon=self._get_icon()
+                        "请先选择要替换的图片链接",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 elif not self.current_preview_filename:
                     sg.popup_error(
-                        "请先选择要用于替换的图片", title="系统提示", icon=self._get_icon()
+                        "请先选择要用于替换的图片",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 else:
                     selected_item = values["-ARTICLE_IMAGES-"][0]
@@ -858,7 +950,12 @@ class ImageConfigWindow:
                             # 更新显示
                             self._update_display_based_on_mapping()
                         else:
-                            sg.popup_error("替换失败", title="系统提示", icon=self._get_icon())
+                            sg.popup_error(
+                                "替换失败",
+                                title="系统提示",
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
+                            )
             elif event == "-ADD_IMAGES-":
                 # 使用FilesBrowse的多选功能
                 files = sg.popup_get_file(
@@ -871,6 +968,7 @@ class ImageConfigWindow:
                         ("所有文件", "*.*"),
                     ),
                     title="添加图片到图库",
+                    keep_on_top=True,
                 )
 
                 if files:
@@ -883,7 +981,12 @@ class ImageConfigWindow:
                         message = f"成功添加 {added_count} 个图片文件"
                         if skipped_files:
                             message += "\n\n处理的文件：\n" + "\n".join(skipped_files)
-                        sg.popup(message, title="添加完成", icon=self._get_icon())
+                        sg.popup(
+                            message,
+                            title="添加完成",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
+                        )
 
                         # 刷新图片列表
                         image_filenames = self._get_image_files()
@@ -892,7 +995,12 @@ class ImageConfigWindow:
                         message = "没有添加任何文件"
                         if skipped_files:
                             message += "\n\n跳过的文件：\n" + "\n".join(skipped_files)
-                        sg.popup_error(message, title="添加失败", icon=self._get_icon())
+                        sg.popup_error(
+                            message,
+                            title="添加失败",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
+                        )
         self.window.close()
         # 清理临时文件
         if hasattr(self, "temp_files"):
@@ -902,13 +1010,6 @@ class ImageConfigWindow:
                         os.remove(temp_file)
                 except Exception:
                     pass
-
-    def _get_icon(self):
-        """获取窗口图标"""
-        try:
-            return utils.get_res_path(os.path.join("UI", "icon.ico"), os.path.dirname(__file__))
-        except Exception:
-            return None
 
 
 def gui_start(article):

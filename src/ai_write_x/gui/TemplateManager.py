@@ -83,7 +83,7 @@ class TemplateManager:
 
     def _refresh_data(self):
         """刷新分类和模板数据"""
-        self._categories = utils.get_all_categories(DEFAULT_TEMPLATE_CATEGORIES)
+        self._categories = PathManager.get_all_categories(DEFAULT_TEMPLATE_CATEGORIES)
         self._templates = self._get_templates()
 
     def _build_tree_data(self):
@@ -284,7 +284,12 @@ class TemplateManager:
         name = template["name"]
 
         if not os.path.exists(path):
-            sg.popup_error(f"模板文件不存在：{name}", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"模板文件不存在：{name}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
             return
 
         # 根据平台定义不同的编辑器列表
@@ -321,9 +326,9 @@ class TemplateManager:
                 "pycharm",
                 "idea",
                 "brackets",
+                "open -a TextEdit",
                 "vim",
                 "emacs",
-                "open -a TextEdit",
             ]
         else:  # Linux
             editors = [
@@ -374,7 +379,12 @@ class TemplateManager:
             else:
                 os.system(f'xdg-open "{path}"')
         except Exception as e:
-            sg.popup_error(f"无法打开编辑器: {str(e)}", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"无法打开编辑器: {str(e)}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
 
     def _load_template_preview(self, template):
         """加载模板预览内容"""
@@ -398,7 +408,12 @@ class TemplateManager:
         if os.path.exists(path):
             utils.open_url(path)
         else:
-            sg.popup_error(f"模板文件不存在：{name}", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"模板文件不存在：{name}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
 
     def _delete_template(self, template):
         """删除模板文件"""
@@ -412,15 +427,26 @@ class TemplateManager:
                     f"模板已删除：{name}",
                     non_blocking=True,
                     title="系统提示",
-                    icon=self.__get_icon(),
+                    icon=utils.get_gui_icon(),
+                    keep_on_top=True,
                 )
                 self._refresh_data()
                 self._update_tree()
                 self._update_detail_panel()  # 清空详情面板
             except Exception:
-                sg.popup_error(f"无法删除模板：{name}", title="系统提示", icon=self.__get_icon())
+                sg.popup_error(
+                    f"无法删除模板：{name}",
+                    title="系统提示",
+                    icon=utils.get_gui_icon(),
+                    keep_on_top=True,
+                )
         else:
-            sg.popup_error(f"模板文件不存在：{name}", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"模板文件不存在：{name}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
 
     def _move_template(self, template):
         """移动模板到其他分类"""
@@ -436,7 +462,7 @@ class TemplateManager:
             ],
             [sg.Button("移动", key="-MOVE_CONFIRM-"), sg.Button("取消")],
         ]
-        window = sg.Window("系统提示", layout, modal=True, icon=self.__get_icon())
+        window = sg.Window("系统提示", layout, modal=True, icon=utils.get_gui_icon())
 
         while True:
             event, values = window.read()
@@ -458,14 +484,18 @@ class TemplateManager:
                             f"模板已移动到 {new_category}",
                             non_blocking=True,
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                         self._refresh_data()
                         self._update_tree()
                         self._update_detail_panel()
                     except Exception as e:
                         sg.popup_error(
-                            f"移动模板失败：{str(e)}", title="系统提示", icon=self.__get_icon()
+                            f"移动模板失败：{str(e)}",
+                            title="系统提示",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                 break
 
@@ -478,7 +508,8 @@ class TemplateManager:
             default_text=template["name"] + "_copy",
             title="系统提示",
             size=(30, 1),
-            icon=self.__get_icon(),
+            icon=utils.get_gui_icon(),
+            keep_on_top=True,
         )
         if not new_name:
             return
@@ -487,7 +518,12 @@ class TemplateManager:
         new_path = os.path.join(os.path.dirname(old_path), f"{new_name}.html")
 
         if os.path.exists(new_path):
-            sg.popup_error(f"模板名称 {new_name} 已存在", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"模板名称 {new_name} 已存在",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
             return
 
         try:
@@ -496,12 +532,18 @@ class TemplateManager:
                 f"模板已复制为 {new_name}",
                 non_blocking=True,
                 title="系统提示",
-                icon=self.__get_icon(),
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
             )
             self._refresh_data()
             self._update_tree()
         except Exception as e:
-            sg.popup_error(f"复制模板失败：{str(e)}", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"复制模板失败：{str(e)}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
 
     def _rename_template(self, template):
         """重命名模板"""
@@ -510,7 +552,8 @@ class TemplateManager:
             default_text=template["name"],
             title="系统提示",
             size=(30, 1),
-            icon=self.__get_icon(),
+            icon=utils.get_gui_icon(),
+            keep_on_top=True,
         )
         if not new_name:
             return
@@ -519,7 +562,12 @@ class TemplateManager:
         new_path = os.path.join(os.path.dirname(old_path), f"{new_name}.html")
 
         if os.path.exists(new_path):
-            sg.popup_error(f"模板名称 {new_name} 已存在", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"模板名称 {new_name} 已存在",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
             return
 
         try:
@@ -528,13 +576,19 @@ class TemplateManager:
                 f"模板已重命名为 {new_name}",
                 non_blocking=True,
                 title="系统提示",
-                icon=self.__get_icon(),
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
             )
             self._refresh_data()
             self._update_tree()
             self._update_detail_panel()
         except Exception as e:
-            sg.popup_error(f"重命名模板失败：{str(e)}", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"重命名模板失败：{str(e)}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
 
     def _add_template(self):
         """添加新模板 - 支持创建和导入两种方式"""
@@ -619,9 +673,10 @@ class TemplateManager:
             "系统提示",
             layout,
             modal=True,
-            icon=self.__get_icon(),
+            icon=utils.get_gui_icon(),
             element_justification="left",
             finalize=True,
+            keep_on_top=True,
         )
 
         while True:
@@ -636,7 +691,12 @@ class TemplateManager:
 
             elif event == "-CONFIRM-":
                 if not values["-NEW_NAME-"] or not values["-NEW_CATEGORY-"]:
-                    sg.popup_error("请填写完整信息", title="系统提示", icon=self.__get_icon())
+                    sg.popup_error(
+                        "请填写完整信息",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
                     continue
 
                 name = values["-NEW_NAME-"]
@@ -647,7 +707,10 @@ class TemplateManager:
                 else:
                     if not values["-FILE_PATH-"]:
                         sg.popup_error(
-                            "请选择要导入的文件", title="系统提示", icon=self.__get_icon()
+                            "请选择要导入的文件",
+                            title="系统提示",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                         continue
                     self._import_existing_file(name, category, values["-FILE_PATH-"])
@@ -676,7 +739,8 @@ class TemplateManager:
                 f"模板名称 {name} 已存在",
                 "是否覆盖现有模板？",
                 title="系统提示",
-                icon=self.__get_icon(),
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
             )
             if choice != "Yes":
                 return
@@ -696,12 +760,22 @@ class TemplateManager:
             self._refresh_data()
             self._update_tree()
         except Exception as e:
-            sg.popup_error(f"创建模板失败：{str(e)}", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"创建模板失败：{str(e)}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
 
     def _import_existing_file(self, name, category, source_path):
         """导入已有文件"""
         if not os.path.exists(source_path):
-            sg.popup_error("源文件不存在", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                "源文件不存在",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
             return
 
         template_dir = str(PathManager.get_template_dir())
@@ -716,27 +790,47 @@ class TemplateManager:
                 f"模板名称 {name} 已存在",
                 "是否覆盖现有模板？",
                 title="系统提示",
-                icon=self.__get_icon(),
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
             )
             if choice != "Yes":
                 return
 
         try:
             shutil.copy2(source_path, target_path)
-            sg.popup(f"模板 {name} 导入成功", title="系统提示", icon=self.__get_icon())
+            sg.popup(
+                f"模板 {name} 导入成功",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
             self._refresh_data()
             self._update_tree()
         except Exception as e:
-            sg.popup_error(f"导入模板失败：{str(e)}", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"导入模板失败：{str(e)}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
 
     def _add_category(self):
         """添加新分类"""
         category_name = sg.popup_get_text(
-            "输入新分类名称:", size=(30, 1), title="系统提示", icon=self.__get_icon()
+            "输入新分类名称:",
+            size=(30, 1),
+            title="系统提示",
+            icon=utils.get_gui_icon(),
+            keep_on_top=True,
         )
         if not category_name or category_name in self._categories:
             if category_name:
-                sg.popup_error("分类名称已存在", title="系统提示", icon=self.__get_icon())
+                sg.popup_error(
+                    "分类名称已存在",
+                    title="系统提示",
+                    icon=utils.get_gui_icon(),
+                    keep_on_top=True,
+                )
             return
 
         template_dir = str(PathManager.get_template_dir())
@@ -750,10 +844,16 @@ class TemplateManager:
                 f"分类 {category_name} 已添加",
                 non_blocking=True,
                 title="系统提示",
-                icon=self.__get_icon(),
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
             )
         except Exception as e:
-            sg.popup_error(f"创建分类失败：{str(e)}", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"创建分类失败：{str(e)}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
 
     def _update_tree(self):
         """更新树状结构"""
@@ -806,22 +906,33 @@ class TemplateManager:
     def _edit_category(self, old_category_name):
         """编辑分类称"""
         if self._is_default_category(old_category_name):
-            sg.popup_error("默认分类不能重命名", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                "默认分类不能重命名",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
             return
 
         new_name = sg.popup_get_text(
             "输入新分类名称:",
             default_text=old_category_name,
             title="系统提示",
-            icon=self.__get_icon(),
+            icon=utils.get_gui_icon(),
             size=(30, 1),
+            keep_on_top=True,
         )
 
         if not new_name or new_name == old_category_name:
             return
 
         if new_name in self._categories:
-            sg.popup_error("分类名称已存在", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                "分类名称已存在",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
             return
 
         template_dir = str(PathManager.get_template_dir())
@@ -830,16 +941,31 @@ class TemplateManager:
 
         try:
             os.rename(old_path, new_path)
-            sg.popup(f"分类已重命名为 {new_name}", title="系统提示", icon=self.__get_icon())
+            sg.popup(
+                f"分类已重命名为 {new_name}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
             self._refresh_data()
             self._update_tree()
         except Exception as e:
-            sg.popup_error(f"重命名分类失败：{str(e)}", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"重命名分类失败：{str(e)}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
 
     def _delete_category(self, category_name):
         """删除分类及其所有文件"""
         if self._is_default_category(category_name):
-            sg.popup_error("默认分类不能删除", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                "默认分类不能删除",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
             return
 
         # 获取分类下的模板数量
@@ -852,7 +978,12 @@ class TemplateManager:
         else:
             confirm_msg = f"确认删除空分类 '{category_name}'？"
 
-        choice = sg.popup_yes_no(confirm_msg, title="系统提示", icon=self.__get_icon())
+        choice = sg.popup_yes_no(
+            confirm_msg,
+            title="系统提示",
+            icon=utils.get_gui_icon(),
+            keep_on_top=True,
+        )
         if choice != "Yes":
             return
 
@@ -862,12 +993,22 @@ class TemplateManager:
         try:
             # 删除整个分类文件夹及其内容
             shutil.rmtree(category_path)
-            sg.popup(f"分类 '{category_name}' 已删除", title="系统提示", icon=self.__get_icon())
+            sg.popup(
+                f"分类 '{category_name}' 已删除",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
             self._refresh_data()
             self._update_tree()
             self._update_detail_panel()  # 清空详情面板
         except Exception as e:
-            sg.popup_error(f"删除分类失败：{str(e)}", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"删除分类失败：{str(e)}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
 
     def run(self):
         """运行模板管理窗口"""
@@ -876,7 +1017,7 @@ class TemplateManager:
             self._create_layout(),
             size=(850, 640),
             resizable=False,
-            icon=self.__get_icon(),
+            icon=utils.get_gui_icon(),
             finalize=True,
         )
 
@@ -940,7 +1081,8 @@ class TemplateManager:
                     sg.popup_yes_no(
                         f"是否确认删除模板：{self._current_template['name']}？",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                     == "Yes"
                 ):
@@ -953,7 +1095,8 @@ class TemplateManager:
                         sg.popup(
                             "系统默认分类，不可编辑 :(",
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                     else:
                         self._edit_category(self._current_category)
@@ -965,16 +1108,13 @@ class TemplateManager:
                         sg.popup(
                             "系统默认分类，不可删除 :(",
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                     else:
                         self._delete_category(self._current_category)
 
         self._window.close()
-
-    def __get_icon(self):
-        """获取窗口图标"""
-        return utils.get_res_path(os.path.join("UI", "icon.ico"), os.path.dirname(__file__))
 
 
 def gui_start():

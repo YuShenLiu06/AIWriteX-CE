@@ -1,11 +1,11 @@
 import PySimpleGUI as sg
 import re
-import os
 import copy
 import sys
 
 from src.ai_write_x.config.config import Config, DEFAULT_TEMPLATE_CATEGORIES
 from src.ai_write_x.utils import utils
+from src.ai_write_x.utils.path_manager import PathManager
 
 
 class ConfigEditor:
@@ -30,7 +30,8 @@ class ConfigEditor:
             size=(500, 600),
             resizable=False,
             finalize=True,
-            icon=self.__get_icon(),
+            icon=utils.get_gui_icon(),
+            keep_on_top=True,
         )
 
         # 设置默认选中的API类型的TAB
@@ -50,9 +51,6 @@ class ConfigEditor:
             sg.user_settings_set_entry("-global_font-", f"{font_name}|{size}")
         except Exception:
             sg.set_options(font="Helvetica 10")
-
-    def __get_icon(self):
-        return utils.get_res_path(os.path.join("UI", "icon.ico"), os.path.dirname(__file__))
 
     def _filter_fonts(self):
         """过滤掉横向字体，只保留适合界面显示的字体"""
@@ -387,14 +385,14 @@ class ConfigEditor:
     def create_base_tab(self):
         """创建基础 TAB 布局"""
         # 获取所有分类
-        categories = utils.get_all_categories(DEFAULT_TEMPLATE_CATEGORIES)
+        categories = PathManager.get_all_categories(DEFAULT_TEMPLATE_CATEGORIES)
 
         # 获取当前配置的模板信息
         current_category = self.config.template_category
         current_template = self.config.template
 
         # 获取当前分类下的模板
-        current_templates = utils.get_templates_by_category(current_category)
+        current_templates = PathManager.get_templates_by_category(current_category)
 
         # 检查是否有模板
         is_template_empty = len(categories) == 0
@@ -973,7 +971,12 @@ class ConfigEditor:
             # 在事件循环中使用
             elif event in self.get_mac_clipboard_events():
                 if sys.platform == "darwin" and values[event]:
-                    self.window[event].update(utils.fix_mac_clipboard(values[event]))
+                    fixed_value = utils.fix_mac_clipboard(values[event])
+                    if fixed_value != values[event]:  # 只有内容真正改变时才更新
+                        self.window[event].update(fixed_value)
+                        self.window.refresh()
+                        # 可选：重新设置焦点确保用户体验
+                        self.window[event].set_focus()
             elif event == "-ARTICLE_FORMAT-":
                 if values["-ARTICLE_FORMAT-"] == "html":
                     # HTML格式禁用格式化勾选框
@@ -1001,13 +1004,14 @@ class ConfigEditor:
                         values=templates, value="随机模板", disabled=False
                     )
                 else:
-                    templates = utils.get_templates_by_category(selected_category)
+                    templates = PathManager.get_templates_by_category(selected_category)
 
                     if not templates:
                         sg.popup_error(
                             f"分类 『{selected_category}』 的模板数量为0，不可选择",
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                         self.window["-TEMPLATE_CATEGORY-"].update(value="随机分类")
                         self.window["-TEMPLATE-"].update(
@@ -1056,7 +1060,12 @@ class ConfigEditor:
                     self.window["-TAB_WECHAT-"].Widget.update()
                     self.window["-WECHAT_CREDENTIALS_COLUMN-"].Widget.update()
                 except Exception as e:
-                    sg.popup_error(f"添加凭证失败: {e}", title="系统提示", icon=self.__get_icon())
+                    sg.popup_error(
+                        f"添加凭证失败: {e}",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
             # 删除微信凭证
             elif event.startswith("-DELETE_WECHAT_"):
                 match = re.search(r"-DELETE_WECHAT_(\d+)", event)
@@ -1075,11 +1084,17 @@ class ConfigEditor:
                             self.window["-WECHAT_CREDENTIALS_COLUMN-"].Widget.update()
                         except Exception as e:
                             sg.popup_error(
-                                f"删除凭证失败: {e}", title="系统提示", icon=self.__get_icon()
+                                f"删除凭证失败: {e}",
+                                title="系统提示",
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
                             )
                     else:
                         sg.popup_error(
-                            f"无效的凭证索引: {index}", title="系统提示", icon=self.__get_icon()
+                            f"无效的凭证索引: {index}",
+                            title="系统提示",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
 
             # 保存平台配置
@@ -1098,7 +1113,8 @@ class ConfigEditor:
                             sg.popup_error(
                                 f"平台 {values[f'-PLATFORM_NAME_{i}-']} 权重小于0，将被设为0",
                                 title="系统提示",
-                                icon=self.__get_icon(),
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
                             )
                             # 更新界面上的权重值
                             self.window[f"-PLATFORM_WEIGHT_{i}-"].update(value=str(weight))
@@ -1107,7 +1123,8 @@ class ConfigEditor:
                             sg.popup_error(
                                 f"平台 {values[f'-PLATFORM_NAME_{i}-']} 权重大于1，将被设为1",
                                 title="系统提示",
-                                icon=self.__get_icon(),
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
                             )
                             # 更新界面上的权重值
                             self.window[f"-PLATFORM_WEIGHT_{i}-"].update(value=str(weight))
@@ -1118,7 +1135,8 @@ class ConfigEditor:
                         sg.popup_error(
                             f"平台 {values[f'-PLATFORM_NAME_{i}-']} 权重必须是数字",
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                         break
                     i += 1
@@ -1127,7 +1145,8 @@ class ConfigEditor:
                         sg.popup(
                             "平台权重之和超过1，将默认选取微博热搜。",
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                     config["platforms"] = platforms
                     if self.config.save_config(config):
@@ -1135,13 +1154,15 @@ class ConfigEditor:
                         sg.popup(
                             "平台配置已保存",
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                     else:
                         sg.popup_error(
                             self.config.error_message,
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
 
             # 保存微信配置
@@ -1192,7 +1213,8 @@ class ConfigEditor:
                                     sg.popup_error(
                                         f"【凭证 {i+1} 】标签组ID必须 ≥ 1，已设为0（即无效，如果未勾选群发将发布失败）",
                                         title="系统提示",
-                                        icon=self.__get_icon(),
+                                        icon=utils.get_gui_icon(),
+                                        keep_on_top=True,
                                     )
                                     self.window[tag_id_key].update(value=str(tag_id))
                             except ValueError:
@@ -1200,7 +1222,8 @@ class ConfigEditor:
                                 sg.popup_error(
                                     f"【凭证 {i+1} 】标签组ID必须为数字，已设为0（即无效，如果未勾选群发将发布失败）",
                                     title="系统提示",
-                                    icon=self.__get_icon(),
+                                    icon=utils.get_gui_icon(),
+                                    keep_on_top=True,
                                 )
                                 self.window[tag_id_key].update(value=str(tag_id))
 
@@ -1225,10 +1248,18 @@ class ConfigEditor:
                     self.window.refresh()
                     self.window["-TAB_WECHAT-"].Widget.update()
                     self.window["-WECHAT_CREDENTIALS_COLUMN-"].Widget.update()
-                    sg.popup("微信配置已保存", title="系统提示", icon=self.__get_icon())
+                    sg.popup(
+                        "微信配置已保存",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
                 else:
                     sg.popup_error(
-                        self.config.error_message, title="系统提示", icon=self.__get_icon()
+                        self.config.error_message,
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             # 保存 API 配置
@@ -1272,7 +1303,8 @@ class ConfigEditor:
                         sg.popup_error(
                             f"{api_name} 配置错误: {e}",
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                         break
                 else:
@@ -1280,13 +1312,15 @@ class ConfigEditor:
                         sg.popup(
                             "API 配置已保存",
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                     else:
                         sg.popup_error(
                             self.config.error_message,
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
             elif event == "-API_TAB_GROUP-":
                 try:
@@ -1323,13 +1357,15 @@ class ConfigEditor:
                     sg.popup(
                         "图像 API 配置已保存",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 else:
                     sg.popup_error(
                         self.config.error_message,
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             # 保存基础配置
@@ -1357,7 +1393,8 @@ class ConfigEditor:
                             sg.popup_error(
                                 "所选字体不适合界面显示，已重置为默认字体",
                                 title="系统提示",
-                                icon=self.__get_icon(),
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
                             )
                             self.window["-FONT_COMBO-"].update(disabled=True)
                             self.set_global_font("Helvetica")
@@ -1458,13 +1495,15 @@ class ConfigEditor:
                     sg.popup(
                         "基础配置已保存",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 else:
                     sg.popup_error(
                         self.config.error_message,
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             # 恢复默认配置 - 平台
@@ -1478,13 +1517,15 @@ class ConfigEditor:
                     sg.popup(
                         "已恢复默认平台配置",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 else:
                     sg.popup_error(
                         self.config.error_message,
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             # 恢复默认配置 - 微信
@@ -1500,13 +1541,15 @@ class ConfigEditor:
                     sg.popup(
                         "已恢复默认微信配置",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 else:
                     sg.popup_error(
                         self.config.error_message,
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             # 恢复默认配置 - API
@@ -1520,13 +1563,15 @@ class ConfigEditor:
                     sg.popup(
                         "已恢复默认API配置",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 else:
                     sg.popup_error(
                         self.config.error_message,
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             # 恢复默认配置 - 图像 API
@@ -1539,13 +1584,15 @@ class ConfigEditor:
                     sg.popup(
                         "已恢复默认图像API配置",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 else:
                     sg.popup_error(
                         self.config.error_message,
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             # 恢复默认配置 - 基础
@@ -1572,13 +1619,15 @@ class ConfigEditor:
                     sg.popup(
                         "已恢复默认基础配置",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 else:
                     sg.popup_error(
                         self.config.error_message,
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             # 动态更新 AIForge 提供商的所有参数
@@ -1607,7 +1656,8 @@ class ConfigEditor:
                     sg.popup_error(
                         f"更新 AIForge 提供商配置失败: {e}",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             # 保存 AIForge 配置
@@ -1664,7 +1714,8 @@ class ConfigEditor:
                         sg.popup_error(
                             "超时时间或最大 Tokens 必须是整数",
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                         return
 
@@ -1688,31 +1739,53 @@ class ConfigEditor:
                         )
                     except (ValueError, TypeError):
                         sg.popup_error(
-                            "缓存配置参数必须是有效的数值", title="系统提示", icon=self.__get_icon()
+                            "缓存配置参数必须是有效的数值",
+                            title="系统提示",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                         return
 
                     # 保存配置
                     if self.config.save_config(self.config.get_config(), aiforge_config):
-                        sg.popup("AIForge 配置已保存", title="系统提示", icon=self.__get_icon())
+                        sg.popup(
+                            "AIForge 配置已保存",
+                            title="系统提示",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
+                        )
                     else:
                         sg.popup_error(
-                            self.config.error_message, title="系统提示", icon=self.__get_icon()
+                            self.config.error_message,
+                            title="系统提示",
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
 
                 except Exception as e:
                     sg.popup_error(
-                        f"保存配置时发生错误: {str(e)}", title="系统提示", icon=self.__get_icon()
+                        f"保存配置时发生错误: {str(e)}",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
             # 恢复默认 AIForge 配置
             elif event.startswith("-RESET_AIFORGE-"):
                 aiforge_config = copy.deepcopy(self.config.default_aiforge_config)
                 if self.config.save_config(self.config.get_config(), aiforge_config):
                     self.update_tab("-TAB_AIFORGE-", self.create_aiforge_tab())
-                    sg.popup("已恢复默认 AIForge 配置", title="系统提示", icon=self.__get_icon())
+                    sg.popup(
+                        "已恢复默认 AIForge 配置",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
                 else:
                     sg.popup_error(
-                        self.config.error_message, title="系统提示", icon=self.__get_icon()
+                        self.config.error_message,
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
 
             elif event.startswith("-WECHAT_CALL_SENDALL_") or event.startswith("-WECHAT_SENDALL_"):

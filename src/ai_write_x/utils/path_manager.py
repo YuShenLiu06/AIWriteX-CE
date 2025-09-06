@@ -39,13 +39,7 @@ class PathManager:
     @staticmethod
     def get_article_dir():
         """获取文章目录"""
-        if not utils.get_is_release_ver():
-            # 开发模式：使用项目根目录下的 articles
-            article_dir = PathManager.get_app_data_dir() / "output/article"
-        else:
-            # 发布模式：使用用户数据目录
-            article_dir = PathManager.get_app_data_dir() / "output/article"
-
+        article_dir = PathManager.get_app_data_dir() / "output/article"
         article_dir.mkdir(parents=True, exist_ok=True)
         return article_dir
 
@@ -73,28 +67,23 @@ class PathManager:
     @staticmethod
     def get_image_dir():
         """获取图片目录"""
-        if not utils.get_is_release_ver():
-            # 开发模式：使用项目根目录下的 image
-            image_dir = PathManager.get_app_data_dir() / "image"
-        else:
-            # 发布模式：使用用户数据目录
-            image_dir = PathManager.get_app_data_dir() / "image"
-
+        image_dir = PathManager.get_app_data_dir() / "image"
         image_dir.mkdir(parents=True, exist_ok=True)
         return image_dir
 
     @staticmethod
     def get_log_dir():
         """获取日志目录"""
-        if not utils.get_is_release_ver():
-            # 开发模式：使用项目根目录下的 logs
-            log_dir = PathManager.get_app_data_dir() / "logs"
-        else:
-            # 发布模式：使用用户数据目录
-            log_dir = PathManager.get_app_data_dir() / "logs"
-
+        log_dir = PathManager.get_app_data_dir() / "logs"
         log_dir.mkdir(parents=True, exist_ok=True)
         return log_dir
+
+    @staticmethod
+    def get_temp_dir():
+        """获取临时目录路径"""
+        temp_dir = PathManager.get_app_data_dir() / "temp"
+        temp_dir.mkdir(parents=True, exist_ok=True)
+        return temp_dir
 
     @staticmethod
     def get_config_path(file_name="config.yaml"):
@@ -116,3 +105,38 @@ class PathManager:
             return True
         except (OSError, PermissionError):
             return False
+
+    @staticmethod
+    def get_all_categories(default_template_categories):
+        """动态获取所有分类文件夹名称"""
+        template_dir = str(PathManager.get_template_dir())
+        categories = []
+
+        # 添加默认分类（确保存在）
+        default_categories = list(default_template_categories.values())  # 使用中文名
+        categories.extend(default_categories)
+
+        # 扫描实际存在的文件夹
+        if os.path.exists(template_dir):
+            for item in os.listdir(template_dir):
+                item_path = os.path.join(template_dir, item)
+                if os.path.isdir(item_path) and item not in categories:
+                    categories.append(item)
+
+        return sorted(categories)
+
+    @staticmethod
+    def get_templates_by_category(category):
+        """获取指定分类下的模板列表"""
+        if not category or category == "随机分类":
+            return []
+
+        template_dir = str(PathManager.get_template_dir())
+        category_path = os.path.join(template_dir, category)
+
+        if not os.path.exists(category_path):
+            return []
+
+        template_files = glob.glob(os.path.join(category_path, "*.html"))
+        template_names = [os.path.splitext(os.path.basename(f))[0] for f in template_files]
+        return sorted(template_names)

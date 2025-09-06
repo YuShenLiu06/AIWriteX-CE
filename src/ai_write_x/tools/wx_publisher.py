@@ -175,10 +175,8 @@ class WeixinPublisher:
         elif self.img_api_type == "picsum":
             image_dir = str(PathManager.get_image_dir())
             width_height = size.split("*")
-            img_url = utils.download_and_save_image(
-                f"https://picsum.photos/{width_height[0]}/{width_height[1]}?random=1",
-                image_dir,
-            )
+            download_url = f"https://picsum.photos/{width_height[0]}/{width_height[1]}?random=1"
+            img_url = utils.download_and_save_image(download_url, image_dir)
 
         return img_url
 
@@ -469,6 +467,8 @@ def pub2wx(title, digest, article, appid, appsecret, author):
                 if local_filename:
                     _, url, _ = publisher.upload_image(local_filename)
                     article = article.replace(image_url, url)
+                else:
+                    log.print_log(f"下载图片失败：{image_url}")
     except Exception as e:
         log.print_log(f"上传配图出错，影响阅读，可继续发布文章:{e}")
 

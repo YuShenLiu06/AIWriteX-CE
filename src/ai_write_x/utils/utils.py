@@ -8,15 +8,11 @@ import time
 import sys
 import shutil
 import webbrowser
-from urllib.parse import urlparse
-import glob
 import markdown
 from PIL import Image
 import tempfile
-
-
-from src.ai_write_x.utils import log
-from src.ai_write_x.utils.path_manager import PathManager
+import urllib.parse
+from pathlib import Path
 
 
 def copy_file(src_file, dest_file):
@@ -190,12 +186,7 @@ def download_and_save_image(image_url, local_image_folder):
                 file.write(chunk)
 
         return local_filename
-
-    except requests.exceptions.RequestException as e:
-        log.print_log(f"下载图片失败：{image_url}，错误：{e}")
-        return None
-    except Exception as e:
-        log.print_log(f"处理图片失败：{image_url}，错误：{e}")
+    except Exception:
         return None
 
 
@@ -273,11 +264,21 @@ def open_url(file_url):
             # 直接打开网络 URL
             webbrowser.open(file_url)
         else:
-            # 视为本地文件路径，转换为 file:// 格式
+            # 视为本地文件路径
             if not os.path.exists(file_url):
                 return "文件不存在！"
 
-            html_url = f"file://{os.path.abspath(file_url).replace(os.sep, '/')}"
+            # 使用 pathlib 规范化路径
+            file_path = Path(file_url).resolve()
+
+            # 使用 urllib.parse.urljoin 和 file:// 协议
+            if sys.platform == "darwin":  # macOS
+                # macOS 特殊处理，使用 file:// + quote
+                html_url = f"file://{urllib.parse.quote(str(file_path))}"
+            else:
+                # Windows 和 Linux 使用标准方式
+                html_url = file_path.as_uri()
+
             webbrowser.open(html_url)
         return ""
     except Exception as e:
@@ -286,7 +287,7 @@ def open_url(file_url):
 
 def is_valid_url(url):
     try:
-        result = urlparse(url)
+        result = urllib.parse.urlparse(url)
         return all([result.scheme in ["http", "https"], result.netloc])
     except Exception as e:  # noqa 841
         return False
@@ -301,41 +302,6 @@ def sanitize_filename(filename):
     sanitized = sanitized.strip().strip(".")
     # 如果文件名为空，设置一个默认值
     return sanitized or "default_filename"
-
-
-def get_all_categories(default_template_categories):
-    """动态获取所有分类文件夹名称"""
-    template_dir = str(PathManager.get_template_dir())
-    categories = []
-
-    # 添加默认分类（确保存在）
-    default_categories = list(default_template_categories.values())  # 使用中文名
-    categories.extend(default_categories)
-
-    # 扫描实际存在的文件夹
-    if os.path.exists(template_dir):
-        for item in os.listdir(template_dir):
-            item_path = os.path.join(template_dir, item)
-            if os.path.isdir(item_path) and item not in categories:
-                categories.append(item)
-
-    return sorted(categories)
-
-
-def get_templates_by_category(category):
-    """获取指定分类下的模板列表"""
-    if not category or category == "随机分类":
-        return []
-
-    template_dir = str(PathManager.get_template_dir())
-    category_path = os.path.join(template_dir, category)
-
-    if not os.path.exists(category_path):
-        return []
-
-    template_files = glob.glob(os.path.join(category_path, "*.html"))
-    template_names = [os.path.splitext(os.path.basename(f))[0] for f in template_files]
-    return sorted(template_names)
 
 
 def is_llm_supported(llm, key_name, env_vars):
@@ -517,7 +483,7 @@ def is_local_path(url):
         return True
 
     # 检查是否为网络URL
-    parsed = urlparse(url)
+    parsed = urllib.parse.urlparse(url)
     if parsed.scheme in ("http", "https", "ftp"):
         return False
 
@@ -566,7 +532,7 @@ def crop_cover_image(image_path, target_size=(900, 384)):
         return None
 
 
-def handle_input_change(value):
+def fix_mac_clipboard(value):
     """处理输入框变化，修复macOS重复粘贴问题"""
     if sys.platform == "darwin" and value:  # 仅在macOS上处理
         length = len(value)
@@ -581,3 +547,31 @@ def handle_input_change(value):
                 # self._window[key].update(first_half)
                 return first_half
     return value
+
+
+def get_gui_icon():
+    """获取GUI窗口图标，支持跨平台"""
+    import sys
+    import os
+    import base64
+    from pathlib import Path
+
+    gui_dir = Path(__file__).parent.parent / "gui"
+
+    if sys.platform == "darwin":  # macOS
+        # 优先尝试PNG格式的Base64编码
+        png_path = get_res_path(os.path.join("UI", "icon.png"), str(gui_dir))
+        if os.path.exists(png_path):
+            try:
+                with open(png_path, "rb") as f:
+                    return base64.b64encode(f.read())
+            except Exception:
+                pass
+
+        # 回退到icns
+        icns_path = get_res_path(os.path.join("UI", "icon.icns"), str(gui_dir))
+        if os.path.exists(icns_path):
+            return icns_path
+
+    # 回退到原来的逻辑（Windows/Linux）
+    return get_res_path(os.path.join("UI", "icon.ico"), str(gui_dir))

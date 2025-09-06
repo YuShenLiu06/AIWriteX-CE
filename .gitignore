@@ -9,6 +9,8 @@ image/*
 !image/preview/
 aiforge_work/
 backup/
+temp/
+tmp/
 config.bk
 output/*/*
 !output/article/.gitkeep

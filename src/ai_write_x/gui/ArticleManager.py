@@ -153,7 +153,8 @@ class ArticleManager:
             sg.popup_error(
                 "AppID、AppSecret 和 作者 不能为空",
                 title="系统提示",
-                icon=self.__get_icon(),
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
             )
             return False
         self._temp_credentials.append({"appid": appid, "appsecret": appsecret, "author": author})
@@ -161,7 +162,8 @@ class ArticleManager:
             "临时配置已添加，可在上方选择",
             non_blocking=True,
             title="系统提示",
-            icon=self.__get_icon(),
+            icon=utils.get_gui_icon(),
+            keep_on_top=True,
         )
         return True
 
@@ -171,7 +173,8 @@ class ArticleManager:
             sg.popup_error(
                 f"文章文件不存在：{title}",
                 title="系统提示",
-                icon=self.__get_icon(),
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
             )
             return
 
@@ -209,9 +212,9 @@ class ArticleManager:
                 "pycharm",
                 "idea",
                 "brackets",
+                "open -a TextEdit",
                 "vim",
                 "emacs",
-                "open -a TextEdit",
             ]
         else:  # Linux
             editors = [
@@ -262,7 +265,12 @@ class ArticleManager:
             else:
                 os.system(f'xdg-open "{path}"')
         except Exception as e:
-            sg.popup_error(f"无法打开编辑器: {str(e)}", title="系统提示", icon=self.__get_icon())
+            sg.popup_error(
+                f"无法打开编辑器: {str(e)}",
+                title="系统提示",
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
+            )
 
     def _view_article(self, path, title):
         """预览文章，在浏览器中打开"""
@@ -271,13 +279,15 @@ class ArticleManager:
                 sg.popup_error(
                     f"无法预览文章：{title}",
                     title="系统提示",
-                    icon=self.__get_icon(),
+                    icon=utils.get_gui_icon(),
+                    keep_on_top=True,
                 )
         else:
             sg.popup_error(
                 f"文章文件不存在：{title}",
                 title="系统提示",
-                icon=self.__get_icon(),
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
             )
 
     def _publish_article(self, article, title, digest, credentials, ext, format_publish):
@@ -323,13 +333,15 @@ class ArticleManager:
                 sg.popup_error(
                     f"无法删除文章：{title}",
                     title="系统提示",
-                    icon=self.__get_icon(),
+                    icon=utils.get_gui_icon(),
+                    keep_on_top=True,
                 )
         else:
             sg.popup_error(
                 f"文章文件不存在：{title}",
                 title="系统提示",
-                icon=self.__get_icon(),
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
             )
 
     def _create_layout(self):
@@ -525,7 +537,8 @@ class ArticleManager:
             finalize=True,
             resizable=True,
             element_justification="center",
-            icon=self.__get_icon(),
+            icon=utils.get_gui_icon(),
+            keep_on_top=True,
         )
         # 绑定双击事件
         self._window["-TABLE-"].bind("<Double-1>", "_DoubleClick")
@@ -554,7 +567,8 @@ class ArticleManager:
                     sg.popup(
                         "请输入文章标题（支持模糊搜索）",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                 else:
                     filtered_articles = [
@@ -572,7 +586,8 @@ class ArticleManager:
                     sg.popup(
                         f"正在发布中，无法执行{event}，请稍候...",
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
                     continue
 
@@ -591,7 +606,8 @@ class ArticleManager:
                             sg.popup_yes_no(
                                 confirm_message,
                                 title="系统提示",
-                                icon=self.__get_icon(),
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
                             )
                             == "Yes"
                         ):
@@ -605,7 +621,8 @@ class ArticleManager:
                             sg.popup_error(
                                 "目前仅支持HTML格式文章配图设置",
                                 title="系统提示",
-                                icon=self.__get_icon(),
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
                             )
                             continue
 
@@ -619,7 +636,8 @@ class ArticleManager:
                         "请先选择文章，然后再点击批量发布。",
                         non_blocking=True,
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
             elif event == "-BATCH_DELETE-":
                 if values["-TABLE-"]:
@@ -631,7 +649,8 @@ class ArticleManager:
                         sg.popup_yes_no(
                             confirm_message,
                             title="系统提示",
-                            icon=self.__get_icon(),
+                            icon=utils.get_gui_icon(),
+                            keep_on_top=True,
                         )
                         == "Yes"
                     ):
@@ -645,7 +664,8 @@ class ArticleManager:
                         "请先选择文章，然后再点击批量删除。",
                         non_blocking=True,
                         title="系统提示",
-                        icon=self.__get_icon(),
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
                     )
             elif event == "-ADD_CONFIG-":
                 appid = values["-APPID-"].strip()
@@ -692,7 +712,7 @@ class ArticleManager:
             [sg.Button("打开公众号后台"), sg.Button("关闭")],
         ]
 
-        window = sg.Window("发布结果", layout, icon=self.__get_icon())
+        window = sg.Window("发布结果", layout, icon=utils.get_gui_icon())
 
         while True:
             event, _ = window.read()
@@ -804,7 +824,8 @@ class ArticleManager:
                 "请先选择微信公众号配置或添加临时配置并选择",
                 non_blocking=True,
                 title="系统提示",
-                icon=self.__get_icon(),
+                icon=utils.get_gui_icon(),
+                keep_on_top=True,
             )
             return
 
@@ -821,12 +842,9 @@ class ArticleManager:
         sg.popup_non_blocking(
             "正在后台发布文章，请稍后...\n可关闭界面，但不再收到完成通知 :)",
             title="系统提示",
-            icon=self.__get_icon(),
+            icon=utils.get_gui_icon(),
+            keep_on_top=True,
         )
-
-    def __get_icon(self):
-        """获取窗口图标"""
-        return utils.get_res_path(os.path.join("UI", "icon.ico"), os.path.dirname(__file__))
 
 
 def gui_start():
