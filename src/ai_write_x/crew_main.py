@@ -32,6 +32,9 @@ def run_crew_in_process(inputs, appid, appsecret, author, log_queue, config_data
         signal.signal(signal.SIGTERM, signal_handler)
         signal.signal(signal.SIGINT, signal_handler)
 
+        # 设置进程专用日志系统
+        log.setup_process_logging(log_queue)
+
         # 恢复环境变量
         env_file_path = None
         if config_data and "env_file_path" in config_data:
@@ -63,9 +66,6 @@ def run_crew_in_process(inputs, appid, appsecret, author, log_queue, config_data
 
         # 重新加载配置文件以确保基础配置正确
         config.load_config()
-
-        # 设置进程专用日志系统
-        log.setup_process_logging(log_queue)
 
         # 添加调试信息
         log.print_log(f"配置信息：API类型={config.api_type}，模型={config.api_model} ", "status")
@@ -180,6 +180,9 @@ def ai_write_x_main(ui_mode=False, config_data=None):
     if not config.load_config():
         log.print_log("加载配置失败，请检查是否有配置！", "error")
         return None, None
+
+    task_model = "自定义" if config.custom_topic else "热搜随机"
+    log.print_log(f"开始执行任务，话题模式：{task_model}")
 
     # 保存环境变量到临时文件
     if ui_mode:

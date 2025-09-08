@@ -699,11 +699,11 @@ class MainGUI(object):
             keep_on_top=True,
         )
 
+        self._window["-START_BTN-"].update(disabled=True)
+        self._window["-STOP_BTN-"].update(disabled=False)
+
         # 启动新进程，传递配置数据
         try:
-            task_model = "自定义" if config.custom_topic else "热搜随机"
-            log.print_log(f"开始执行任务，话题模式：{task_model}")
-
             result = ai_write_x_main(True, config_data)  # 传递配置数据
             if result and result[0] and result[1]:
                 with self._process_lock:
@@ -722,12 +722,10 @@ class MainGUI(object):
                     target=self._monitor_process_logs, daemon=True
                 )
                 self._monitor_thread.start()
-
-                # 更新UI
-                self._window["-START_BTN-"].update(disabled=True)
-                self._window["-STOP_BTN-"].update(disabled=False)
-
             else:
+                # 更新UI
+                self._window["-START_BTN-"].update(disabled=False)
+                self._window["-STOP_BTN-"].update(disabled=True)
                 sg.popup_error(
                     "执行启动失败，请检查配置",
                     title="错误",
