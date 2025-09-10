@@ -1,8 +1,10 @@
 from typing import Dict, Type, Optional, Any
 from crewai import Agent, LLM
-from .base_framework import AgentConfig
-from ..config.config import Config
-from .tool_registry import GlobalToolRegistry
+
+from src.ai_write_x.core.base_framework import AgentConfig
+from src.ai_write_x.config.config import Config
+from src.ai_write_x.core.tool_registry import GlobalToolRegistry
+from src.ai_write_x.utils import log
 
 
 class AgentFactory:
@@ -53,7 +55,7 @@ class AgentFactory:
                 if tool_class:
                     tools.append(tool_class())
                 else:
-                    print(f"警告: 找不到 {tool_name} 工具")
+                    log.print_log(f"警告: 找不到 {tool_name} 工具")
 
         agent_kwargs = {
             "role": config.role,

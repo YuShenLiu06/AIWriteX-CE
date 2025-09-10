@@ -354,29 +354,6 @@ def remove_markdown_code_blocks(content):
     return re.sub(pattern, "", content, flags=re.VERBOSE | re.MULTILINE).strip()
 
 
-def extract_main_title(md_content):
-    """提取Markdown文档主标题（增强版）
-    参数:
-        md_content: Markdown文本内容
-    返回:
-        匹配到的一级标题文本，若无则返回首行非空内容
-    """
-    # 优先匹配标准一级标题（如# Title）
-    title_match = re.search(
-        r"^#\s+(.+?)(?:\s+#+)?\s*$",  # 兼容标题尾部的#符号
-        md_content,
-        flags=re.MULTILINE,
-    )
-
-    if title_match:
-        return title_match.group(1).strip()
-
-    # 次优匹配首行非空内容（跳过YAML front matter等）
-    first_line = next((line.strip() for line in md_content.splitlines() if line.strip()), None)
-
-    return first_line if first_line else None
-
-
 def markdown_to_plaintext(md_text):
     """提取文章文本内容"""
     # 分步处理不同标记类型
@@ -574,3 +551,46 @@ def get_gui_icon():
 
     # 回退到原来的逻辑（Windows/Linux）
     return get_res_path(os.path.join("UI", "icon.ico"), str(gui_dir))
+
+
+def get_file_extension(article_format: str) -> str:
+    """根据文章格式获取文件扩展名"""
+    format_map = {"HTML": "html", "MARKDOWN": "md", "TXT": "txt", "MD": "md"}
+
+    return format_map.get(article_format.upper(), "txt")
+
+
+def extract_title_from_content(content: str, article_format: str = "MARKDOWN") -> str:
+    """从内容中提取标题"""
+    if article_format.upper() == "HTML":
+        # HTML格式：查找<title>标签或<h1>标签
+        import re
+
+        title_match = re.search(r"<title[^>]*>(.*?)</title>", content, re.IGNORECASE | re.DOTALL)
+        if title_match:
+            return title_match.group(1).strip()
+
+        h1_match = re.search(r"<h1[^>]*>(.*?)</h1>", content, re.IGNORECASE | re.DOTALL)
+        if h1_match:
+            return h1_match.group(1).strip()
+    else:
+        # Markdown或文本格式：使用现有的工具方法
+        # 优先匹配标准一级标题（如# Title）
+        title_match = re.search(
+            r"^#\s+(.+?)(?:\s+#+)?\s*$",  # 兼容标题尾部的#符号
+            content,
+            flags=re.MULTILINE,
+        )
+
+        if title_match:
+            return title_match.group(1).strip()
+
+        # 次优匹配首行非空内容（跳过YAML front matter等）
+        first_line = next((line.strip() for line in content.splitlines() if line.strip()), None)
+
+        extracted_title = first_line if first_line else None
+        if extracted_title:
+            return extracted_title
+
+    # 如果无法提取标题，返回默认值
+    return "无标题"

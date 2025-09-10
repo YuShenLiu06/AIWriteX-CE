@@ -1,7 +1,12 @@
+import os
 import time
 from typing import Dict, Any
-from .creative_modules import StyleTransformModule, TimeTravelModule, RolePlayModule
-from .base_framework import (
+from src.ai_write_x.core.creative_modules import (
+    StyleTransformModule,
+    TimeTravelModule,
+    RolePlayModule,
+)
+from src.ai_write_x.core.base_framework import (
     WorkflowConfig,
     AgentConfig,
     TaskConfig,
@@ -9,7 +14,7 @@ from .base_framework import (
     ContentType,
     ContentResult,
 )
-from ..adapters.platform_adapters import (
+from src.ai_write_x.adapters.platform_adapters import (
     WeChatAdapter,
     XiaohongshuAdapter,
     DouyinAdapter,
@@ -18,11 +23,12 @@ from ..adapters.platform_adapters import (
     ZhihuAdapter,
     DoubanAdapter,
 )
-from .monitoring import WorkflowMonitor
-from ..config.config import Config
-from .content_generation import ContentGenerationEngine
+from src.ai_write_x.core.monitoring import WorkflowMonitor
+from src.ai_write_x.config.config import Config
+from src.ai_write_x.core.content_generation import ContentGenerationEngine
 from src.ai_write_x.utils.path_manager import PathManager
 from src.ai_write_x.utils import utils
+from src.ai_write_x.adapters.platform_adapters import PlatformType
 
 
 class UnifiedContentWorkflow:
@@ -36,34 +42,77 @@ class UnifiedContentWorkflow:
             "role_play": RolePlayModule(),
         }
         self.platform_adapters = {
-            "wechat": WeChatAdapter(),
-            "xiaohongshu": XiaohongshuAdapter(),
-            "douyin": DouyinAdapter(),
-            "toutiao": ToutiaoAdapter(),
-            "baijiahao": BaijiahaoAdapter(),
-            "zhihu": ZhihuAdapter(),
-            "douban": DoubanAdapter(),
+            PlatformType.WECHAT.value: WeChatAdapter(),
+            PlatformType.XIAOHONGSHU.value: XiaohongshuAdapter(),
+            PlatformType.DOUYIN.value: DouyinAdapter(),
+            PlatformType.TOUTIAO.value: ToutiaoAdapter(),
+            PlatformType.BAIJIAHAO.value: BaijiahaoAdapter(),
+            PlatformType.ZHIHU.value: ZhihuAdapter(),
+            PlatformType.DOUBAN.value: DoubanAdapter(),
         }
         self.monitor = WorkflowMonitor.get_instance()
 
-    def get_base_content_config(self, target_platform: str = "wechat", **kwargs) -> WorkflowConfig:
+    def get_base_content_config(self, **kwargs) -> WorkflowConfig:
         """动态生成基础内容配置，根据平台和需求定制"""
+
+        # 获取目标平台
+        target_platform = kwargs.get("target_platform", "wechat")
+
+        researcher_des = """解析话题'{topic}'，确定文章的核心要点和结构。
+生成一份包含文章大纲和核心要点的报告。
+注意：
+1. 关于文章标题的日期处理：
+    - 严格检查：'{topic}'中是否已包含具体年份或日期信息
+    - 如果包含，则保留该日期信息在文章标题中
+    - 如果不包含，则文章标题不能带任何年份或日期信息
+    - 禁止自行添加当前年份或任何其他年份到文章标题中
+2. 内容中的日期处理：
+    - 如果'{topic}'包含日期，在内容中使用该日期
+    - 如果不包含，对于需要提及年份的内容，使用"20xx年"格式
+"""
+        writer_des = """基于生成的文章大纲和搜索工具获取的最新信息，撰写一篇高质量的文章。
+确保文章内容准确、逻辑清晰、语言流畅，并具有独到的见解。
+工具 aiforge_search_tool 使用以下参数：
+    topic={topic}
+    urls={urls}
+    reference_ratio={reference_ratio}。
+
+执行步骤：
+1. 使用 aiforge_search_tool 获取关于'{topic}'的最新信息
+2. 根据获取的结果的类型和内容深度调整写作策略：
+    - 如果获取到有效搜索结果：
+    * 包含"参考比例"时：融合生成的文章大纲与参考文章结果的内容，并根据比例调整借鉴程度
+    * 不包含"参考比例"时：融合生成的文章大纲和与'{topic}'相关的搜索结果进行原创写作
+    * 用搜索结果中的真实时间替换大纲中的占位符
+        - 如果搜索结果有具体日期，直接替换"20xx年"等占位符
+        - 如果搜索结果无具体日期，使用"近期"、"最近"、"据最新数据显示"等表述
+    - 如果没有获取到有效搜索结果：
+    * 基于文章大纲进行原创写作，确保内容的完整性和可读性
+    * 将所有日期占位符（如"20xx年"）替换为通用时间表述：
+        - "近年来"、"近期"、"最近几年"
+        - "当前"、"目前"、"现阶段"
+        - "据业界观察"、"根据行业趋势"
+3. 最终检查：确保文章中不存在任何未替换的日期占位符
+
+生成的文章要求：
+- 标题：当{platform}不为空时为"{platform}|{topic}"，否则为"{topic}"
+- 总字数：{min_article_len}~{max_article_len}字（纯文本字数，不包括Markdown语法、空格）
+- 文章内容：仅输出最终纯文章内容，禁止包含思考过程、分析说明、字数统计等额外注释、说明
+"""
         config = Config.get_instance()
 
         # 获取平台适配器能力
-        from ..core.system_init import get_platform_adapter
-
-        adapter = get_platform_adapter(target_platform)
+        adapter = self.platform_adapters.get(target_platform)
 
         # 基础配置
         agents = [
             AgentConfig(
-                role="researcher",
+                role="话题分析专家",
                 goal="解析话题，确定文章的核心要点和结构",
                 backstory="你是一位内容策略师",
             ),
             AgentConfig(
-                role="writer",
+                role="内容创作专家",
                 goal="撰写高质量文章",
                 backstory="你是一位作家",
                 tools=["AIForgeSearchTool"],
@@ -73,22 +122,22 @@ class UnifiedContentWorkflow:
         tasks = [
             TaskConfig(
                 name="analyze_topic",
-                description="解析话题'{topic}'",
+                description=researcher_des,
                 agent_role="researcher",
                 expected_output="文章大纲",
             ),
             TaskConfig(
                 name="write_content",
-                description="撰写文章。平台：{platform}，参考链接：{urls}，借鉴比例：{reference_ratio}",
+                description=writer_des,
                 agent_role="writer",
-                expected_output="完整文章",
+                expected_output="文章标题 + 文章正文（标准Markdown格式）",
                 context=["analyze_topic"],
             ),
         ]
 
         # 动态添加审核（基于配置）
         if config.need_auditor:
-            agents.append(AgentConfig(role="auditor", goal="质量审核", backstory="质量专家"))
+            agents.append(AgentConfig(role="质量审核专家", goal="质量审核", backstory="质量专家"))
             tasks.append(
                 TaskConfig(
                     name="audit_content",
@@ -120,7 +169,6 @@ class UnifiedContentWorkflow:
                         agent_role="templater",
                         expected_output="模板HTML",
                         context=last_task_context,
-                        callback="publisher_callback",
                     )
                 )
             else:
@@ -133,22 +181,8 @@ class UnifiedContentWorkflow:
                         agent_role="designer",
                         expected_output="设计HTML",
                         context=last_task_context,
-                        callback="publisher_callback",
                     )
                 )
-        else:
-            # 保存路径（非HTML或不支持HTML的平台）
-            agents.append(AgentConfig(role="saver", goal="保存文章", backstory="保存专家"))
-            tasks.append(
-                TaskConfig(
-                    name="save_article",
-                    description="保存文章",
-                    agent_role="saver",
-                    expected_output="保存结果",
-                    context=last_task_context,
-                    callback="saver_callback",
-                )
-            )
 
         return WorkflowConfig(
             name=f"{target_platform}_content_generation",
@@ -160,21 +194,12 @@ class UnifiedContentWorkflow:
         )
 
     def _generate_base_content(self, topic: str, **kwargs) -> ContentResult:
-        """生成基础内容 - 传递平台信息"""
-        from .content_generation import ContentGenerationEngine
-
-        # 获取目标平台
-        target_platform = kwargs.get("target_platform", "wechat")
-
+        """生成基础内容"""
         # 动态获取配置
-        base_config = self.get_base_content_config(target_platform=target_platform, **kwargs)
-
-        # 准备回调参数（包含平台信息）
-        callback_params = dict(kwargs)  # 复制所有参数
-        callback_params["target_platform"] = target_platform
+        base_config = self.get_base_content_config(**kwargs)
 
         # 创建内容生成引擎
-        self.content_engine = ContentGenerationEngine(base_config, callback_params)
+        self.content_engine = ContentGenerationEngine(base_config)
 
         # 准备输入数据
         config = Config.get_instance()
@@ -209,8 +234,12 @@ class UnifiedContentWorkflow:
 
             # 2. 可选创意变换
             if creative_mode and creative_mode in self.creative_modules:
+                # 传入工厂函数而不是让模块自己创建引擎
+                def engine_factory(config):
+                    return ContentGenerationEngine(config)
+
                 final_content = self.creative_modules[creative_mode].transform(
-                    base_content, **kwargs
+                    base_content, engine_factory=engine_factory, **kwargs
                 )
             else:
                 final_content = base_content
@@ -294,6 +323,162 @@ class UnifiedContentWorkflow:
         result = engine.execute_workflow(input_data)
         return result.content
 
+    def _get_template_workflow_config(
+        self, target_platform: str = "wechat", **kwargs
+    ) -> WorkflowConfig:
+        """生成模板处理工作流配置"""
+        # 获取配置以获取字数限制
+        config = Config.get_instance()
+
+        if target_platform == "wechat":
+            # 微信平台的详细模板填充要求
+            task_description = f"""
+# HTML内容适配任务
+## 任务目标
+使用工具 read_template_tool 读取本地HTML模板，将前置任务生成的文章内容适配填充到读取的HTML模板中，保持视觉效果和风格不变，同时确保内容呈现自然流畅。
+
+## 执行步骤
+1. 首先使用 read_template_tool 读取HTML模板
+2. 分析模板的结构、样式和布局特点
+3. 获取前置任务生成的文章内容
+4. 将新内容按照模板结构进行适配填充
+5. 确保最终输出是基于原模板的HTML，保持视觉效果和风格不变
+
+## 具体要求
+- 分析HTML模板的结构、样式和布局特点
+- 识别所有内容占位区域（标题、副标题、正文段落、引用、列表等）
+- 将新文章内容按照原模板的结构和布局规则填充：
+    * 保持<section>标签的布局结构和内联样式不变
+    * 保持原有的视觉层次、色彩方案和排版风格
+    * 保持原有的卡片式布局、圆角和阴影效果
+    * 保持SVG动画元素和交互特性
+
+- 内容适配原则：
+    * 标题替换标题、段落替换段落、列表替换列表
+    * 内容总字数{config.min_article_len}~{config.max_article_len}字，不可过度删减前置任务生成的文章内容
+    * 当新内容比原模板内容长或短时，合理调整，不破坏布局
+    * 保持原有的强调部分（粗体、斜体、高亮等）应用于新内容的相应部分
+    * 保持图片位置
+    * 不可使用模板中的任何日期作为新文章的日期
+
+- 严格限制：
+    * 不添加新的style标签或外部CSS
+    * 不改变原有的色彩方案（限制在三种色系内）
+    * 不修改模板的整体视觉效果和布局结构"""
+
+            backstory = "你是微信公众号模板处理专家，能够将内容适配到HTML模板中。严格按照以下要求：保持<section>标签的布局结构和内联样式不变、保持原有的视觉层次、色彩方案和排版风格、不可使用模板中的任何日期作为新文章的日期"  # noqa 501
+        else:
+            # 其他平台的简化模板处理
+            task_description = "使用工具 read_template_tool 读取本地模板，将内容适配填充到模板中"
+            backstory = "你是模板处理专家，能够将内容适配到模板中"
+
+        agents = [
+            AgentConfig(
+                role="模板调整与内容填充专家",
+                goal="模板处理和内容填充",
+                backstory=backstory,
+                tools=["ReadTemplateTool"],
+            )
+        ]
+
+        tasks = [
+            TaskConfig(
+                name="template_content",
+                description=task_description,
+                agent_role="templater",
+                expected_output="基于模板的HTML内容",
+            )
+        ]
+
+        return WorkflowConfig(
+            name="template_formatting",
+            description="模板格式化工作流",
+            workflow_type=WorkflowType.SEQUENTIAL,
+            content_type=ContentType.ARTICLE,
+            agents=agents,
+            tasks=tasks,
+        )
+
+    def _get_design_workflow_config(self, target_platform: str, **kwargs) -> WorkflowConfig:
+        """生成设计工作流配置"""
+
+        # 微信平台的完整系统模板
+        wechat_system_template = """<|start_header_id|>system<|end_header_id|>
+# 严格按照以下要求进行微信公众号排版设计：
+## 设计目标：
+    - 创建一个美观、现代、易读的"**中文**"的移动端网页，具有以下特点：
+    - 纯内联样式：不使用任何外部CSS、JavaScript文件，也不使用<style>标签
+    - 移动优先：专为移动设备设计，不考虑PC端适配
+    - 模块化结构：所有内容都包裹在<section style="xx">标签中
+    - 简洁结构：不包含<header>和<footer>标签
+    - 视觉吸引力：创造出视觉上令人印象深刻的设计
+
+## 设计风格指导:
+    - 色彩方案：使用大胆、酷炫配色、吸引眼球，反映出活力与吸引力，但不能超过三种色系，长久耐看，间隔合理使用，出现层次感。
+    - 读者感受：一眼喜欢，很高级，很震惊，易读易懂
+    - 排版：符合中文最佳排版实践，利用不同字号、字重和间距创建清晰的视觉层次，风格如《时代周刊》、《VOGUE》
+    - 卡片式布局：使用圆角、阴影和边距创建卡片式UI元素
+    - 图片处理：大图展示，配合适当的圆角和阴影效果
+
+## 技术要求:
+    - 纯 HTML 结构：只使用 HTML 基本标签和内联样式
+    - 这不是一个标准HTML结构，只有div和section包裹，但里面可以用任意HTML标签
+    - 内联样式：所有样式和字体都通过style属性直接应用在<section>这个HTML元素上，其他都没有style,包括body
+    - 模块化：使用<section>标签包裹不同内容模块
+    - 简单交互：用HTML原生属性实现微动效
+    - 图片处理：非必要不使用配图，若必须配图且又找不到有效图片链接时，使用https://picsum.photos/[宽度]/[高度]?random=1随机一张
+    - SVG：生成炫酷SVG动画，目的是方便理解或给用户小惊喜
+    - SVG图标：采用Material Design风格的现代简洁图标，支持容器式和内联式两种展示方式
+    - 只基于核心主题内容生成，不包含作者，版权，相关URL等信息
+
+## 其他要求：
+    - 先思考排版布局，然后再填充文章内容
+    - 输出长度：10屏以内 (移动端)
+    - 生成的代码**必须**放在Markdown ``` 标签中
+    - 主体内容必须是**中文**，但可以用部分英语装逼
+    - 不能使用position: absolute
+<|eot_id|>"""
+
+        # 根据平台定制设计要求
+        platform_requirements = {
+            "wechat": "微信公众号HTML设计要求：使用内联CSS样式，避免外部样式表；采用适合移动端阅读的字体大小和行距；使用微信官方推荐的色彩搭配；确保在微信客户端中显示效果良好",  # noqa 501
+            "xiaohongshu": "小红书平台设计要求：注重视觉美感，使用年轻化的设计风格；适当使用emoji和装饰元素；保持简洁清新的排版",
+            "zhihu": "知乎平台设计要求：专业简洁的学术风格；重视内容的逻辑性和可读性；使用适合长文阅读的排版",
+        }
+
+        design_requirement = platform_requirements.get(
+            target_platform, "通用HTML设计要求：简洁美观，注重用户体验"
+        )
+
+        agents = [
+            AgentConfig(
+                role="微信排版专家",
+                goal=f"为{target_platform}平台创建精美的HTML设计和排版",
+                backstory="你是HTML设计专家",
+                system_template=wechat_system_template if target_platform == "wechat" else None,
+                prompt_template="<|start_header_id|>user<|end_header_id|>{{ .Prompt }}<|eot_id|>",
+                response_template="<|start_header_id|>assistant<|end_header_id|>{{ .Response }}<|eot_id|>",  # noqa 501
+            )
+        ]
+
+        tasks = [
+            TaskConfig(
+                name="design_content",
+                description=f"为{target_platform}平台设计HTML排版。{design_requirement}。创建精美的HTML格式，包含适当的标题层次、段落间距、颜色搭配和视觉元素，确保内容在{target_platform}平台上有最佳的展示效果。",  # noqa 501
+                agent_role="designer",
+                expected_output=f"针对{target_platform}平台优化的精美HTML内容",
+            )
+        ]
+
+        return WorkflowConfig(
+            name=f"{target_platform}_design",
+            description=f"面向{target_platform}平台的HTML设计工作流",
+            workflow_type=WorkflowType.SEQUENTIAL,
+            content_type=ContentType.ARTICLE,
+            agents=agents,
+            tasks=tasks,
+        )
+
     def _save_content(
         self, formatted_content: str, target_platform: str, **kwargs
     ) -> Dict[str, Any]:
@@ -301,10 +486,10 @@ class UnifiedContentWorkflow:
         config = Config.get_instance()
 
         # 提取标题用于文件名
-        title = self._extract_title_from_content(formatted_content, config.article_format)
+        title = utils.extract_title_from_content(formatted_content, config.article_format)
 
         # 确定文件格式和路径
-        file_extension = self._get_file_extension(config.article_format)
+        file_extension = utils.get_file_extension(config.article_format)
         save_path = (
             PathManager.get_article_dir() / f"{utils.sanitize_filename(title)}.{file_extension}"
         )
@@ -316,6 +501,20 @@ class UnifiedContentWorkflow:
             f.write(formatted_content)
 
         return {"success": True, "path": save_path, "title": title, "format": config.article_format}
+
+    def _get_save_path(self, title: str, file_extension: str) -> str:
+        """获取保存路径"""
+
+        # 获取文章保存目录
+        dir_path = PathManager.get_article_dir()
+
+        # 清理文件名，确保安全
+        safe_filename = utils.sanitize_filename(title)
+
+        # 构建完整路径
+        save_path = os.path.join(dir_path, f"{safe_filename}.{file_extension}")
+
+        return save_path
 
     def _publish_content(
         self, formatted_content: str, target_platform: str, **kwargs

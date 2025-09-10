@@ -13,6 +13,8 @@ from src.ai_write_x.crew import AIWriteXCrew
 from src.ai_write_x.utils import utils
 from src.ai_write_x.utils import log
 from src.ai_write_x.config.config import Config
+from src.ai_write_x.core.system_init import setup_aiwritex
+
 
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic.*")
@@ -103,7 +105,27 @@ def run(inputs, appid, appsecret, author):
     Run the crew.
     """
     try:
-        return AIWriteXCrew(appid, appsecret, author).crew().kickoff(inputs=inputs)
+        if False:  # 测试新架构，调整完成后移除旧架构以及判断逻辑
+            workflow = setup_aiwritex()
+
+            # 提取参数
+            topic = inputs.get("topic", "")
+            target_platform = "wechat"  # 默认微信平台
+
+            # 准备kwargs参数
+            kwargs = {
+                "appid": appid,
+                "appsecret": appsecret,
+                "author": author,
+                "platform": inputs.get("platform", ""),
+                "urls": inputs.get("urls", []),
+                "reference_ratio": inputs.get("reference_ratio", 0.0),
+            }
+
+            # 执行新架构流程
+            return workflow.execute(topic=topic, target_platform=target_platform, **kwargs)
+        else:
+            return AIWriteXCrew(appid, appsecret, author).crew().kickoff(inputs=inputs)
     except Exception as e:
         raise Exception(f"An error occurred while running the crew: {e}")
 

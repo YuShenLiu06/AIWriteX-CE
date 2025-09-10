@@ -285,7 +285,7 @@ class SaveArticleTool:
         config = Config.get_instance()
         msg_type = "status"
         content = utils.remove_markdown_code_blocks(content)
-        title = utils.extract_main_title(content)
+        title = utils.extract_title_from_content(content)
         if title is None:
             result = "无法提取文章标题，请检查文章是否成功生成？"
         else:

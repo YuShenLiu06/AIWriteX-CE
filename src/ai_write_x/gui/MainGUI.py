@@ -591,13 +591,13 @@ class MainGUI(object):
         # 检查是否为错误级别的日志
         if msg_type == "log":
             if level == "ERROR":
-                self._display_log(message, "error")
+                # self._display_log(message, "error")
                 self._handle_task_completion(False, message)
                 return
             else:
                 self._display_log(message, level.lower())
         elif msg_type == "error":
-            self._display_log(message, "error")
+            # self._display_log(message, "error")
             self._handle_task_completion(False, message)
             return
         elif msg_type == "print":

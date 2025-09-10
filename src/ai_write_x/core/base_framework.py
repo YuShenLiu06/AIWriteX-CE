@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from enum import Enum
 import threading
 from datetime import datetime
-from .tool_registry import GlobalToolRegistry
+from src.ai_write_x.core.tool_registry import GlobalToolRegistry
 
 
 class WorkflowType(Enum):
@@ -33,6 +33,9 @@ class AgentConfig:
     memory: bool = True
     max_rpm: int = 100
     verbose: bool = True
+    system_template: Optional[str] = None
+    prompt_template: Optional[str] = None
+    response_template: Optional[str] = None
 
 
 @dataclass
@@ -55,7 +58,6 @@ class WorkflowConfig:
     content_type: ContentType
     agents: List[AgentConfig]
     tasks: List[TaskConfig]
-    output_handlers: List[str] = field(default_factory=list)
     validation_rules: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
 
@@ -81,7 +83,6 @@ class BaseWorkflowFramework(ABC):
         self.tasks: Dict[str, Task] = {}
         # 使用全局工具注册表替代本地注册表
         self.tools_registry = GlobalToolRegistry.get_instance()
-        self.output_handlers: Dict[str, Any] = {}
         self._lock = threading.Lock()
 
     @abstractmethod
@@ -102,11 +103,6 @@ class BaseWorkflowFramework(ABC):
     def register_tool(self, name: str, tool_class):
         """注册工具到全局注册表"""
         self.tools_registry.register_tool(name, tool_class)
-
-    def register_output_handler(self, name: str, handler):
-        """注册输出处理器"""
-        with self._lock:
-            self.output_handlers[name] = handler
 
     def validate_config(self) -> bool:
         # 现有验证逻辑

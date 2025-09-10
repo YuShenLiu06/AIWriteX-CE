@@ -45,7 +45,6 @@ class TemplateManager:
             category_path = template_dir / chinese_name
             if not category_path.exists():
                 category_path.mkdir(parents=True, exist_ok=True)
-                print(f"创建缺失的默认分类文件夹：{chinese_name}")
 
     def _is_default_category(self, category_name):
         """检查是否为默认分类（不可删除）"""

@@ -1,8 +1,22 @@
-from .tool_registry import GlobalToolRegistry
-from ..tools.custom_tool import AIForgeSearchTool
-from ..tools.custom_tool import PublisherTool
-from ..tools.custom_tool import ReadTemplateTool
-from ..config.config import Config
+from src.ai_write_x.core.tool_registry import GlobalToolRegistry
+from src.ai_write_x.tools.custom_tool import AIForgeSearchTool
+from src.ai_write_x.tools.custom_tool import ReadTemplateTool
+from src.ai_write_x.core.unified_workflow import UnifiedContentWorkflow
+from src.ai_write_x.core.creative_modules import (
+    StyleTransformModule,
+    TimeTravelModule,
+    RolePlayModule,
+)
+from src.ai_write_x.adapters.platform_adapters import (
+    WeChatAdapter,
+    XiaohongshuAdapter,
+    DouyinAdapter,
+    ZhihuAdapter,
+    ToutiaoAdapter,
+    BaijiahaoAdapter,
+    DoubanAdapter,
+)
+from src.ai_write_x.utils import log
 
 
 def initialize_global_tools():
@@ -11,16 +25,13 @@ def initialize_global_tools():
 
     # 注册所有可用工具
     registry.register_tool("AIForgeSearchTool", AIForgeSearchTool)
-    registry.register_tool("PublisherTool", PublisherTool)
     registry.register_tool("ReadTemplateTool", ReadTemplateTool)
 
-    print("Global tools registered successfully")
     return registry
 
 
 def get_platform_adapter(platform_name: str):
     """获取指定平台的适配器"""
-    from .unified_workflow import UnifiedContentWorkflow
 
     # 创建临时工作流实例来获取适配器
     workflow = UnifiedContentWorkflow()
@@ -33,33 +44,15 @@ def setup_aiwritex():
     # 1. 初始化工具注册表
     initialize_global_tools()
 
-    # 2. 初始化配置系统
-    config = Config.get_instance()
-    config.validate_config()
-
-    # 3. 创建统一工作流
-    from .unified_workflow import UnifiedContentWorkflow
-
+    # 2. 创建统一工作流
     workflow = UnifiedContentWorkflow()
 
-    # 4. 注册所有创意模块
-    from .creative_modules import StyleTransformModule, TimeTravelModule, RolePlayModule
-
+    # 3. 注册所有创意模块
     workflow.register_creative_module("style_transform", StyleTransformModule())
     workflow.register_creative_module("time_travel", TimeTravelModule())
     workflow.register_creative_module("role_play", RolePlayModule())
 
-    # 5. 注册所有平台适配器
-    from ..adapters.platform_adapters import (
-        WeChatAdapter,
-        XiaohongshuAdapter,
-        DouyinAdapter,
-        ZhihuAdapter,
-        ToutiaoAdapter,
-        BaijiahaoAdapter,
-        DoubanAdapter,
-    )
-
+    # 4. 注册所有平台适配器
     workflow.register_platform_adapter("wechat", WeChatAdapter())
     workflow.register_platform_adapter("xiaohongshu", XiaohongshuAdapter())
     workflow.register_platform_adapter("douyin", DouyinAdapter())
@@ -68,5 +61,5 @@ def setup_aiwritex():
     workflow.register_platform_adapter("baijiahao", BaijiahaoAdapter())
     workflow.register_platform_adapter("douban", DoubanAdapter())
 
-    print("AIWriteX 新架构初始化完成")
+    log.print_log("AIWriteX 初始化完成")
     return workflow

@@ -1,20 +1,11 @@
-from abc import ABC, abstractmethod
-from .base_framework import ContentResult, WorkflowConfig
-from .content_generation import ContentGenerationEngine
-
-
-class CreativeModule(ABC):
-    """创意模块基类"""
-
-    @abstractmethod
-    def get_workflow_config(self, **kwargs) -> WorkflowConfig:
-        """获取创意模块的工作流配置"""
-        pass
-
-    @abstractmethod
-    def transform(self, base_content: ContentResult, **kwargs) -> ContentResult:
-        """应用创意变换"""
-        pass
+from src.ai_write_x.core.base_framework import ContentResult, WorkflowConfig
+from src.ai_write_x.core.base_framework import (
+    AgentConfig,
+    TaskConfig,
+    WorkflowType,
+    ContentType,
+)
+from src.ai_write_x.core.creative_base import CreativeModule
 
 
 class StyleTransformModule(CreativeModule):
@@ -22,7 +13,6 @@ class StyleTransformModule(CreativeModule):
 
     def get_workflow_config(self, style_target: str = "shakespeare", **kwargs) -> WorkflowConfig:
         """获取文体转换工作流配置"""
-        from .base_framework import AgentConfig, TaskConfig, WorkflowType, ContentType
 
         agents = [
             AgentConfig(
@@ -76,12 +66,19 @@ class StyleTransformModule(CreativeModule):
         )
 
     def transform(
-        self, base_content: ContentResult, style_target: str = "shakespeare", **kwargs
+        self,
+        base_content: ContentResult,
+        style_target: str = "shakespeare",
+        engine_factory=None,
+        **kwargs,
     ) -> ContentResult:
         """应用文体转换"""
         # 创建专门的内容生成引擎来执行转换
+        if engine_factory is None:
+            raise ValueError("engine_factory is required")
+
         config = self.get_workflow_config(style_target=style_target, **kwargs)
-        engine = ContentGenerationEngine(config)
+        engine = engine_factory(config)
 
         # 准备输入数据
         input_data = {
@@ -111,7 +108,6 @@ class TimeTravelModule(CreativeModule):
 
     def get_workflow_config(self, time_perspective: str = "ancient", **kwargs) -> WorkflowConfig:
         """获取时空穿越工作流配置"""
-        from .base_framework import AgentConfig, TaskConfig, WorkflowType, ContentType
 
         agents = [
             AgentConfig(
@@ -165,11 +161,18 @@ class TimeTravelModule(CreativeModule):
         )
 
     def transform(
-        self, base_content: ContentResult, time_perspective: str = "ancient", **kwargs
+        self,
+        base_content: ContentResult,
+        engine_factory=None,
+        time_perspective: str = "ancient",
+        **kwargs,
     ) -> ContentResult:
         """应用时空穿越变换"""
+        if engine_factory is None:
+            raise ValueError("engine_factory is required")
+
         config = self.get_workflow_config(time_perspective=time_perspective, **kwargs)
-        engine = ContentGenerationEngine(config)
+        engine = engine_factory(config)
 
         input_data = {
             "topic": base_content.title,
@@ -195,7 +198,6 @@ class RolePlayModule(CreativeModule):
 
     def get_workflow_config(self, role_character: str = "celebrity", **kwargs) -> WorkflowConfig:
         """获取角色扮演工作流配置"""
-        from .base_framework import AgentConfig, TaskConfig, WorkflowType, ContentType
 
         # 根据角色类型选择不同的智能体配置
         role_configs = {
@@ -251,11 +253,18 @@ class RolePlayModule(CreativeModule):
         )
 
     def transform(
-        self, base_content: ContentResult, role_character: str = "celebrity", **kwargs
+        self,
+        base_content: ContentResult,
+        engine_factory=None,
+        role_character: str = "celebrity",
+        **kwargs,
     ) -> ContentResult:
         """应用角色扮演变换"""
+        if engine_factory is None:
+            raise ValueError("engine_factory is required")
+
         config = self.get_workflow_config(role_character=role_character, **kwargs)
-        engine = ContentGenerationEngine(config)
+        engine = engine_factory(config)
 
         input_data = {
             "topic": base_content.title,

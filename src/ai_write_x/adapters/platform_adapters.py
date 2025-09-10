@@ -1,6 +1,33 @@
+from enum import Enum
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
+
+from src.ai_write_x.utils import utils
+from src.ai_write_x.config.config import Config
+from src.ai_write_x.tools.custom_tool import ReadTemplateTool
+
+
+class PlatformType(Enum):
+    """统一的平台类型定义"""
+
+    WECHAT = "wechat"
+    XIAOHONGSHU = "xiaohongshu"
+    DOUYIN = "douyin"
+    TOUTIAO = "toutiao"
+    BAIJIAHAO = "baijiahao"
+    ZHIHU = "zhihu"
+    DOUBAN = "douban"
+
+    @classmethod
+    def get_all_platforms(cls):
+        """获取所有支持的平台"""
+        return [platform.value for platform in cls]
+
+    @classmethod
+    def is_valid_platform(cls, platform_name: str) -> bool:
+        """验证平台名称是否有效"""
+        return platform_name in cls.get_all_platforms()
 
 
 @dataclass
@@ -36,15 +63,8 @@ class PlatformAdapter(ABC):
         """获取平台名称"""
         return self.__class__.__name__.replace("Adapter", "").lower()
 
-    def _extract_title_from_content(self, content: str) -> str:
-        """从内容中提取标题"""
-        from ..utils import utils
-
-        return utils.extract_main_title(content) or "无标题"
-
     def _extract_digest_from_content(self, content: str) -> str:
         """从内容中提取摘要"""
-        from ..utils import utils
 
         # 根据文件格式提取摘要
         if content.startswith("# ") or "##" in content:
@@ -62,13 +82,12 @@ class WeChatAdapter(PlatformAdapter):
 
     def format_content(self, content: str, title: str = "", summary: str = "") -> str:
         """格式化为微信公众号HTML格式"""
-        from ..config.config import Config
 
         config = Config.get_instance()
 
         # 提取标题（如果未提供）
         if not title:
-            title = self._extract_title_from_content(content)
+            title = utils.extract_title_from_content(content)
 
         # 检查是否需要使用模板
         if config.use_template:
@@ -78,8 +97,6 @@ class WeChatAdapter(PlatformAdapter):
 
     def _apply_template_format(self, content: str, title: str) -> str:
         """应用HTML模板格式化"""
-        from ..tools.custom_tool import ReadTemplateTool
-        from ..utils import utils
 
         # 读取模板
         template_tool = ReadTemplateTool()
@@ -96,7 +113,6 @@ class WeChatAdapter(PlatformAdapter):
 
     def _apply_design_format(self, content: str, title: str) -> str:
         """应用设计器格式化"""
-        from ..utils import utils
 
         # 将markdown转换为HTML
         html_content = utils.get_format_article(".md", content)
@@ -133,7 +149,7 @@ class WeChatAdapter(PlatformAdapter):
             )
 
         # 提取标题和摘要
-        title = self._extract_title_from_content(formatted_content)
+        title = utils.extract_title_from_content(formatted_content)
         digest = self._extract_digest_from_content(formatted_content)
 
         # 调用微信发布API
@@ -157,7 +173,7 @@ class XiaohongshuAdapter(PlatformAdapter):
     def format_content(self, content: str, title: str = "", summary: str = "") -> str:
         """格式化为小红书特有格式"""
         if not title:
-            title = self._extract_title_from_content(content)
+            title = utils.extract_title_from_content(content)
 
         # 小红书特色：emoji、标签、分段
         formatted = f"✨ {title} ✨\n\n"
@@ -198,7 +214,7 @@ class DouyinAdapter(PlatformAdapter):
     def format_content(self, content: str, title: str = "", summary: str = "") -> str:
         """格式化为短视频脚本格式"""
         if not title:
-            title = self._extract_title_from_content(content)
+            title = utils.extract_title_from_content(content)
 
         script = f"🎬 【视频脚本】{title}\n\n"
 
@@ -242,7 +258,7 @@ class ToutiaoAdapter(PlatformAdapter):
     def format_content(self, content: str, title: str = "", summary: str = "") -> str:
         """格式化为今日头条格式"""
         if not title:
-            title = self._extract_title_from_content(content)
+            title = utils.extract_title_from_content(content)
 
         if not summary:
             summary = self._extract_digest_from_content(content)
@@ -294,7 +310,7 @@ class BaijiahaoAdapter(PlatformAdapter):
     def format_content(self, content: str, title: str = "", summary: str = "") -> str:
         """格式化为百家号格式"""
         if not title:
-            title = self._extract_title_from_content(content)
+            title = utils.extract_title_from_content(content)
 
         # 百家号注重原创性和专业性
         formatted = f"# {title}\n\n"
@@ -377,7 +393,7 @@ class ZhihuAdapter(PlatformAdapter):
     def format_content(self, content: str, title: str = "", summary: str = "") -> str:
         """格式化为知乎格式"""
         if not title:
-            title = self._extract_title_from_content(content)
+            title = utils.extract_title_from_content(content)
 
         if not summary:
             summary = self._extract_digest_from_content(content)
@@ -439,7 +455,7 @@ class DoubanAdapter(PlatformAdapter):
     def format_content(self, content: str, title: str = "", summary: str = "") -> str:
         """格式化为豆瓣格式"""
         if not title:
-            title = self._extract_title_from_content(content)
+            title = utils.extract_title_from_content(content)
 
         # 豆瓣偏好文艺性和个人化表达
         formatted = f"# {title}\n\n"
