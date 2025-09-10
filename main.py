@@ -62,7 +62,6 @@ import multiprocessing
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
 from aiforge import AIForgeEngine  # noqa 841
-from aiforge.utils.field_mapper import map_result_to_format  # noqa 841
 
 
 def is_admin():
@@ -98,17 +97,17 @@ def admin_run():
 
 
 if __name__ == "__main__":
-    # 必须在所有其他导入前设置启动方法，确保一致性
     multiprocessing.freeze_support()
     multiprocessing.set_start_method("spawn", force=True)
 
-    # 检查是否为AIForge子进程
-    if os.environ.get("AIFORGE_SANDBOX_SUBPROCESS") == "1":
-        # 这是AIForge的沙盒执行环境，不启动GUI
+    # 检查是否为AIForge子进程，传递执行环境
+    if AIForgeEngine.handle_sandbox_subprocess(
+        globals_dict=globals().copy(), sys_path=sys.path.copy()
+    ):
         sys.exit(0)
-
-    # 检查启动模式
-    if len(sys.argv) > 1 and sys.argv[1] == "-d":
-        run()
     else:
-        admin_run()
+        # 正常启动逻辑
+        if len(sys.argv) > 1 and sys.argv[1] == "-d":
+            run()
+        else:
+            admin_run()

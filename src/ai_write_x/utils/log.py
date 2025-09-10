@@ -353,5 +353,5 @@ def print_traceback(what, e):
     )
 
     # 使用 print_log 统一处理
-    print_log(ret, "error")
+    print_log(ret, "print")
     return ret

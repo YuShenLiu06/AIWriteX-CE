@@ -15,7 +15,6 @@ from src.ai_write_x.tools import search_template
 from src.ai_write_x.utils.path_manager import PathManager
 
 from aiforge import AIForgeEngine
-from aiforge.utils.field_mapper import map_result_to_format
 
 
 class ReadTemplateToolInput(BaseModel):
@@ -87,6 +86,7 @@ class ReadTemplateTool(BaseTool):
             config.use_compress,
         )
 
+        log.print_log("模板填充适配处理相当耗时，请耐心等待...")
         return f"""
         【HTML模板 - 必须作为最终输出的基础】
         {template_content}
@@ -271,9 +271,9 @@ class AIForgeSearchTool(BaseTool):
             )
             # 因为没输出格式要求，这里需要获取到后进行映射
             # 即使指定也不一定能保证，所以最好固定进行映射
-            return map_result_to_format(results.data, ["title", "abstract", "url", "pub_time"])[
-                :max_results
-            ]
+            return AIForgeEngine.map_result_to_format(
+                results.data, ["title", "abstract", "url", "pub_time"]
+            )[:max_results]
         except Exception as e:
             log.print_traceback("搜索过程中发生错误：", e)
             return None

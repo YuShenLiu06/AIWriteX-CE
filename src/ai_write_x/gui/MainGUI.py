@@ -59,6 +59,7 @@ class MainGUI(object):
         self._process_lock = threading.Lock()
         self._is_running = False
         self._task_stopping = False
+        self._monitor_needs_restart = False
 
         self.load_saved_font()
 
@@ -432,45 +433,154 @@ class MainGUI(object):
         except Exception:
             pass
 
-    def _monitor_process_logs(self):
-        """监控进程日志的专用线程"""
-        while True:
-            try:
-                # 更频繁地检查进程状态
-                with self._process_lock:
-                    if not self._log_queue or self._task_stopping:
-                        break
+    def _process_available_messages(self):
+        """批量处理消息，带超时保护"""
+        messages_processed = 0
+        max_batch_size = 20  # 限制单次处理数量
+        start_time = time.time()
+        max_processing_time = 1.0  # 最大处理时间1秒
 
-                    if self._crew_process and not self._crew_process.is_alive():
-                        # 检查退出码，如果非0表示异常退出
+        try:
+            while messages_processed < max_batch_size:
+                # 超时保护
+                if time.time() - start_time > max_processing_time:
+                    break
+
+                try:
+                    log_msg = self._log_queue.get(timeout=0.05)  # 短超时
+                    self._process_log_message(log_msg)
+                    messages_processed += 1
+                except queue.Empty:
+                    break
+                except Exception:
+                    continue  # 跳过错误消息，继续处理
+
+        except Exception:
+            pass
+
+        return messages_processed
+
+    def _handle_process_completion(self):
+        """优雅处理进程完成"""
+        try:
+            if self._process_lock.acquire(timeout=2.0):  # 带超时的锁获取
+                try:
+                    if self._crew_process:
                         exit_code = self._crew_process.exitcode
-                        self._drain_remaining_logs()
+
+                        # 最后一次尝试清理剩余消息
+                        self._drain_remaining_logs_with_timeout()
                         self._handle_task_completion(
                             exit_code == 0,
                             f"执行异常退出，退出码: {exit_code}" if exit_code != 0 else None,
                         )
+                finally:
+                    self._process_lock.release()  # 确保释放锁
+        except Exception:
+            # 即使出错也要确保状态重置
+            self._reset_task_state()
 
-                        break
+    def _drain_remaining_logs_with_timeout(self, timeout=3.0):
+        """带超时的剩余日志清理，确保所有消息都被处理"""
+        start_time = time.time()
+        messages_processed = 0
 
-                # 减少超时时间以更快检测进程状态变化
-                try:
-                    log_msg = self._log_queue.get(timeout=0.1)
-                    self._process_log_message(log_msg)
-                except queue.Empty:
-                    continue
-
-            except Exception as e:
-                self._display_log(f"日志监控错误: {str(e)}", "error")
-                break
-
-    def _drain_remaining_logs(self):
-        """处理进程结束后队列中的剩余日志"""
-        try:
-            while True:
+        while time.time() - start_time < timeout:
+            try:
                 log_msg = self._log_queue.get_nowait()
                 self._process_log_message(log_msg)
-        except queue.Empty:
-            pass
+                messages_processed += 1
+            except queue.Empty:
+                # 短暂等待，可能还有延迟消息
+                time.sleep(0.1)
+                continue
+
+        return messages_processed
+
+    def _start_monitoring_with_restart(self):
+        """带重启机制的监控线程启动"""
+
+        def monitor_with_restart():
+            restart_count = 0
+            max_restarts = 3
+
+            while restart_count < max_restarts and not self._task_stopping:
+                try:
+                    self._monitor_needs_restart = False
+                    self._monitor_process_logs()
+
+                    # 检查是否需要重启
+                    if self._monitor_needs_restart and not self._task_stopping:
+                        restart_count += 1
+                        time.sleep(1.0)  # 短暂延迟后重启
+                        continue
+                    else:
+                        break  # 正常退出
+
+                except Exception:
+                    restart_count += 1
+                    time.sleep(1.0)
+
+            if restart_count >= max_restarts:
+                # 强制停止任务
+                self._reset_task_state()
+
+        self._monitor_thread = threading.Thread(target=monitor_with_restart, daemon=True)
+        self._monitor_thread.start()
+
+    def _monitor_process_logs(self):
+        """多进程日志监控"""
+        consecutive_errors = 0
+        max_consecutive_errors = 5
+
+        while True:
+            try:
+                # 使用非阻塞锁检查，避免死锁
+                if not self._process_lock.acquire(blocking=False):
+                    time.sleep(0.01)
+                    continue
+
+                try:
+                    # 检查基本退出条件
+                    if not self._log_queue or self._task_stopping:
+                        break
+
+                    # 基于进程的实际状态判断是否结束
+                    process_ended = self._crew_process and self._crew_process.exitcode is not None
+
+                finally:
+                    self._process_lock.release()
+
+                # 批量处理消息，不依赖消息数量判断进程状态
+                messages_processed = self._process_available_messages()
+
+                # 只有进程真正结束时才进行完成处理
+                if process_ended:
+                    # 多重确认：再次尝试处理剩余消息
+                    for _ in range(3):
+                        remaining = self._process_available_messages()
+                        if remaining == 0:
+                            break
+                        time.sleep(0.1)
+
+                    # 确认进程完成
+                    self._handle_process_completion()
+                    break
+
+                # 动态等待时间
+                if messages_processed == 0:
+                    time.sleep(0.1)
+                else:
+                    time.sleep(0.01)
+
+                consecutive_errors = 0
+
+            except Exception:
+                consecutive_errors += 1
+                if consecutive_errors >= max_consecutive_errors:
+                    self._monitor_needs_restart = True
+                    break
+                time.sleep(min(consecutive_errors * 0.5, 2.0))
 
     def _process_log_message(self, log_msg):
         """处理单条日志消息"""
@@ -497,6 +607,9 @@ class MainGUI(object):
         elif msg_type == "success":
             self._display_log(message, "success")
             self._handle_task_completion(True)
+        elif msg_type == "internal":
+            # 内部消息，不显示到界面
+            return
         else:
             self._display_log(message, msg_type)
 
@@ -568,16 +681,6 @@ class MainGUI(object):
                         self._is_running = False
                         self._crew_process = None
                         self._log_queue = None
-
-                # 处理错误和警告
-                if msg["type"] == "error":
-                    sg.popup_error(
-                        f"任务错误: {msg['value']}",
-                        title="错误",
-                        icon=utils.get_gui_icon(),
-                        non_blocking=True,
-                        keep_on_top=True,
-                    )
 
                 # 处理错误和警告
                 if msg["type"] == "error":
@@ -718,10 +821,7 @@ class MainGUI(object):
                     # 等待之前的监控线程结束
                     self._monitor_thread.join(timeout=1.0)
 
-                self._monitor_thread = threading.Thread(
-                    target=self._monitor_process_logs, daemon=True
-                )
-                self._monitor_thread.start()
+                self._start_monitoring_with_restart()  # 使用重启机制
             else:
                 # 更新UI
                 self._window["-START_BTN-"].update(disabled=False)
@@ -863,6 +963,8 @@ class MainGUI(object):
                     self._window["-START_BTN-"].update(disabled=False)
                     self._window["-STOP_BTN-"].update(disabled=True)
                     if not task_data["success"] and task_data["error"]:
+                        # 记录失败日志
+                        self._display_log(f"任务执行出错: {task_data['error']}", "error")
                         sg.popup_error(
                             f"任务执行出错: {task_data['error']}",
                             title="系统提示",
@@ -870,6 +972,8 @@ class MainGUI(object):
                             keep_on_top=True,
                         )
                     else:
+                        # 记录成功日志
+                        self._display_log("任务执行完成", "success")
                         sg.popup(
                             "任务执行完成",
                             title="系统提示",
@@ -1024,7 +1128,7 @@ class MainGUI(object):
                         "3、AIForge的模型提供商的API KEY必填（使用的）\n"
                         "4、其他使用默认即可，根据需求填写\n"
                         "———————————操作说明———————————\n"
-                        "1、打开配置界面，首先进行必要的配置\n"
+                        "1、打开配置界面，首先填写必要的配置\n"
                         "2、点击开始执行，AI自动开始工作\n"
                         "3、陆续加入更多操作中...\n"
                         "———————————功能说明———————————\n"

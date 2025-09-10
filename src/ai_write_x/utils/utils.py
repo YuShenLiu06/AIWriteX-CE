@@ -259,27 +259,26 @@ def decompress_html(compressed_content, use_compress=True):
 
 def open_url(file_url):
     try:
-        # 检查是否为网络 URL（以 http:// 或 https:// 开头）
         if file_url.startswith(("http://", "https://")):
-            # 直接打开网络 URL
             webbrowser.open(file_url)
         else:
-            # 视为本地文件路径
             if not os.path.exists(file_url):
                 return "文件不存在！"
 
-            # 使用 pathlib 规范化路径
             file_path = Path(file_url).resolve()
 
-            # 使用 urllib.parse.urljoin 和 file:// 协议
-            if sys.platform == "darwin":  # macOS
-                # macOS 特殊处理，使用 file:// + quote
-                html_url = f"file://{urllib.parse.quote(str(file_path))}"
-            else:
-                # Windows 和 Linux 使用标准方式
-                html_url = file_path.as_uri()
+            if sys.platform == "win32":
+                # Windows特殊处理：直接使用文件路径
+                import subprocess
 
-            webbrowser.open(html_url)
+                subprocess.run(["start", "", str(file_path)], shell=True)
+            elif sys.platform == "darwin":
+                html_url = f"file://{urllib.parse.quote(str(file_path))}"
+                webbrowser.open(html_url)
+            else:
+                html_url = file_path.as_uri()
+                webbrowser.open(html_url)
+
         return ""
     except Exception as e:
         return str(e)
