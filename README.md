@@ -1,6 +1,6 @@
 # AIWriteX - 基于CrewAI的智能内容创作平台
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue) ![PySimpleGUI](https://img.shields.io/badge/PySimpleGUI-4.60.5+-green) ![CrewAI](https://img.shields.io/badge/CrewAI-0.102.0+-red) ![AIForge](https://img.shields.io/badge/aiforge-0.0.17+-pink) ![PyWinGUIBuilder](https://img.shields.io/badge/PyWinGUIBuilder-1.0.0+-yellow) ![Stars](https://img.shields.io/github/stars/iniwap/AIWriteX?label=收藏)
+![Python](https://img.shields.io/badge/Python-3.10+-blue) ![PySimpleGUI](https://img.shields.io/badge/PySimpleGUI-4.60.5+-green) ![CrewAI](https://img.shields.io/badge/CrewAI-0.102.0+-red) ![AIForge](https://img.shields.io/badge/aiforge-0.0.19+-pink) ![PyWinGUIBuilder](https://img.shields.io/badge/PyWinGUIBuilder-1.0.0+-yellow) ![Stars](https://img.shields.io/github/stars/iniwap/AIWriteX?label=收藏)
   
 **AIWriteX**是基于CrewAI、[AIForge](https://iniwap.github.io/AIForge/)的新一代智能内容创作平台，从微信公众号自动化工具起步，正在重新定义AI辅助内容创作的边界，融合"搜索+借鉴+AI+创意"四重能力，自动生成高时效、高质量、排版酷炫的多平台内容。  
 
@@ -103,8 +103,8 @@ uv pip install -r requirements.txt
 
 | 网盘类型                     | 下载链接                                                                                              | 提取码  | 版本    |是否最新     |
 |-----------------------------|-------------------------------------------------------------------------------------------------------|--------|---------|------------|
-| **百度网盘**                 |[Win](https://pan.baidu.com/s/1XAGujOVUwGZE28db56gLHg?pwd=12tt) / [Mac](https://pan.baidu.com/s/1Nukeli4adGBfEzPwjtMlmQ?pwd=2qcp) |12tt / 2qcp   |V2.1.9    |✅ |
-| **移动云盘**                 |[Win](https://caiyun.139.com/w/i/2pU912rrU0vny) / [Mac](https://caiyun.139.com/w/i/2prAJs8RjNhlv)                                 |e6q4 / p7ut   |V2.1.9    |✅         |
+| **百度网盘**                 |[Win](https://pan.baidu.com/s/1XAGujOVUwGZE28db56gLHg?pwd=12tt) / [Mac](https://pan.baidu.com/s/1e3hAWj13sy6x6088zOfBCw?pwd=vc6s) |12tt / vc6s   |V2.1.9    |✅ |
+| **移动云盘**                 |[Win](https://caiyun.139.com/w/i/2pU912rrU0vny) / [Mac](https://caiyun.139.com/w/i/2pU90Jq6g16f7)                                 |e6q4 / ifnq   |V2.1.9    |✅         |
 | **Google Drive**            |[Win](https://drive.google.com/file/d/1IzIyvo7AOi_LakcM_rrqiTPtJkd4-MLR/view?usp=sharing)              |/      |V2.1.9    |✅         |
 | **Microsoft OneDrive**      |[Win](https://1drv.ms/u/c/c831e3cc9be11110/ESCb5aORxalMnHTQGIPPmDUBIE8BXyjzUigaet9CcjEmGA?e=xXCAoc)    |/      |V2.1.9    |✅         |
 
