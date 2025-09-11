@@ -21,6 +21,7 @@ platforms:
     weight: 0.01
   - name: 知乎热榜
     weight: 0.01
+publish_platform: wechat
 wechat:
   credentials:
     - appid: ""
@@ -134,11 +135,11 @@ template_category: ""
 template: ""
 need_auditor: false
 use_compress: true
-use_search_service: false
 aiforge_search_max_results: 10
 aiforge_search_min_results: 1
 min_article_len: 1000
 max_article_len: 2000
 auto_publish: true
-article_format: html # 仅支持：html、markdown、txt
+article_format: html
 format_publish: true
+creative_mode: ""

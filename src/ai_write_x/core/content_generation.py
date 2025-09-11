@@ -26,7 +26,7 @@ class ContentGenerationEngine(BaseWorkflowFramework):
         agents = {}
         for agent_config in self.config.agents:
             agent = self.agent_factory.create_agent(agent_config)
-            agents[agent_config.role] = agent
+            agents[agent_config.name] = agent
         return agents
 
     def setup_tasks(self) -> Dict[str, Task]:
@@ -37,7 +37,7 @@ class ContentGenerationEngine(BaseWorkflowFramework):
             task = Task(
                 description=task_config.description,
                 expected_output=task_config.expected_output,
-                agent=self.agents[task_config.agent_role],
+                agent=self.agents[task_config.agent_name],
             )
 
             # 设置上下文依赖
@@ -75,11 +75,25 @@ class ContentGenerationEngine(BaseWorkflowFramework):
             )
 
             result = crew.kickoff(inputs=input_data)
-            parsed_result = self._parse_result(result, input_data)
+            if input_data.get("parse_result", True):
+                parsed_result = self._parse_result(result, input_data)
+            else:
+                parsed_result = ContentResult(
+                    title=input_data.get("title", "无标题"),
+                    content=str(result),
+                    summary="",
+                    content_type=self.config.content_type,
+                    metadata={
+                        "workflow_name": self.config.name,
+                        "input_data": input_data,
+                        "agent_count": len(self.agents),
+                        "task_count": len(self.tasks),
+                        "parsing_confidence": 1.0,
+                    },
+                )
 
             success = True
             return parsed_result
-
         except Exception as e:
             self.monitor.log_error(self.config.name, str(e), input_data)
             raise

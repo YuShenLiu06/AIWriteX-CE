@@ -16,7 +16,7 @@ from src.ai_write_x.adapters.platform_adapters import (
     BaijiahaoAdapter,
     DoubanAdapter,
 )
-from src.ai_write_x.utils import log
+from src.ai_write_x.adapters.platform_adapters import PlatformType
 
 
 def initialize_global_tools():
@@ -53,13 +53,12 @@ def setup_aiwritex():
     workflow.register_creative_module("role_play", RolePlayModule())
 
     # 4. 注册所有平台适配器
-    workflow.register_platform_adapter("wechat", WeChatAdapter())
-    workflow.register_platform_adapter("xiaohongshu", XiaohongshuAdapter())
-    workflow.register_platform_adapter("douyin", DouyinAdapter())
-    workflow.register_platform_adapter("zhihu", ZhihuAdapter())
-    workflow.register_platform_adapter("toutiao", ToutiaoAdapter())
-    workflow.register_platform_adapter("baijiahao", BaijiahaoAdapter())
-    workflow.register_platform_adapter("douban", DoubanAdapter())
+    workflow.register_platform_adapter(PlatformType.WECHAT.value, WeChatAdapter())
+    workflow.register_platform_adapter(PlatformType.XIAOHONGSHU.value, XiaohongshuAdapter())
+    workflow.register_platform_adapter(PlatformType.DOUYIN.value, DouyinAdapter())
+    workflow.register_platform_adapter(PlatformType.ZHIHU.value, ZhihuAdapter())
+    workflow.register_platform_adapter(PlatformType.TOUTIAO.value, ToutiaoAdapter())
+    workflow.register_platform_adapter(PlatformType.BAIJIAHAO.value, BaijiahaoAdapter())
+    workflow.register_platform_adapter(PlatformType.DOUBAN.value, DoubanAdapter())
 
-    log.print_log("AIWriteX 初始化完成")
     return workflow

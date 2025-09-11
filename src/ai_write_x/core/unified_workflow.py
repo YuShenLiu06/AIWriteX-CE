@@ -29,6 +29,7 @@ from src.ai_write_x.core.content_generation import ContentGenerationEngine
 from src.ai_write_x.utils.path_manager import PathManager
 from src.ai_write_x.utils import utils
 from src.ai_write_x.adapters.platform_adapters import PlatformType
+from src.ai_write_x.utils import log
 
 
 class UnifiedContentWorkflow:
@@ -55,10 +56,11 @@ class UnifiedContentWorkflow:
     def get_base_content_config(self, **kwargs) -> WorkflowConfig:
         """动态生成基础内容配置，根据平台和需求定制"""
 
+        config = Config.get_instance()
         # 获取目标平台
-        target_platform = kwargs.get("target_platform", "wechat")
+        publish_platform = kwargs.get("publish_platform", PlatformType.WECHAT.value)
 
-        researcher_des = """解析话题'{topic}'，确定文章的核心要点和结构。
+        topic_analyzer_des = """解析话题'{topic}'，确定文章的核心要点和结构。
 生成一份包含文章大纲和核心要点的报告。
 注意：
 1. 关于文章标题的日期处理：
@@ -70,19 +72,19 @@ class UnifiedContentWorkflow:
     - 如果'{topic}'包含日期，在内容中使用该日期
     - 如果不包含，对于需要提及年份的内容，使用"20xx年"格式
 """
-        writer_des = """基于生成的文章大纲和搜索工具获取的最新信息，撰写一篇高质量的文章。
+        writer_des = f"""基于生成的文章大纲和搜索工具获取的最新信息，撰写一篇高质量的文章。
 确保文章内容准确、逻辑清晰、语言流畅，并具有独到的见解。
 工具 aiforge_search_tool 使用以下参数：
-    topic={topic}
-    urls={urls}
-    reference_ratio={reference_ratio}。
+    topic={{topic}}
+    urls={{urls}}
+    reference_ratio={{reference_ratio}}。
 
 执行步骤：
-1. 使用 aiforge_search_tool 获取关于'{topic}'的最新信息
+1. 使用 aiforge_search_tool 获取关于'{{topic}}'的最新信息
 2. 根据获取的结果的类型和内容深度调整写作策略：
     - 如果获取到有效搜索结果：
     * 包含"参考比例"时：融合生成的文章大纲与参考文章结果的内容，并根据比例调整借鉴程度
-    * 不包含"参考比例"时：融合生成的文章大纲和与'{topic}'相关的搜索结果进行原创写作
+    * 不包含"参考比例"时：融合生成的文章大纲和与'{{topic}}'相关的搜索结果进行原创写作
     * 用搜索结果中的真实时间替换大纲中的占位符
         - 如果搜索结果有具体日期，直接替换"20xx年"等占位符
         - 如果搜索结果无具体日期，使用"近期"、"最近"、"据最新数据显示"等表述
@@ -95,24 +97,23 @@ class UnifiedContentWorkflow:
 3. 最终检查：确保文章中不存在任何未替换的日期占位符
 
 生成的文章要求：
-- 标题：当{platform}不为空时为"{platform}|{topic}"，否则为"{topic}"
-- 总字数：{min_article_len}~{max_article_len}字（纯文本字数，不包括Markdown语法、空格）
-- 文章内容：仅输出最终纯文章内容，禁止包含思考过程、分析说明、字数统计等额外注释、说明
-"""
-        config = Config.get_instance()
+- 标题：当{{platform}}不为空时为"{{platform}}|{{topic}}"，否则为"{{topic}}"
+- 总字数：{config.min_article_len}~{config.max_article_len}字（纯文本字数，不包括Markdown语法、空格）
+- 文章内容：仅输出最终纯文章内容，禁止包含思考过程、分析说明、字数统计等额外注释、说明"""
 
-        # 获取平台适配器能力
-        adapter = self.platform_adapters.get(target_platform)
+        config = Config.get_instance()
 
         # 基础配置
         agents = [
             AgentConfig(
                 role="话题分析专家",
+                name="topic_analyzer",
                 goal="解析话题，确定文章的核心要点和结构",
                 backstory="你是一位内容策略师",
             ),
             AgentConfig(
                 role="内容创作专家",
+                name="writer",
                 goal="撰写高质量文章",
                 backstory="你是一位作家",
                 tools=["AIForgeSearchTool"],
@@ -122,14 +123,14 @@ class UnifiedContentWorkflow:
         tasks = [
             TaskConfig(
                 name="analyze_topic",
-                description=researcher_des,
-                agent_role="researcher",
+                description=topic_analyzer_des,
+                agent_name="topic_analyzer",
                 expected_output="文章大纲",
             ),
             TaskConfig(
                 name="write_content",
                 description=writer_des,
-                agent_role="writer",
+                agent_name="writer",
                 expected_output="文章标题 + 文章正文（标准Markdown格式）",
                 context=["analyze_topic"],
             ),
@@ -137,56 +138,24 @@ class UnifiedContentWorkflow:
 
         # 动态添加审核（基于配置）
         if config.need_auditor:
-            agents.append(AgentConfig(role="质量审核专家", goal="质量审核", backstory="质量专家"))
+            agents.append(
+                AgentConfig(
+                    role="质量审核专家", name="auditor", goal="质量审核", backstory="质量专家"
+                )
+            )
             tasks.append(
                 TaskConfig(
                     name="audit_content",
                     description="质量审核",
-                    agent_role="auditor",
+                    agent_name="auditor",
                     expected_output="审核后文章",
                     context=["write_content"],
                 )
             )
 
-        # 动态添加格式处理（基于平台能力和配置）
-        last_task_context = ["audit_content"] if config.need_auditor else ["write_content"]
-
-        if adapter and adapter.supports_html() and config.article_format.upper() == "HTML":
-            if config.use_template and adapter.supports_template():
-                # 模板处理路径
-                agents.append(
-                    AgentConfig(
-                        role="templater",
-                        goal="模板处理",
-                        backstory="模板专家",
-                        tools=["ReadTemplateTool"],
-                    )
-                )
-                tasks.append(
-                    TaskConfig(
-                        name="template_content",
-                        description="使用模板格式化内容",
-                        agent_role="templater",
-                        expected_output="模板HTML",
-                        context=last_task_context,
-                    )
-                )
-            else:
-                # 设计器处理路径
-                agents.append(AgentConfig(role="designer", goal="HTML设计", backstory="设计专家"))
-                tasks.append(
-                    TaskConfig(
-                        name="design_content",
-                        description="HTML设计",
-                        agent_role="designer",
-                        expected_output="设计HTML",
-                        context=last_task_context,
-                    )
-                )
-
         return WorkflowConfig(
-            name=f"{target_platform}_content_generation",
-            description=f"面向{target_platform}平台的内容生成工作流",
+            name=f"{publish_platform}_content_generation",
+            description=f"面向{publish_platform}平台的内容生成工作流",
             workflow_type=WorkflowType.SEQUENTIAL,
             content_type=ContentType.ARTICLE,
             agents=agents,
@@ -202,34 +171,34 @@ class UnifiedContentWorkflow:
         self.content_engine = ContentGenerationEngine(base_config)
 
         # 准备输入数据
-        config = Config.get_instance()
         input_data = {
             "topic": topic,
             "platform": kwargs.get("platform", ""),
             "urls": kwargs.get("urls", []),
             "reference_ratio": kwargs.get("reference_ratio", 0.0),
-            "min_article_len": config.min_article_len,
-            "max_article_len": config.max_article_len,
         }
 
         return self.content_engine.execute_workflow(input_data)
 
-    def execute(
-        self,
-        topic: str,
-        creative_mode: str = None,
-        target_platform: str = "wechat",
-        auto_publish: bool = None,
-        **kwargs,
-    ) -> Dict[str, Any]:
+    def execute(self, topic: str, **kwargs) -> Dict[str, Any]:
         """统一执行流程：输入 -> 内容生成 -> 格式处理 -> 保存 -> 发布"""
         start_time = time.time()
         success = False
+        config = Config.get_instance()
+        publish_platform = config.publish_platform
+        creative_mode = config.creative_mode
+        # 构建标题：platform|topic 格式
+        platform = kwargs.get("platform", "")
+
+        if platform:
+            title = f"{platform}|{topic}"
+        else:
+            title = topic
 
         try:
             # 1. 生成基础内容（统一Markdown格式）
             base_content = self._generate_base_content(
-                topic, target_platform=target_platform, **kwargs
+                topic, publish_platform=publish_platform, **kwargs
             )
 
             # 2. 可选创意变换
@@ -245,15 +214,17 @@ class UnifiedContentWorkflow:
                 final_content = base_content
 
             # 3. 格式处理（template或design）
-            formatted_content = self._format_content(final_content, target_platform, **kwargs)
+            formatted_content = self._format_content(final_content, publish_platform, **kwargs)
 
             # 4. 保存（非AI参与）
-            save_result = self._save_content(formatted_content, target_platform, **kwargs)
+            save_result = self._save_content(formatted_content, title)
 
             # 5. 可选发布（非AI参与，开关控制）
             publish_result = None
-            if self._should_publish(auto_publish, target_platform):
-                publish_result = self._publish_content(formatted_content, target_platform, **kwargs)
+            if self._should_publish():
+                publish_result = self._publish_content(
+                    formatted_content, publish_platform, **kwargs
+                )
 
             results = {
                 "base_content": base_content,
@@ -274,22 +245,22 @@ class UnifiedContentWorkflow:
             duration = time.time() - start_time
             self.monitor.track_execution("unified_workflow", duration, success, {"topic": topic})
 
-    def _format_content(self, content: ContentResult, target_platform: str, **kwargs) -> str:
+    def _format_content(self, content: ContentResult, publish_platform: str, **kwargs) -> str:
         """格式处理：template或design路径"""
         config = Config.get_instance()
-        adapter = self.platform_adapters.get(target_platform)
+        adapter = self.platform_adapters.get(publish_platform)
 
         if not adapter:
-            raise ValueError(f"不支持的平台: {target_platform}")
+            raise ValueError(f"不支持的平台: {publish_platform}")
 
-        # 根据配置选择格式化方式
-        if config.article_format.upper() == "HTML":
+        # 参考原有逻辑的条件判断
+        if adapter and adapter.supports_html() and config.article_format.upper() == "HTML":
             if config.use_template and adapter.supports_template():
                 # Template路径：AI填充本地模板
                 return self._apply_template_formatting(content, **kwargs)
             else:
                 # Design路径：AI生成HTML
-                return self._apply_design_formatting(content, target_platform, **kwargs)
+                return self._apply_design_formatting(content, publish_platform, **kwargs)
         else:
             # 非HTML格式，直接返回内容
             return content.content
@@ -300,23 +271,29 @@ class UnifiedContentWorkflow:
         template_config = self._get_template_workflow_config(**kwargs)
         engine = ContentGenerationEngine(template_config)
 
-        input_data = {"content": content.content, "title": content.title, **kwargs}
+        input_data = {
+            "content": content.content,
+            "title": content.title,
+            "parse_result": False,
+            **kwargs,
+        }
 
         result = engine.execute_workflow(input_data)
         return result.content
 
     def _apply_design_formatting(
-        self, content: ContentResult, target_platform: str, **kwargs
+        self, content: ContentResult, publish_platform: str, **kwargs
     ) -> str:
         """Design路径：使用AI生成HTML设计"""
         # 创建专门的设计工作流
-        design_config = self._get_design_workflow_config(target_platform, **kwargs)
+        design_config = self._get_design_workflow_config(publish_platform, **kwargs)
         engine = ContentGenerationEngine(design_config)
 
         input_data = {
             "content": content.content,
             "title": content.title,
-            "platform": target_platform,
+            "platform": publish_platform,
+            "parse_result": False,
             **kwargs,
         }
 
@@ -324,18 +301,24 @@ class UnifiedContentWorkflow:
         return result.content
 
     def _get_template_workflow_config(
-        self, target_platform: str = "wechat", **kwargs
+        self, publish_platform: str = PlatformType.WECHAT.value, **kwargs
     ) -> WorkflowConfig:
         """生成模板处理工作流配置"""
         # 获取配置以获取字数限制
         config = Config.get_instance()
 
-        if target_platform == "wechat":
+        if publish_platform == PlatformType.WECHAT.value:
             # 微信平台的详细模板填充要求
             task_description = f"""
 # HTML内容适配任务
 ## 任务目标
-使用工具 read_template_tool 读取本地HTML模板，将前置任务生成的文章内容适配填充到读取的HTML模板中，保持视觉效果和风格不变，同时确保内容呈现自然流畅。
+使用工具 read_template_tool 读取本地HTML模板，将以下文章内容适配填充到HTML模板中：
+
+**文章内容：**
+{{content}}
+
+**文章标题：**
+{{title}}
 
 ## 执行步骤
 1. 首先使用 read_template_tool 读取HTML模板
@@ -375,7 +358,8 @@ class UnifiedContentWorkflow:
         agents = [
             AgentConfig(
                 role="模板调整与内容填充专家",
-                goal="模板处理和内容填充",
+                name="templater",
+                goal="根据文章内容，适当调整给定的HTML模板，去除原有内容，并填充新内容。",
                 backstory=backstory,
                 tools=["ReadTemplateTool"],
             )
@@ -385,8 +369,8 @@ class UnifiedContentWorkflow:
             TaskConfig(
                 name="template_content",
                 description=task_description,
-                agent_role="templater",
-                expected_output="基于模板的HTML内容",
+                agent_name="templater",
+                expected_output="填充新内容但保持原有视觉风格的文章（HTML格式）",
             )
         ]
 
@@ -399,7 +383,7 @@ class UnifiedContentWorkflow:
             tasks=tasks,
         )
 
-    def _get_design_workflow_config(self, target_platform: str, **kwargs) -> WorkflowConfig:
+    def _get_design_workflow_config(self, publish_platform: str, **kwargs) -> WorkflowConfig:
         """生成设计工作流配置"""
 
         # 微信平台的完整系统模板
@@ -441,21 +425,26 @@ class UnifiedContentWorkflow:
 
         # 根据平台定制设计要求
         platform_requirements = {
-            "wechat": "微信公众号HTML设计要求：使用内联CSS样式，避免外部样式表；采用适合移动端阅读的字体大小和行距；使用微信官方推荐的色彩搭配；确保在微信客户端中显示效果良好",  # noqa 501
-            "xiaohongshu": "小红书平台设计要求：注重视觉美感，使用年轻化的设计风格；适当使用emoji和装饰元素；保持简洁清新的排版",
-            "zhihu": "知乎平台设计要求：专业简洁的学术风格；重视内容的逻辑性和可读性；使用适合长文阅读的排版",
+            PlatformType.WECHAT.value: "微信公众号HTML设计要求：使用内联CSS样式，避免外部样式表；采用适合移动端阅读的字体大小和行距；使用微信官方推荐的色彩搭配；确保在微信客户端中显示效果良好",  # noqa 501
+            PlatformType.XIAOHONGSHU.value: "小红书平台设计要求：注重视觉美感，使用年轻化的设计风格；适当使用emoji和装饰元素；保持简洁清新的排版",
+            PlatformType.ZHIHU.value: "知乎平台设计要求：专业简洁的学术风格；重视内容的逻辑性和可读性；使用适合长文阅读的排版",
         }
 
         design_requirement = platform_requirements.get(
-            target_platform, "通用HTML设计要求：简洁美观，注重用户体验"
+            publish_platform, "通用HTML设计要求：简洁美观，注重用户体验"
         )
 
         agents = [
             AgentConfig(
                 role="微信排版专家",
-                goal=f"为{target_platform}平台创建精美的HTML设计和排版",
+                name="designer",
+                goal=f"为{publish_platform}平台创建精美的HTML设计和排版",
                 backstory="你是HTML设计专家",
-                system_template=wechat_system_template if target_platform == "wechat" else None,
+                system_template=(
+                    wechat_system_template
+                    if publish_platform == PlatformType.WECHAT.value
+                    else None
+                ),
                 prompt_template="<|start_header_id|>user<|end_header_id|>{{ .Prompt }}<|eot_id|>",
                 response_template="<|start_header_id|>assistant<|end_header_id|>{{ .Response }}<|eot_id|>",  # noqa 501
             )
@@ -464,36 +453,26 @@ class UnifiedContentWorkflow:
         tasks = [
             TaskConfig(
                 name="design_content",
-                description=f"为{target_platform}平台设计HTML排版。{design_requirement}。创建精美的HTML格式，包含适当的标题层次、段落间距、颜色搭配和视觉元素，确保内容在{target_platform}平台上有最佳的展示效果。",  # noqa 501
-                agent_role="designer",
-                expected_output=f"针对{target_platform}平台优化的精美HTML内容",
+                description=f"为{publish_platform}平台设计HTML排版。{design_requirement}。创建精美的HTML格式，包含适当的标题层次、段落间距、颜色搭配和视觉元素，确保内容在{publish_platform}平台上有最佳的展示效果。",  # noqa 501
+                agent_name="designer",
+                expected_output=f"针对{publish_platform}平台优化的精美HTML内容",
             )
         ]
 
         return WorkflowConfig(
-            name=f"{target_platform}_design",
-            description=f"面向{target_platform}平台的HTML设计工作流",
+            name=f"{publish_platform}_design",
+            description=f"面向{publish_platform}平台的HTML设计工作流",
             workflow_type=WorkflowType.SEQUENTIAL,
             content_type=ContentType.ARTICLE,
             agents=agents,
             tasks=tasks,
         )
 
-    def _save_content(
-        self, formatted_content: str, target_platform: str, **kwargs
-    ) -> Dict[str, Any]:
+    def _save_content(self, formatted_content: str, title: str) -> Dict[str, Any]:
         """保存内容（非AI参与）"""
         config = Config.get_instance()
-
-        # 提取标题用于文件名
-        title = utils.extract_title_from_content(formatted_content, config.article_format)
-
         # 确定文件格式和路径
         file_extension = utils.get_file_extension(config.article_format)
-        save_path = (
-            PathManager.get_article_dir() / f"{utils.sanitize_filename(title)}.{file_extension}"
-        )
-
         save_path = self._get_save_path(title, file_extension)
 
         # 保存文件
@@ -517,13 +496,13 @@ class UnifiedContentWorkflow:
         return save_path
 
     def _publish_content(
-        self, formatted_content: str, target_platform: str, **kwargs
+        self, formatted_content: str, publish_platform: str, **kwargs
     ) -> Dict[str, Any]:
         """发布内容（非AI参与）"""
-        adapter = self.platform_adapters.get(target_platform)
+        adapter = self.platform_adapters.get(publish_platform)
 
         if not adapter:
-            return {"success": False, "message": f"不支持的平台: {target_platform}"}
+            return {"success": False, "message": f"不支持的平台: {publish_platform}"}
 
         # 使用平台适配器发布
         publish_result = adapter.publish_content(formatted_content, **kwargs)
@@ -531,18 +510,30 @@ class UnifiedContentWorkflow:
         return {
             "success": publish_result.success,
             "message": publish_result.message,
-            "platform": target_platform,
+            "platform": publish_platform,
         }
 
-    def _should_publish(self, auto_publish: bool, target_platform: str) -> bool:
+    def _should_publish(self) -> bool:
         """判断是否应该发布"""
         config = Config.get_instance()
 
-        # 优先使用传入的参数，否则使用配置
-        if auto_publish is not None:
-            return auto_publish
+        # 检查配置中的自动发布设置
+        if not config.auto_publish:
+            return False
 
-        return config.auto_publish
+        # 检查是否有有效的微信凭据
+        valid_credentials = any(
+            cred["appid"] and cred["appsecret"] for cred in config.wechat_credentials
+        )
+
+        if not valid_credentials:
+            # 自动转为非自动发布并提示
+            log.print_log("检测到自动发布已开启，但未配置有效的微信公众号凭据", "warning")
+            log.print_log("请在配置中填写 appid 和 appsecret 以启用自动发布功能", "warning")
+            log.print_log("当前将跳过发布步骤，仅生成内容", "info")
+            return False
+
+        return True
 
     def get_performance_report(self) -> Dict[str, Any]:
         """获取性能报告"""

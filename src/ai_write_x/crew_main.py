@@ -21,7 +21,7 @@ warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic.
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic.*")
 
 
-def run_crew_in_process(inputs, appid, appsecret, author, log_queue, config_data):
+def run_crew_in_process(inputs, log_queue, config_data=None):
     """在独立进程中运行 CrewAI 工作流"""
     try:
         # 设置信号处理器
@@ -73,7 +73,7 @@ def run_crew_in_process(inputs, appid, appsecret, author, log_queue, config_data
         log.print_log(f"配置信息：API类型={config.api_type}，模型={config.api_model} ", "status")
 
         # 执行任务
-        result = run(inputs, appid, appsecret, author)
+        result = run(inputs)
 
         # 发送成功消息
         log_queue.put(
@@ -100,38 +100,33 @@ def run_crew_in_process(inputs, appid, appsecret, author, log_queue, config_data
         os._exit(0)
 
 
-def run(inputs, appid, appsecret, author):
+def run(inputs):
     """
     Run the crew.
     """
     try:
-        if False:  # 测试新架构，调整完成后移除旧架构以及判断逻辑
-            workflow = setup_aiwritex()
+        workflow = setup_aiwritex()
 
-            # 提取参数
-            topic = inputs.get("topic", "")
-            target_platform = "wechat"  # 默认微信平台
+        # 提取参数
+        topic = inputs.get("topic", "")
 
-            # 准备kwargs参数
-            kwargs = {
-                "appid": appid,
-                "appsecret": appsecret,
-                "author": author,
-                "platform": inputs.get("platform", ""),
-                "urls": inputs.get("urls", []),
-                "reference_ratio": inputs.get("reference_ratio", 0.0),
-            }
+        # 准备kwargs参数
+        kwargs = {
+            "platform": inputs.get("platform", ""),
+            "urls": inputs.get("urls", []),
+            "reference_ratio": inputs.get("reference_ratio", 0.0),
+        }
 
-            # 执行新架构流程
-            return workflow.execute(topic=topic, target_platform=target_platform, **kwargs)
-        else:
-            return AIWriteXCrew(appid, appsecret, author).crew().kickoff(inputs=inputs)
+        return workflow.execute(topic=topic, **kwargs)
+
     except Exception as e:
+        log.print_traceback("", e)
         raise Exception(f"An error occurred while running the crew: {e}")
 
 
-def ai_write_x_run(config, ui_mode, appid="", appsecret="", author="", config_data=None):
+def ai_write_x_run(config_data=None):
     """执行 AI 写作任务"""
+    config = Config.get_instance()
     # 准备输入参数
     log.print_log("正在初始化配置参数，请耐心等待...")
     if not config.custom_topic:
@@ -150,17 +145,15 @@ def ai_write_x_run(config, ui_mode, appid="", appsecret="", author="", config_da
         "topic": topic,
         "urls": urls,
         "reference_ratio": reference_ratio,
-        "min_article_len": config.min_article_len,
-        "max_article_len": config.max_article_len,
     }
 
-    if ui_mode:
+    if config_data:
         try:
             # 创建进程间通信队列
             log_queue = multiprocessing.Queue()
             process = multiprocessing.Process(
                 target=run_crew_in_process,
-                args=(inputs, appid, appsecret, author, log_queue, config_data),
+                args=(inputs, log_queue, config_data),
                 daemon=False,
             )
             return process, log_queue
@@ -170,7 +163,7 @@ def ai_write_x_run(config, ui_mode, appid="", appsecret="", author="", config_da
     else:
         # 非 UI 模式直接执行
         try:
-            result = run(inputs, appid, appsecret, author)
+            result = run(inputs)
             log.print_log("任务完成！")
             return result
         except Exception as e:
@@ -178,36 +171,29 @@ def ai_write_x_run(config, ui_mode, appid="", appsecret="", author="", config_da
             return None
 
 
-def ai_write_x_main(ui_mode=False, config_data=None):
+def ai_write_x_main(config_data=None):
     """主入口函数"""
     config = Config.get_instance()
 
-    if not ui_mode:
-        if not config.load_config():
-            log.print_log("加载配置失败，请检查是否有配置！", "error")
-            return None, None
-        elif not config.validate_config():
-            log.print_log(f"配置填写有错误：{config.error_message}", "error")
-            return None, None
-
-    # 设置模式
-    config.ui_mode = ui_mode
-
-    # 如果是 UI 模式且传递了配置数据，应用到当前进程
-    if ui_mode and config_data:
-        for key, value in config_data.items():
-            setattr(config, key, value)
-
-    # 重新加载配置文件以获取最新的基础配置
+    # 统一的配置加载和验证
     if not config.load_config():
         log.print_log("加载配置失败，请检查是否有配置！", "error")
+        return None, None
+
+    # 如果是 UI 启动会传递配置数据，应用到当前进程
+    if config_data:
+        for key, value in config_data.items():
+            setattr(config, key, value)
+    # 非UI启动，不传递config_data，需要验证配置
+    elif not config.validate_config():
+        log.print_log(f"配置填写有错误：{config.error_message}", "error")
         return None, None
 
     task_model = "自定义" if config.custom_topic else "热搜随机"
     log.print_log(f"开始执行任务，话题模式：{task_model}")
 
     # 保存环境变量到临时文件
-    if ui_mode:
+    if config_data:
         env_file = PathManager.get_temp_dir() / f"env_{os.getpid()}.json"
         try:
             with open(env_file, "w", encoding="utf-8") as f:
@@ -226,19 +212,8 @@ def ai_write_x_main(ui_mode=False, config_data=None):
     os.environ["MODEL"] = config.api_model
     os.environ["OPENAI_API_BASE"] = config.api_apibase
 
-    if config.auto_publish:
-        for credential in config.wechat_credentials:
-            appid = credential["appid"]
-            appsecret = credential["appsecret"]
-            author = credential["author"]
-
-            # 如果没有配置appid，则忽略该条
-            if len(appid) == 0 or len(appsecret) == 0:
-                continue
-
-            return ai_write_x_run(config, ui_mode, appid, appsecret, author, config_data)
-    else:
-        return ai_write_x_run(config, ui_mode, config_data=config_data)
+    # 直接启动内容生成，不处理发布
+    return ai_write_x_run(config_data=config_data)
 
 
 # ----------------由于参数原因，以下调用不可用------------------

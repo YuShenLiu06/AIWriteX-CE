@@ -247,7 +247,7 @@ class WeixinPublisher:
                         publishId=draft["media_id"],
                         status=PublishStatus.DRAFT,
                         publishedAt=datetime.now(),
-                        platform="weixin",
+                        platform="wechat",
                         url=f"https://mp.weixin.qq.com/s/{draft['media_id']}",
                     ),
                     None,
@@ -286,7 +286,7 @@ class WeixinPublisher:
                         publishId=result.get("publish_id"),
                         status=PublishStatus.PUBLISHED,
                         publishedAt=datetime.now(),
-                        platform="weixin",
+                        platform="wechat",
                         url="",  # 需要通过轮询获取
                     ),
                     None,

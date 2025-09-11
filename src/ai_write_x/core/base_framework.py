@@ -24,6 +24,7 @@ class ContentType(Enum):
 
 @dataclass
 class AgentConfig:
+    name: str
     role: str
     goal: str
     backstory: str
@@ -42,7 +43,7 @@ class AgentConfig:
 class TaskConfig:
     name: str
     description: str
-    agent_role: str
+    agent_name: str
     expected_output: str
     context: List[str] = field(default_factory=list)
     tools: List[str] = field(default_factory=list)
@@ -106,12 +107,12 @@ class BaseWorkflowFramework(ABC):
 
     def validate_config(self) -> bool:
         # 现有验证逻辑
-        agent_roles = {agent.role for agent in self.config.agents}
-        task_agent_roles = {task.agent_role for task in self.config.tasks}
+        agent_names = {agent.name for agent in self.config.agents}
+        task_agent_names = {task.agent_name for task in self.config.tasks}
 
-        if not task_agent_roles.issubset(agent_roles):
-            missing_roles = task_agent_roles - agent_roles
-            raise ValueError(f"缺少Agents: {missing_roles}")
+        if not task_agent_names.issubset(agent_names):
+            missing_agents = task_agent_names - agent_names
+            raise ValueError(f"缺少Agents: {missing_agents}")
 
         # 验证工具依赖
         required_tools = set()

@@ -58,6 +58,7 @@ class Config:
                 {"name": "澎湃新闻", "weight": 0.01},
                 {"name": "知乎热榜", "weight": 0.01},
             ],
+            "publish_platform": "wechat",
             "wechat": {
                 "credentials": [
                     {
@@ -181,6 +182,7 @@ class Config:
             "auto_publish": True,
             "article_format": "html",
             "format_publish": True,
+            "creative_mode": "",
         }
         self.default_aiforge_config = {
             "locale": "zh",
@@ -435,6 +437,20 @@ class Config:
             if self.config is None:
                 raise ValueError("配置未加载")
             return self.config["format_publish"]
+
+    @property
+    def publish_platform(self):
+        with self._lock:
+            if self.config is None:
+                raise ValueError("配置未加载")
+            return self.config["publish_platform"]
+
+    @property
+    def creative_mode(self):
+        with self._lock:
+            if self.config is None:
+                raise ValueError("配置未加载")
+            return self.config["creative_mode"]
 
     @property
     def api_list(self):

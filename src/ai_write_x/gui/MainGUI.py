@@ -807,7 +807,7 @@ class MainGUI(object):
 
         # 启动新进程，传递配置数据
         try:
-            result = ai_write_x_main(True, config_data)  # 传递配置数据
+            result = ai_write_x_main(config_data)  # 传递配置数据
             if result and result[0] and result[1]:
                 with self._process_lock:
                     self._crew_process, self._log_queue = result

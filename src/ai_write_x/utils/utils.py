@@ -564,8 +564,6 @@ def extract_title_from_content(content: str, article_format: str = "MARKDOWN") -
     """从内容中提取标题"""
     if article_format.upper() == "HTML":
         # HTML格式：查找<title>标签或<h1>标签
-        import re
-
         title_match = re.search(r"<title[^>]*>(.*?)</title>", content, re.IGNORECASE | re.DOTALL)
         if title_match:
             return title_match.group(1).strip()

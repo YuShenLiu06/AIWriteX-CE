@@ -6,6 +6,7 @@ from typing import Optional
 from src.ai_write_x.utils import utils
 from src.ai_write_x.config.config import Config
 from src.ai_write_x.tools.custom_tool import ReadTemplateTool
+from src.ai_write_x.tools.wx_publisher import pub2wx
 
 
 class PlatformType(Enum):
@@ -134,37 +135,102 @@ class WeChatAdapter(PlatformAdapter):
 
     def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
         """发布到微信公众号"""
-        # 提取微信发布所需参数
-        appid = kwargs.get("appid", "")
-        appsecret = kwargs.get("appsecret", "")
-        author = kwargs.get("author", "")
 
-        # 验证必需参数
-        if not all([appid, appsecret]):
+        config = Config.get_instance()
+        # 获取所有有效的微信凭据
+        valid_credentials = [
+            cred
+            for cred in config.wechat_credentials
+            if cred.get("appid") and cred.get("appsecret")
+        ]
+
+        # 冗余检查
+        if not valid_credentials:
             return PublishResult(
                 success=False,
-                message="微信发布缺少必需参数: appid, appsecret",
-                platform_id="wechat",
+                message="未找到有效的微信公众号凭据，请在配置中填写 appid 和 appsecret",
+                platform_id=PlatformType.WECHAT.value,
                 error_code="MISSING_CREDENTIALS",
             )
 
-        # 提取标题和摘要
-        title = utils.extract_title_from_content(formatted_content)
-        digest = self._extract_digest_from_content(formatted_content)
-
-        # 调用微信发布API
-        from ..tools.wx_publisher import pub2wx
-
+        # 提取标题和摘要（只需要提取一次）
         try:
-            result, _, success = pub2wx(title, digest, formatted_content, appid, appsecret, author)
-            return PublishResult(success=success, message=result, platform_id="wechat")
+            title = utils.extract_title_from_content(formatted_content)
+            if not title:
+                title = "无标题文章"
+
+            digest = self._extract_digest_from_content(formatted_content)
+            if not digest:
+                digest = "AI生成的精彩内容"
+
         except Exception as e:
             return PublishResult(
                 success=False,
-                message=f"微信发布异常: {str(e)}",
-                platform_id="wechat",
-                error_code="PUBLISH_ERROR",
+                message=f"提取文章标题或摘要失败: {str(e)}",
+                platform_id=PlatformType.WECHAT.value,
+                error_code="CONTENT_PARSE_ERROR",
             )
+
+        # 循环向所有账号发布
+        publish_results = []
+        success_count = 0
+
+        for credential in valid_credentials:
+            appid = credential["appid"]
+            appsecret = credential["appsecret"]
+            author = credential.get("author", "")
+
+            try:
+                result, _, success = pub2wx(
+                    title, digest, formatted_content, appid, appsecret, author
+                )
+                publish_results.append(
+                    {"appid": appid, "author": author, "success": success, "message": result}
+                )
+
+                if success:
+                    success_count += 1
+
+            except Exception as e:
+                publish_results.append(
+                    {
+                        "appid": appid,
+                        "author": author,
+                        "success": False,
+                        "message": f"发布异常: {str(e)}",
+                    }
+                )
+
+        # 生成汇总结果
+        total_count = len(valid_credentials)
+        overall_success = success_count > 0
+
+        if success_count == total_count:
+            summary_message = f"成功发布到所有 {total_count} 个微信公众号"
+        elif success_count > 0:
+            summary_message = f"部分发布成功：{success_count}/{total_count} 个账号发布成功"
+            # 添加失败详情
+            failed_accounts = [r for r in publish_results if not r["success"]]
+            if failed_accounts:
+                summary_message += "\n失败账号："
+                for failed in failed_accounts:
+                    summary_message += (
+                        f"\n- {failed['author']}({failed['appid'][-4:]}): {failed['message']}"
+                    )
+        else:
+            summary_message = f"发布失败：所有 {total_count} 个账号都发布失败"
+            # 添加所有失败详情
+            for failed in publish_results:
+                summary_message += (
+                    f"\n- {failed['author']}({failed['appid'][-4:]}): {failed['message']}"
+                )
+
+        return PublishResult(
+            success=overall_success,
+            message=summary_message,
+            platform_id=PlatformType.WECHAT.value,
+            error_code=None if overall_success else "PARTIAL_OR_TOTAL_FAILURE",
+        )
 
 
 class XiaohongshuAdapter(PlatformAdapter):
@@ -203,7 +269,7 @@ class XiaohongshuAdapter(PlatformAdapter):
         return PublishResult(
             success=False,
             message="小红书发布功能待开发 - 需要接入小红书开放平台API",
-            platform_id="xiaohongshu",
+            platform_id=PlatformType.XIAOHONGSHU.value,
             error_code="NOT_IMPLEMENTED",
         )
 
@@ -247,7 +313,7 @@ class DouyinAdapter(PlatformAdapter):
         return PublishResult(
             success=False,
             message="抖音发布功能待开发 - 需要接入抖音开放平台API",
-            platform_id="douyin",
+            platform_id=PlatformType.DOUYIN.value,
             error_code="NOT_IMPLEMENTED",
         )
 
@@ -299,7 +365,7 @@ class ToutiaoAdapter(PlatformAdapter):
         return PublishResult(
             success=False,
             message="今日头条发布功能待开发 - 需要接入头条号开放平台API",
-            platform_id="toutiao",
+            platform_id=PlatformType.TOUTIAO.value,
             error_code="NOT_IMPLEMENTED",
         )
 
@@ -382,7 +448,7 @@ class BaijiahaoAdapter(PlatformAdapter):
         return PublishResult(
             success=False,
             message="百家号发布功能待开发 - 需要接入百度百家号API",
-            platform_id="baijiahao",
+            platform_id=PlatformType.BAIJIAHAO.value,
             error_code="NOT_IMPLEMENTED",
         )
 
@@ -444,7 +510,7 @@ class ZhihuAdapter(PlatformAdapter):
         return PublishResult(
             success=False,
             message="知乎发布功能待开发 - 需要接入知乎API或使用浏览器自动化",
-            platform_id="zhihu",
+            platform_id=PlatformType.ZHIHU.value,
             error_code="NOT_IMPLEMENTED",
         )
 
@@ -505,6 +571,6 @@ class DoubanAdapter(PlatformAdapter):
         return PublishResult(
             success=False,
             message="豆瓣发布功能待开发 - 需要使用浏览器自动化工具",
-            platform_id="douban",
+            platform_id=PlatformType.DOUBAN.value,
             error_code="NOT_IMPLEMENTED",
         )

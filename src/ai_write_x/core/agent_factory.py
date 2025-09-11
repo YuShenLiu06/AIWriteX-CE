@@ -16,9 +16,9 @@ class AgentFactory:
         self._tool_registry = GlobalToolRegistry.get_instance()
         self._llm_cache: Dict[str, LLM] = {}
 
-    def register_agent_template(self, role: str, template_class: Type):
+    def register_agent_template(self, name: str, template_class: Type):
         """注册智能体模板"""
-        self._agent_templates[role] = template_class
+        self._agent_templates[name] = template_class
 
     def register_tool(self, name: str, tool_class):
         """注册工具类"""
@@ -68,6 +68,14 @@ class AgentFactory:
             "verbose": config.verbose,
         }
 
+        # 添加模板支持
+        if hasattr(config, "system_template") and config.system_template:
+            agent_kwargs["system_template"] = config.system_template
+        if hasattr(config, "prompt_template") and config.prompt_template:
+            agent_kwargs["prompt_template"] = config.prompt_template
+        if hasattr(config, "response_template") and config.response_template:
+            agent_kwargs["response_template"] = config.response_template
+
         # LLM优先级：自定义LLM > 配置中的LLM > 全局LLM
         llm = custom_llm or self._get_llm(config.llm_config)
         if llm:
@@ -75,10 +83,14 @@ class AgentFactory:
 
         return Agent(**agent_kwargs)
 
-    def create_specialized_agent(self, role: str, **kwargs) -> Agent:
+    def create_specialized_agent(self, name: str, **kwargs) -> Agent:
         """创建专门化智能体"""
-        if role in self._agent_templates:
-            template_class = self._agent_templates[role]
+        if name in self._agent_templates:
+            template_class = self._agent_templates[name]
             return template_class(**kwargs)
         else:
-            raise ValueError(f"Unknown agent role: {role}")
+            raise ValueError(f"未知 agent : {name}")
+
+    def get_agent_by_name(self, agents: Dict[str, Agent], name: str) -> Optional[Agent]:
+        """通过 name 获取 agent 实例"""
+        return agents.get(name)
