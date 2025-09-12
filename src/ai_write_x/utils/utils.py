@@ -558,37 +558,3 @@ def get_file_extension(article_format: str) -> str:
     format_map = {"HTML": "html", "MARKDOWN": "md", "TXT": "txt", "MD": "md"}
 
     return format_map.get(article_format.upper(), "txt")
-
-
-def extract_title_from_content(content: str, article_format: str = "MARKDOWN") -> str:
-    """从内容中提取标题"""
-    if article_format.upper() == "HTML":
-        # HTML格式：查找<title>标签或<h1>标签
-        title_match = re.search(r"<title[^>]*>(.*?)</title>", content, re.IGNORECASE | re.DOTALL)
-        if title_match:
-            return title_match.group(1).strip()
-
-        h1_match = re.search(r"<h1[^>]*>(.*?)</h1>", content, re.IGNORECASE | re.DOTALL)
-        if h1_match:
-            return h1_match.group(1).strip()
-    else:
-        # Markdown或文本格式：使用现有的工具方法
-        # 优先匹配标准一级标题（如# Title）
-        title_match = re.search(
-            r"^#\s+(.+?)(?:\s+#+)?\s*$",  # 兼容标题尾部的#符号
-            content,
-            flags=re.MULTILINE,
-        )
-
-        if title_match:
-            return title_match.group(1).strip()
-
-        # 次优匹配首行非空内容（跳过YAML front matter等）
-        first_line = next((line.strip() for line in content.splitlines() if line.strip()), None)
-
-        extracted_title = first_line if first_line else None
-        if extracted_title:
-            return extracted_title
-
-    # 如果无法提取标题，返回默认值
-    return "无标题"

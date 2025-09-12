@@ -83,6 +83,7 @@ class ContentGenerationEngine(BaseWorkflowFramework):
                     content=str(result),
                     summary="",
                     content_type=self.config.content_type,
+                    content_format=input_data.get("content_format", "html"),
                     metadata={
                         "workflow_name": self.config.name,
                         "input_data": input_data,
@@ -110,6 +111,7 @@ class ContentGenerationEngine(BaseWorkflowFramework):
             title=parsed_content.title or input_data.get("topic", "Untitled"),
             content=parsed_content.content,
             summary=parsed_content.summary or self._generate_summary(parsed_content.content),
+            content_format=parsed_content.metadata.get("content_type", "markdown"),
             content_type=self.config.content_type,
             metadata={
                 "workflow_name": self.config.name,

@@ -213,23 +213,26 @@ class UnifiedContentWorkflow:
             else:
                 final_content = base_content
 
-            # 3. 格式处理（template或design）
-            formatted_content = self._format_content(final_content, publish_platform, **kwargs)
+            # 3. 转换处理（template或design）
+            transform_content = self._transform_content(final_content, publish_platform, **kwargs)
 
             # 4. 保存（非AI参与）
-            save_result = self._save_content(formatted_content, title)
+            save_result = self._save_content(transform_content, title)
+            if save_result.get("success", False):
+                log.print_log(f"文章“{title}”保存成功")
 
             # 5. 可选发布（非AI参与，开关控制）
             publish_result = None
             if self._should_publish():
                 publish_result = self._publish_content(
-                    formatted_content, publish_platform, **kwargs
+                    transform_content, publish_platform, **kwargs
                 )
+                log.print_log(f"发布执行完成，发布结果：{publish_result.get('message')}")
 
             results = {
                 "base_content": base_content,
                 "final_content": final_content,
-                "formatted_content": formatted_content,
+                "formatted_content": transform_content.content,
                 "save_result": save_result,
                 "publish_result": publish_result,
                 "success": True,
@@ -245,27 +248,26 @@ class UnifiedContentWorkflow:
             duration = time.time() - start_time
             self.monitor.track_execution("unified_workflow", duration, success, {"topic": topic})
 
-    def _format_content(self, content: ContentResult, publish_platform: str, **kwargs) -> str:
-        """格式处理：template或design路径"""
+    def _transform_content(
+        self, content: ContentResult, publish_platform: str, **kwargs
+    ) -> ContentResult:
+        """内容转换：template或design路径的AI处理"""
         config = Config.get_instance()
         adapter = self.platform_adapters.get(publish_platform)
 
         if not adapter:
             raise ValueError(f"不支持的平台: {publish_platform}")
 
-        # 参考原有逻辑的条件判断
-        if adapter and adapter.supports_html() and config.article_format.upper() == "HTML":
+        # AI驱动的内容转换
+        if adapter.supports_html() and config.article_format.upper() == "HTML":
             if config.use_template and adapter.supports_template():
-                # Template路径：AI填充本地模板
                 return self._apply_template_formatting(content, **kwargs)
             else:
-                # Design路径：AI生成HTML
                 return self._apply_design_formatting(content, publish_platform, **kwargs)
         else:
-            # 非HTML格式，直接返回内容
-            return content.content
+            return content
 
-    def _apply_template_formatting(self, content: ContentResult, **kwargs) -> str:
+    def _apply_template_formatting(self, content: ContentResult, **kwargs) -> ContentResult:
         """Template路径：使用AI填充本地模板"""
         # 创建专门的模板处理工作流
         template_config = self._get_template_workflow_config(**kwargs)
@@ -275,15 +277,15 @@ class UnifiedContentWorkflow:
             "content": content.content,
             "title": content.title,
             "parse_result": False,
+            "content_format": "html",
             **kwargs,
         }
 
-        result = engine.execute_workflow(input_data)
-        return result.content
+        return engine.execute_workflow(input_data)
 
     def _apply_design_formatting(
         self, content: ContentResult, publish_platform: str, **kwargs
-    ) -> str:
+    ) -> ContentResult:
         """Design路径：使用AI生成HTML设计"""
         # 创建专门的设计工作流
         design_config = self._get_design_workflow_config(publish_platform, **kwargs)
@@ -294,11 +296,11 @@ class UnifiedContentWorkflow:
             "title": content.title,
             "platform": publish_platform,
             "parse_result": False,
+            "content_format": "html",
             **kwargs,
         }
 
-        result = engine.execute_workflow(input_data)
-        return result.content
+        return engine.execute_workflow(input_data)
 
     def _get_template_workflow_config(
         self, publish_platform: str = PlatformType.WECHAT.value, **kwargs
@@ -468,7 +470,7 @@ class UnifiedContentWorkflow:
             tasks=tasks,
         )
 
-    def _save_content(self, formatted_content: str, title: str) -> Dict[str, Any]:
+    def _save_content(self, content: ContentResult, title: str) -> Dict[str, Any]:
         """保存内容（非AI参与）"""
         config = Config.get_instance()
         # 确定文件格式和路径
@@ -477,7 +479,7 @@ class UnifiedContentWorkflow:
 
         # 保存文件
         with open(save_path, "w", encoding="utf-8") as f:
-            f.write(formatted_content)
+            f.write(content.content)
 
         return {"success": True, "path": save_path, "title": title, "format": config.article_format}
 
@@ -496,7 +498,7 @@ class UnifiedContentWorkflow:
         return save_path
 
     def _publish_content(
-        self, formatted_content: str, publish_platform: str, **kwargs
+        self, content: ContentResult, publish_platform: str, **kwargs
     ) -> Dict[str, Any]:
         """发布内容（非AI参与）"""
         adapter = self.platform_adapters.get(publish_platform)
@@ -505,7 +507,7 @@ class UnifiedContentWorkflow:
             return {"success": False, "message": f"不支持的平台: {publish_platform}"}
 
         # 使用平台适配器发布
-        publish_result = adapter.publish_content(formatted_content, **kwargs)
+        publish_result = adapter.publish_content(content, **kwargs)
 
         return {
             "success": publish_result.success,

@@ -70,6 +70,7 @@ class ContentResult:
     title: str
     content: str
     summary: str
+    content_format: str
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     content_type: ContentType = ContentType.ARTICLE

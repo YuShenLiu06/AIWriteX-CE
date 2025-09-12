@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import sys
 import os
 import warnings
 import multiprocessing
@@ -9,7 +8,6 @@ import json
 
 from src.ai_write_x.utils.path_manager import PathManager
 from src.ai_write_x.tools import hotnews
-from src.ai_write_x.crew import AIWriteXCrew
 from src.ai_write_x.utils import utils
 from src.ai_write_x.utils import log
 from src.ai_write_x.config.config import Config
@@ -19,6 +17,9 @@ from src.ai_write_x.core.system_init import setup_aiwritex
 warnings.filterwarnings("ignore", category=SyntaxWarning, module="pysbd")
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="pydantic.*")
 warnings.filterwarnings("ignore", category=UserWarning, module="pydantic.*")
+
+os.environ["OTEL_SDK_DISABLED"] = "true"
+os.environ["CREWAI_DISABLE_TELEMETRY"] = "true"
 
 
 def run_crew_in_process(inputs, log_queue, config_data=None):
@@ -165,10 +166,10 @@ def ai_write_x_run(config_data=None):
         try:
             result = run(inputs)
             log.print_log("任务完成！")
-            return result
+            return True, result
         except Exception as e:
             log.print_log(f"执行出错：{str(e)}", "error")
-            return None
+            return False, None
 
 
 def ai_write_x_main(config_data=None):
@@ -214,43 +215,6 @@ def ai_write_x_main(config_data=None):
 
     # 直接启动内容生成，不处理发布
     return ai_write_x_run(config_data=config_data)
-
-
-# ----------------由于参数原因，以下调用不可用------------------
-def train():
-    """
-    Train the crew for a given number of iterations.
-    """
-    inputs = {"topic": "AI LLMs"}
-    try:
-        AIWriteXCrew().crew().train(
-            n_iterations=int(sys.argv[1]), filename=sys.argv[2], inputs=inputs
-        )
-    except Exception as e:
-        raise Exception(f"An error occurred while training the crew: {e}")
-
-
-def replay():
-    """
-    Replay the crew execution from a specific task.
-    """
-    try:
-        AIWriteXCrew().crew().replay(task_id=sys.argv[1])
-    except Exception as e:
-        raise Exception(f"An error occurred while replaying the crew: {e}")
-
-
-def test():
-    """
-    Test the crew execution and returns the results.
-    """
-    inputs = {"topic": "AI LLMs"}
-    try:
-        AIWriteXCrew().crew().test(
-            n_iterations=int(sys.argv[1]), openai_model_name=sys.argv[2], inputs=inputs
-        )
-    except Exception as e:
-        raise Exception(f"An error occurred while testing the crew: {e}")
 
 
 if __name__ == "__main__":

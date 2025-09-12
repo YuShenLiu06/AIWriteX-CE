@@ -3,10 +3,10 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from typing import Optional
 
-from src.ai_write_x.utils import utils
 from src.ai_write_x.config.config import Config
-from src.ai_write_x.tools.custom_tool import ReadTemplateTool
 from src.ai_write_x.tools.wx_publisher import pub2wx
+from src.ai_write_x.core.base_framework import ContentResult
+from src.ai_write_x.utils import utils
 
 
 class PlatformType(Enum):
@@ -43,14 +43,30 @@ class PlatformAdapter(ABC):
     """平台适配器基类"""
 
     @abstractmethod
-    def format_content(self, content: str, title: str = "", summary: str = "") -> str:
-        """格式化内容 - 直接处理文件内容"""
+    def format_content(self, content_result: ContentResult, **kwargs) -> str:
+        """格式化内容"""
         pass
 
     @abstractmethod
-    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
+    def publish_content(self, content_result: ContentResult, **kwargs) -> PublishResult:
         """发布内容"""
         pass
+
+    def supports_html(self) -> bool:
+        """是否支持HTML格式"""
+        return False
+
+    def supports_template(self) -> bool:
+        """是否支持模板功能"""
+        return False
+
+    def get_platform_name(self) -> str:
+        """获取平台名称"""
+        return self.__class__.__name__.replace("Adapter", "").lower()
+
+
+class WeChatAdapter(PlatformAdapter):
+    """微信公众号适配器"""
 
     def supports_html(self) -> bool:
         """是否支持HTML格式"""
@@ -60,80 +76,25 @@ class PlatformAdapter(ABC):
         """是否支持模板功能"""
         return True
 
-    def get_platform_name(self) -> str:
-        """获取平台名称"""
-        return self.__class__.__name__.replace("Adapter", "").lower()
-
-    def _extract_digest_from_content(self, content: str) -> str:
-        """从内容中提取摘要"""
-
-        # 根据文件格式提取摘要
-        if content.startswith("# ") or "##" in content:
-            # Markdown格式
-            _, digest = utils.extract_markdown_content(content)
-        else:
-            # 纯文本格式
-            _, digest = utils.extract_text_content(content)
-
-        return digest or content[:200] + "..." if len(content) > 200 else content
-
-
-class WeChatAdapter(PlatformAdapter):
-    """微信公众号适配器"""
-
-    def format_content(self, content: str, title: str = "", summary: str = "") -> str:
+    def format_content(self, content_result: ContentResult, **kwargs) -> str:
         """格式化为微信公众号HTML格式"""
-
         config = Config.get_instance()
 
-        # 提取标题（如果未提供）
-        if not title:
-            title = utils.extract_title_from_content(content)
-
-        # 检查是否需要使用模板
-        if config.use_template:
-            return self._apply_template_format(content, title)
+        if content_result.content_format == "html":
+            return content_result.content
         else:
-            return self._apply_design_format(content, title)
+            fmt = config.article_format.lower()
 
-    def _apply_template_format(self, content: str, title: str) -> str:
-        """应用HTML模板格式化"""
+            # 自动发布，不保存最终文章
+            if config.format_publish:
+                if fmt == "markdown":
+                    content = f"# {content_result.title}\n\n{content_result.content}"
+                elif fmt == "text":
+                    content = f"{content_result.title}\n\n{content_result.content}"
 
-        # 读取模板
-        template_tool = ReadTemplateTool()
-        template_html = template_tool.run()  # 使用默认模板选择逻辑
+                return utils.get_format_article(f".{fmt}", content)
 
-        # 简化的模板填充
-        formatted_html = template_html.replace("{{title}}", title)
-
-        # 将markdown内容转换为HTML并填充
-        html_content = utils.get_format_article(".md", content)
-        formatted_html = formatted_html.replace("{{content}}", html_content)
-
-        return formatted_html
-
-    def _apply_design_format(self, content: str, title: str) -> str:
-        """应用设计器格式化"""
-
-        # 将markdown转换为HTML
-        html_content = utils.get_format_article(".md", content)
-
-        # 应用微信公众号样式
-        formatted_html = f"""
-        <section style="max-width: 100%; margin: 0 auto; padding: 20px; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;">
-            <h1 style="font-size: 24px; font-weight: bold; margin-bottom: 20px; color: #333; text-align: center;">{title}</h1>
-            <div style="line-height: 1.8; color: #555; font-size: 16px;">
-                {html_content}
-            </div>
-            <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px; text-align: center; color: #666;">
-                <p style="margin: 0; font-size: 14px;">— END —</p>
-            </div>
-        </section>
-        """  # noqa 501
-
-        return formatted_html
-
-    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
+    def publish_content(self, content_result: ContentResult, **kwargs) -> PublishResult:
         """发布到微信公众号"""
 
         config = Config.get_instance()
@@ -153,28 +114,11 @@ class WeChatAdapter(PlatformAdapter):
                 error_code="MISSING_CREDENTIALS",
             )
 
-        # 提取标题和摘要（只需要提取一次）
-        try:
-            title = utils.extract_title_from_content(formatted_content)
-            if not title:
-                title = "无标题文章"
-
-            digest = self._extract_digest_from_content(formatted_content)
-            if not digest:
-                digest = "AI生成的精彩内容"
-
-        except Exception as e:
-            return PublishResult(
-                success=False,
-                message=f"提取文章标题或摘要失败: {str(e)}",
-                platform_id=PlatformType.WECHAT.value,
-                error_code="CONTENT_PARSE_ERROR",
-            )
-
         # 循环向所有账号发布
         publish_results = []
         success_count = 0
-
+        # 微信不支持markdown，需要生成简单的html
+        content = self.format_content(content_result)
         for credential in valid_credentials:
             appid = credential["appid"]
             appsecret = credential["appsecret"]
@@ -182,7 +126,12 @@ class WeChatAdapter(PlatformAdapter):
 
             try:
                 result, _, success = pub2wx(
-                    title, digest, formatted_content, appid, appsecret, author
+                    content_result.title,
+                    content_result.summary,
+                    content,
+                    appid,
+                    appsecret,
+                    author,
                 )
                 publish_results.append(
                     {"appid": appid, "author": author, "success": success, "message": result}
@@ -236,10 +185,10 @@ class WeChatAdapter(PlatformAdapter):
 class XiaohongshuAdapter(PlatformAdapter):
     """小红书适配器"""
 
-    def format_content(self, content: str, title: str = "", summary: str = "") -> str:
+    def format_content(self, content_result: ContentResult, **kwargs) -> str:
         """格式化为小红书特有格式"""
-        if not title:
-            title = utils.extract_title_from_content(content)
+        title = content_result.title
+        content = content_result.content
 
         # 小红书特色：emoji、标签、分段
         formatted = f"✨ {title} ✨\n\n"
@@ -264,7 +213,7 @@ class XiaohongshuAdapter(PlatformAdapter):
 
         return formatted
 
-    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
+    def publish_content(self, content_result: ContentResult, **kwargs) -> PublishResult:
         """小红书发布（待开发）"""
         return PublishResult(
             success=False,
@@ -277,10 +226,10 @@ class XiaohongshuAdapter(PlatformAdapter):
 class DouyinAdapter(PlatformAdapter):
     """抖音适配器"""
 
-    def format_content(self, content: str, title: str = "", summary: str = "") -> str:
+    def format_content(self, content_result: ContentResult, **kwargs) -> str:
         """格式化为短视频脚本格式"""
-        if not title:
-            title = utils.extract_title_from_content(content)
+        title = content_result.title
+        content = content_result.content
 
         script = f"🎬 【视频脚本】{title}\n\n"
 
@@ -308,7 +257,7 @@ class DouyinAdapter(PlatformAdapter):
 
         return script
 
-    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
+    def publish_content(self, content_result: ContentResult, **kwargs) -> PublishResult:
         """抖音发布（待开发）"""
         return PublishResult(
             success=False,
@@ -321,13 +270,11 @@ class DouyinAdapter(PlatformAdapter):
 class ToutiaoAdapter(PlatformAdapter):
     """今日头条适配器"""
 
-    def format_content(self, content: str, title: str = "", summary: str = "") -> str:
+    def format_content(self, content_result: ContentResult, **kwargs) -> str:
         """格式化为今日头条格式"""
-        if not title:
-            title = utils.extract_title_from_content(content)
-
-        if not summary:
-            summary = self._extract_digest_from_content(content)
+        title = content_result.title
+        content = content_result.content
+        summary = content_result.summary
 
         # 今日头条偏好清晰的结构和较长的标题
         formatted = f"# {title}\n\n"
@@ -360,7 +307,7 @@ class ToutiaoAdapter(PlatformAdapter):
 
         return formatted
 
-    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
+    def publish_content(self, content_result: ContentResult, **kwargs) -> PublishResult:
         """今日头条发布（待开发）"""
         return PublishResult(
             success=False,
@@ -373,10 +320,11 @@ class ToutiaoAdapter(PlatformAdapter):
 class BaijiahaoAdapter(PlatformAdapter):
     """百家号适配器"""
 
-    def format_content(self, content: str, title: str = "", summary: str = "") -> str:
+    def format_content(self, content_result: ContentResult, **kwargs) -> str:
         """格式化为百家号格式"""
-        if not title:
-            title = utils.extract_title_from_content(content)
+        title = content_result.title
+        content = content_result.content
+        summary = content_result.summary
 
         # 百家号注重原创性和专业性
         formatted = f"# {title}\n\n"
@@ -443,7 +391,7 @@ class BaijiahaoAdapter(PlatformAdapter):
             return first_paragraph[:50] + "等核心要点"
         return "该话题的多个重要方面"
 
-    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
+    def publish_content(self, content_result: ContentResult, **kwargs) -> PublishResult:
         """百家号发布（待开发）"""
         return PublishResult(
             success=False,
@@ -456,13 +404,11 @@ class BaijiahaoAdapter(PlatformAdapter):
 class ZhihuAdapter(PlatformAdapter):
     """知乎适配器"""
 
-    def format_content(self, content: str, title: str = "", summary: str = "") -> str:
+    def format_content(self, content_result: ContentResult, **kwargs) -> str:
         """格式化为知乎格式"""
-        if not title:
-            title = utils.extract_title_from_content(content)
-
-        if not summary:
-            summary = self._extract_digest_from_content(content)
+        title = content_result.title
+        content = content_result.content
+        summary = content_result.summary
 
         # 知乎偏好问答式和深度分析
         formatted = f"# {title}\n\n"
@@ -505,7 +451,7 @@ class ZhihuAdapter(PlatformAdapter):
 
         return formatted
 
-    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
+    def publish_content(self, content_result: ContentResult, **kwargs) -> PublishResult:
         """知乎发布（待开发）"""
         return PublishResult(
             success=False,
@@ -518,10 +464,10 @@ class ZhihuAdapter(PlatformAdapter):
 class DoubanAdapter(PlatformAdapter):
     """豆瓣适配器"""
 
-    def format_content(self, content: str, title: str = "", summary: str = "") -> str:
+    def format_content(self, content_result: ContentResult, **kwargs) -> str:
         """格式化为豆瓣格式"""
-        if not title:
-            title = utils.extract_title_from_content(content)
+        title = content_result.title
+        content = content_result.content
 
         # 豆瓣偏好文艺性和个人化表达
         formatted = f"# {title}\n\n"
@@ -566,7 +512,7 @@ class DoubanAdapter(PlatformAdapter):
 
         return formatted
 
-    def publish_content(self, formatted_content: str, **kwargs) -> PublishResult:
+    def publish_content(self, content_result: ContentResult, **kwargs) -> PublishResult:
         """豆瓣发布（待开发）"""
         return PublishResult(
             success=False,

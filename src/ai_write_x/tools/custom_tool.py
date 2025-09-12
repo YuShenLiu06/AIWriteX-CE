@@ -7,7 +7,6 @@ from typing import List, Type
 from crewai.tools import BaseTool
 from pydantic import BaseModel, Field
 
-from src.ai_write_x.tools.wx_publisher import pub2wx
 from src.ai_write_x.utils import utils
 from src.ai_write_x.config.config import Config
 from src.ai_write_x.utils import log
@@ -115,51 +114,7 @@ class ReadTemplateTool(BaseTool):
         """
 
 
-# 2. Publisher Tool
-# - 考虑到纯本地函数执行，采用回调形式
-# - 降低token消耗，降低AI出错率
-class PublisherTool:
-    def run(self, content, appid, appsecret, author):
-        try:
-            content = utils.decompress_html(content)  # 固定格式化HTML
-        except Exception as e:
-            log.print_log(f"解压html出错：{str(e)}")
-            return
-
-        # 提取审核报告中修改后的文章
-        article = utils.extract_modified_article(content)
-        msg_type = "status"
-        title, digest = None, None
-        # 提取标题和摘要
-        try:
-            title, digest = utils.extract_html(article)
-        except Exception as e:
-            log.print_log(f"从文章中提取标题、摘要信息出错: {e}", msg_type)
-            return
-
-        if title is None:
-            result = "无法提取文章标题，请检查文章是否成功生成？"
-        else:
-            # 发布到微信公众号
-            if Config.get_instance().auto_publish:
-                # 自动发布，不保存最终文章
-                result, _, _ = pub2wx(title, digest, article, appid, appsecret, author)
-            else:
-                # 非自动保存需要保存最终文章，以便后续发布
-                msg_type = "info"
-                result = "文章生成完成，请手动发布（点击上方发布菜单按钮）。"
-                dir_path = PathManager.get_article_dir()
-                with open(
-                    os.path.join(dir_path, f"{utils.sanitize_filename(title)}.html"),
-                    "w",
-                    encoding="utf-8",
-                ) as f:
-                    f.write(article)
-
-        log.print_log(result, msg_type)
-
-
-# 3. AIForge Search Tool
+# 2. AIForge Search Tool
 class AIForgeSearchToolInput(BaseModel):
     """输入参数模型"""
 
@@ -277,58 +232,3 @@ class AIForgeSearchTool(BaseTool):
         except Exception as e:
             log.print_traceback("搜索过程中发生错误：", e)
             return None
-
-
-# 4. Save article tool
-class SaveArticleTool:
-    def run(self, content, appid, appsecret, author):
-        config = Config.get_instance()
-        msg_type = "status"
-        content = utils.remove_markdown_code_blocks(content)
-        title = utils.extract_title_from_content(content)
-        if title is None:
-            result = "无法提取文章标题，请检查文章是否成功生成？"
-        else:
-            if config.auto_publish:
-                fmt = config.article_format.lower()
-
-                # HTML格式不会走到这里来
-                if fmt == "markdown":
-                    # Markdown格式提取
-                    _, digest = utils.extract_markdown_content(content)
-                elif fmt == "txt":
-                    # 文本格式提取
-                    _, digest = utils.extract_text_content(content)
-                    content = utils.markdown_to_plaintext(content)
-                else:
-                    # 未知格式，跳过
-                    result = "不支持的文件格式，仅支持[html、markdown、txt]"
-                    msg_type = "error"
-                    log.print_log(result, msg_type)
-                    return
-
-                # 自动发布，不保存最终文章
-                if config.format_publish:
-                    content = utils.get_format_article(f".{fmt}", content)
-
-                result, _, _ = pub2wx(title, digest, content, appid, appsecret, author)
-            else:
-                msg_type = "info"
-                result = "文章生成完成，请手动发布（点击上方发布菜单按钮）。"
-                dir_path = PathManager.get_article_dir()
-
-                # 如果是纯文本需要提取，其他直接保存原始内容，不再处理
-                fmt = config.article_format.lower()
-                if fmt == "txt":
-                    content = utils.markdown_to_plaintext(content)
-                elif fmt == "markdown":
-                    fmt = "md"  # 使用标准后缀
-
-                with open(
-                    os.path.join(dir_path, f"{utils.sanitize_filename(title)}.{fmt}"),
-                    "w",
-                    encoding="utf-8",
-                ) as f:
-                    f.write(content)
-
-        log.print_log(result, msg_type)
