@@ -113,11 +113,10 @@ creative_config:
 ```  
   
 > **想象一下**：李白用莎士比亚戏剧的形式来评论现代科技发展，会是怎样的奇妙体验？这就是 AIWriteX 创意系统的魅力所在！  
-> **独创玩法，喜欢点个Star哈⭐ ~**  
   
 ---
 
-### 个性化功能（配置）
+### 更多功能（配置）
 
 通过 `config.yaml` 和 `aiforge.toml` 配置文件，实现高度个性化的功能（推荐使用界面/软件模式编辑配置），以下是关键配置项说明：
 
@@ -193,45 +192,7 @@ uv pip install -r requirements.txt
 
 ## 🔍 问题定位
 
-遇到问题时，请根据运行模式查看日志并提交 Issue。
-
-### 开发模式
-- **界面模式**：
-  - 检查 `logs/` 目录下的日志文件，如 `UI_2025-05-20.log`
-  - 复制相关日志内容，提交至 [Issues](https://github.com/iniwap/AIWriteX/issues)
-- **无界面模式**：
-  - 查看命令行输出日志，复制相关错误信息，提交至 [Issues](https://github.com/iniwap/AIWriteX/issues)
-- **CrewAI 版本问题**：
-  - 不同 CrewAI 版本日志输出差异较大，建议临时切换到稳定版本查看详细过程日志：
-    ```shell
-    pip uninstall crewai
-    pip install crewai==0.102.0
-    ```
-  - 如果问题仍未解决，提交日志至 [Issues](https://github.com/iniwap/AIWriteX/issues)
-  - 恢复最新版本：
-    ```shell
-    pip uninstall crewai
-    pip install crewai
-    ```
-
-### 软件模式
-- 打开软件界面，选择 `文件 -> 日志 -> UI_2025-05-20.log`（选择当天日志）
-- 点击打开日志文件，复制内容，提交至 [Issues](https://github.com/iniwap/AIWriteX/issues)
-
-### AIForge 相关问题
-**[AIForge](https://github.com/iniwap/AIForge)是我自研的类AIPy库（功能远超AIPy，强大到无法想象）**
-- **正常现象**：
-  - 并非所有话题都能搜索到结果，失败属正常，任务会继续执行
-  - 搜索代码生成可能出现错误，可忽略（系统有自动纠错机制，后续运行会修复）
-- **搜索缓存优化**：
-  - 搜索代码生成具有随机性，启用AIForge缓存模式(`aiforge.toml``cache.code`enabled=True)时，多运行几次可提升效果
-- **搜索引擎限制**：
-  - 由于搜索引擎限制或人工验证，偶尔搜索无结果，属正常现象，不影响整体运行
-- **⚠️ OpenRouter 免费服务限制**：
-  - **免费 OpenRouter 可能不稳定**，运行失败时建议等待用户较少时重试
-  - 每个账号每日约支持 5 次执行，失败后请切换账号（修改 `config.yaml` 中的 `api.OpenRouter.key_index`）
-
-> **⚠️ 注意**：免费 OpenRouter 服务可能因高负载导致不稳定，请合理安排运行时间或切换账号以确保成功运行。
+遇到问题时，请根据运行模式查看日志并提交 [Issues](https://github.com/iniwap/AIWriteX/issues)
 
 ### 常见问题
 请查看`close`(已关闭)的[Issues](https://github.com/iniwap/AIWriteX/issues?q=is%3Aissue%20state%3Aclosed)，以便了解大家常遇到且已经解决的问题。
@@ -321,36 +282,6 @@ uv pip install -r requirements.txt
   - 关于此的 [官方解释](https://developers.weixin.qq.com/doc/service/guide/product/message/Batch_Sends.html)（愣是看的云里雾里，WDNMD，为什么会有这么逆天的产品）
 
 > **⚠️ 注意**：2025 年 7 月后，非认证账号可能将面临自动化发布限制（只能发布到草稿，需要后台操作发布草稿，发布后会显示到公众号文章列表）。
-
-### 关于软件模式
-
-软件模式为非技术用户提供快速体验：
-
-- **安装软件**：为支持软件模式，进行了大量调试。请点个 ⭐ 支持！
-- **IP 白名单**：
-  - 家庭网络动态 IP 需在微信后台手动更新白名单
-  - 使用固定 IP 的代理可提升稳定性
-- **无 UI 运行**：在服务器上运行无需 UI 时，可删除 `gui` 和 `main` 代码，直接以非 UI 模式运行
-
-> **⚠️ 注意**：运行软件模式前，需确保 IP 已添加至微信后台白名单，否则 API 访问将失败。
-
-### 关于DeepSeek
-
-为了大家能用上DeepSeek，我怒冲10元进行适配调试，给个Star吧~🙏
-
-- CrewAI框架默认不支持DeepSeek，需要手动创建（LiteLLM支持）
-- DeepSeek在`模板填充阶段`速度较慢，请耐心等待（速度似乎不如OpenRouter的DeepSeek）
-- 使用DeepSeek请注意**费用消耗**
-
-
-## 🤝 贡献&致谢
-### 贡献
-- 提交代码以及优化建议，新功能等等
-- 分享自动发文功能的新场景或改进点  
-### 感谢 
-- 感谢 [AIForge](https://github.com/iniwap/AIForge)开源库 
-- 感谢 ChatGPT、Grok、Gemini、Deepseek等
-- 感谢所有贡献者和社区支持
 
 ## 📩 联系我们
 如需了解配置详情或扩展、定制功能、商业授权，请联系QQ 522765228
