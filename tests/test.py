@@ -51,7 +51,6 @@ test_llm_support()
 
 # print(utils.markdown_to_plaintext(article))
 
-# print(utils.extract_modified_article(article))
 
 config = Config.get_instance()
 config.load_config()

@@ -451,6 +451,18 @@ class ConfigEditor:
         # 发布配置区块
         publish_layout = [
             [
+                sg.Text("发布平台：", size=(15, 1), tooltip="选择内容发布的目标平台"),
+                sg.Combo(
+                    ["微信公众号", "小红书", "抖音", "今日头条", "百家号", "知乎", "豆瓣"],
+                    default_value=self._get_platform_display_name(self.config.publish_platform),
+                    key="-PUBLISH_PLATFORM-",
+                    size=(15, 1),
+                    readonly=True,
+                    tooltip="选择内容发布的目标平台",
+                    disabled=True,
+                ),
+            ],
+            [
                 sg.Text("文章发布：", size=(15, 1), tooltip=tips["auto_publish"]),
                 sg.Checkbox(
                     "自动发布",
@@ -885,6 +897,211 @@ class ConfigEditor:
             ]
         ]
 
+    def create_creative_tab(self):
+        """创建创意模式配置标签页"""
+        config = self.config.get_config()
+        creative_config = config.get("creative_config", {})
+
+        # 风格转换配置
+        style_config = creative_config.get("style_transform", {})
+        style_layout = [
+            [
+                sg.Checkbox(
+                    "启用风格转换",
+                    default=style_config.get("enabled", False),
+                    key="-STYLE_TRANSFORM_ENABLED-",
+                    enable_events=True,
+                    tooltip="启用文章变身术模块",
+                    size=(15, 1),
+                )
+            ],
+            [
+                sg.Text("风格类型:", size=(12, 1)),
+                sg.Combo(
+                    [
+                        "莎士比亚戏剧",
+                        "侦探小说",
+                        "科幻小说",
+                        "古典诗词",
+                        "现代诗歌",
+                        "学术论文",
+                        "新闻报道",
+                    ],
+                    default_value=self._get_style_display_name(
+                        style_config.get("style_target", "shakespeare")
+                    ),
+                    key="-STYLE_TARGET-",
+                    size=(25, 1),
+                    readonly=True,
+                    disabled=not style_config.get("enabled", False),
+                    tooltip="选择文体转换风格",
+                ),
+            ],
+        ]
+
+        # 时空穿越配置
+        time_config = creative_config.get("time_travel", {})
+        time_layout = [
+            [
+                sg.Checkbox(
+                    "启用时空穿越",
+                    default=time_config.get("enabled", False),
+                    key="-TIME_TRAVEL_ENABLED-",
+                    enable_events=True,
+                    tooltip="启用时空穿越写作模块",
+                    size=(15, 1),
+                )
+            ],
+            [
+                sg.Text("时空视角:", size=(12, 1)),
+                sg.Combo(
+                    ["古代视角", "现代视角", "未来视角"],
+                    default_value=self._get_time_display_name(
+                        time_config.get("time_perspective", "ancient")
+                    ),
+                    key="-TIME_PERSPECTIVE-",
+                    size=(25, 1),
+                    readonly=True,
+                    disabled=not time_config.get("enabled", False),
+                    tooltip="选择时空视角",
+                ),
+            ],
+        ]
+
+        # 角色扮演配置
+        role_config = creative_config.get("role_play", {})
+        current_role = role_config.get("role_character", "libai")
+        custom_character = role_config.get("custom_character", "")
+
+        role_layout = [
+            [
+                sg.Checkbox(
+                    "启用角色扮演",
+                    default=role_config.get("enabled", False),
+                    key="-ROLE_PLAY_ENABLED-",
+                    enable_events=True,
+                    tooltip="启用角色扮演内容生成模块",
+                    size=(15, 1),
+                )
+            ],
+            [
+                sg.Text("角色类型:", size=(12, 1)),
+                sg.Combo(
+                    self._get_all_role_display_names(),
+                    default_value=self._get_role_display_name(current_role),
+                    key="-ROLE_CHARACTER-",
+                    size=(25, 1),
+                    readonly=True,
+                    disabled=not role_config.get("enabled", False),
+                    enable_events=True,
+                    tooltip="选择角色身份或自定义人物",
+                ),
+            ],
+            [
+                sg.Text("自定义人物:", size=(12, 1)),
+                sg.Input(
+                    default_text=custom_character,
+                    key="-CUSTOM_CHARACTER-",
+                    size=(25, 1),
+                    disabled=current_role != "custom" or not role_config.get("enabled", False),
+                    tooltip="输入要模仿的人物名称，如：李白、周杰伦、鲁迅等",
+                ),
+            ],
+        ]
+
+        # 组合模式配置
+        combination_layout = [
+            [
+                sg.Checkbox(
+                    "允许组合使用",
+                    default=creative_config.get("combination_mode", False),
+                    key="-COMBINATION_MODE-",
+                    tooltip="允许同时启用多个创意模块",
+                    size=(15, 1),
+                )
+            ],
+            [
+                sg.Text(
+                    "组合模式说明：启用后可同时使用多个创意模块，按顺序应用变换效果",
+                    size=(50, 2),
+                    text_color="gray",
+                )
+            ],
+        ]
+
+        # 主布局，使用Frame分组并确保充满和对齐
+        content_layout = [
+            [
+                sg.Frame(
+                    "风格转换",
+                    style_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
+                    size=(460, 80),
+                )
+            ],
+            [
+                sg.Frame(
+                    "时空穿越",
+                    time_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
+                    size=(460, 80),
+                )
+            ],
+            [
+                sg.Frame(
+                    "角色扮演",
+                    role_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
+                    size=(460, 120),
+                )
+            ],
+            [
+                sg.Frame(
+                    "组合模式",
+                    combination_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
+                    size=(460, 100),
+                )
+            ],
+            [sg.VPush()],  # 垂直填充，将按钮推到底部
+            [
+                sg.Button("保存配置", key="-SAVE_CREATIVE_CONFIG-"),
+                sg.Button("恢复默认", key="-RESET_CREATIVE_CONFIG-"),
+                sg.Push(),  # 水平填充，将按钮推到左侧
+            ],
+        ]
+
+        # 使用Column包装，确保充满整个标签页
+        return [
+            [
+                sg.Column(
+                    content_layout,
+                    expand_x=True,
+                    expand_y=True,
+                    pad=(10, 10),
+                    scrollable=True,
+                    vertical_scroll_only=True,
+                    size=(480, 550),
+                )
+            ]
+        ]
+
     def create_layout(self):
         """创建主布局"""
         return [
@@ -892,6 +1109,7 @@ class ConfigEditor:
                 sg.TabGroup(
                     [
                         [sg.Tab("基础", self.create_base_tab(), key="-TAB_BASE-")],
+                        [sg.Tab("创意", self.create_creative_tab(), key="-TAB_CREATIVE-")],
                         [sg.Tab("热搜平台", self.create_platforms_tab(), key="-TAB_PLATFORM-")],
                         [sg.Tab("微信公众号*", self.create_wechat_tab(), key="-TAB_WECHAT-")],
                         [sg.Tab("大模型API*", self.create_api_tab(), key="-TAB_API-")],
@@ -961,6 +1179,157 @@ class ConfigEditor:
         mac_clipboard_events.extend(["-ALI_API_KEY-", "-AIFORGE_API_KEY-"])
 
         return mac_clipboard_events
+
+    def _get_style_display_name(self, style_key):
+        """获取风格的显示名称"""
+        style_mapping = {
+            "shakespeare": "莎士比亚戏剧",
+            "detective": "侦探小说",
+            "scifi": "科幻小说",
+            "classical_poetry": "古典诗词",
+            "modern_poetry": "现代诗歌",
+            "academic": "学术论文",
+            "news": "新闻报道",
+        }
+        return style_mapping.get(style_key, "莎士比亚戏剧")
+
+    def _get_style_key(self, display_name):
+        """获取风格的配置键"""
+        display_mapping = {
+            "莎士比亚戏剧": "shakespeare",
+            "侦探小说": "detective",
+            "科幻小说": "scifi",
+            "古典诗词": "classical_poetry",
+            "现代诗歌": "modern_poetry",
+            "学术论文": "academic",
+            "新闻报道": "news",
+        }
+        return display_mapping.get(display_name, "shakespeare")
+
+    def _get_time_display_name(self, time_key):
+        """获取时空视角的显示名称"""
+        time_mapping = {"ancient": "古代视角", "modern": "现代视角", "future": "未来视角"}
+        return time_mapping.get(time_key, "古代视角")
+
+    def _get_time_key(self, display_name):
+        """获取时空视角的配置键"""
+        display_mapping = {"古代视角": "ancient", "现代视角": "modern", "未来视角": "future"}
+        return display_mapping.get(display_name, "ancient")
+
+    def _get_all_role_display_names(self):
+        """获取所有角色的显示名称列表"""
+        return [
+            "李白（浪漫主义诗人）",
+            "杜甫（现实主义诗人）",
+            "苏轼（豪放派词人）",
+            "李清照（婉约派词人）",
+            "曹雪芹（红楼梦作者）",
+            "施耐庵（水浒传作者）",
+            "吴承恩（西游记作者）",
+            "蒲松龄（聊斋志异作者）",
+            "鲁迅（现代文学奠基人）",
+            "老舍（人民艺术家）",
+            "巴金（现代作家）",
+            "钱钟书（学者作家）",
+            "金庸（武侠小说大师）",
+            "古龙（新派武侠代表）",
+            "白岩松（央视主持人）",
+            "崔永元（知名主持人）",
+            "杨澜（媒体人）",
+            "鲁豫（访谈节目主持人）",
+            "周杰伦（流行音乐天王）",
+            "邓丽君（华语歌坛传奇）",
+            "李荣浩（创作型歌手）",
+            "郭德纲（相声演员）",
+            "赵本山（小品演员）",
+            "自定义人物",
+        ]
+
+    def _get_role_display_name(self, role_key):
+        """获取角色的显示名称"""
+        role_mapping = {
+            "libai": "李白（浪漫主义诗人）",
+            "dufu": "杜甫（现实主义诗人）",
+            "sushi": "苏轼（豪放派词人）",
+            "liqingzhao": "李清照（婉约派词人）",
+            "caoxueqin": "曹雪芹（红楼梦作者）",
+            "shinaian": "施耐庵（水浒传作者）",
+            "wuchengen": "吴承恩（西游记作者）",
+            "pusonglin": "蒲松龄（聊斋志异作者）",
+            "luxun": "鲁迅（现代文学奠基人）",
+            "laoshe": "老舍（人民艺术家）",
+            "bajin": "巴金（现代作家）",
+            "qianjunru": "钱钟书（学者作家）",
+            "jinyong": "金庸（武侠小说大师）",
+            "gulongxia": "古龙（新派武侠代表）",
+            "baiyansong": "白岩松（央视主持人）",
+            "cuiyongyuan": "崔永元（知名主持人）",
+            "yanglan": "杨澜（媒体人）",
+            "luyu": "鲁豫（访谈节目主持人）",
+            "zhoujielun": "周杰伦（流行音乐天王）",
+            "denglijun": "邓丽君（华语歌坛传奇）",
+            "lironghao": "李荣浩（创作型歌手）",
+            "guodegang": "郭德纲（相声演员）",
+            "zhaobenshang": "赵本山（小品演员）",
+            "custom": "自定义人物",
+        }
+        return role_mapping.get(role_key, "李白（浪漫主义诗人）")
+
+    def _get_role_key(self, display_name):
+        """获取角色的配置键"""
+        display_mapping = {
+            "李白（浪漫主义诗人）": "libai",
+            "杜甫（现实主义诗人）": "dufu",
+            "苏轼（豪放派词人）": "sushi",
+            "李清照（婉约派词人）": "liqingzhao",
+            "曹雪芹（红楼梦作者）": "caoxueqin",
+            "施耐庵（水浒传作者）": "shinaian",
+            "吴承恩（西游记作者）": "wuchengen",
+            "蒲松龄（聊斋志异作者）": "pusonglin",
+            "鲁迅（现代文学奠基人）": "luxun",
+            "老舍（人民艺术家）": "laoshe",
+            "巴金（现代作家）": "bajin",
+            "钱钟书（学者作家）": "qianjunru",
+            "金庸（武侠小说大师）": "jinyong",
+            "古龙（新派武侠代表）": "gulongxia",
+            "白岩松（央视主持人）": "baiyansong",
+            "崔永元（知名主持人）": "cuiyongyuan",
+            "杨澜（媒体人）": "yanglan",
+            "鲁豫（访谈节目主持人）": "luyu",
+            "周杰伦（流行音乐天王）": "zhoujielun",
+            "邓丽君（华语歌坛传奇）": "denglijun",
+            "李荣浩（创作型歌手）": "lironghao",
+            "郭德纲（相声演员）": "guodegang",
+            "赵本山（小品演员）": "zhaobenshang",
+            "自定义人物": "custom",
+        }
+        return display_mapping.get(display_name, "libai")
+
+    def _get_platform_display_name(self, platform_key):
+        """获取平台的显示名称"""
+        platform_mapping = {
+            "wechat": "微信公众号",
+            "xiaohongshu": "小红书",
+            "douyin": "抖音",
+            "toutiao": "今日头条",
+            "baijiahao": "百家号",
+            "zhihu": "知乎",
+            "douban": "豆瓣",
+        }
+        return platform_mapping.get(platform_key, "微信公众号")
+
+    def _get_platform_key(self, display_name):
+        """获取平台的配置键"""
+        display_mapping = {
+            "微信公众号": "wechat",
+            "小红书": "xiaohongshu",
+            "抖音": "douyin",
+            "今日头条": "toutiao",
+            "百家号": "baijiahao",
+            "知乎": "zhihu",
+            "豆瓣": "douban",
+        }
+        return display_mapping.get(display_name, "wechat")
 
     def run(self):
         while True:
@@ -1376,6 +1745,7 @@ class ConfigEditor:
                     self.window["-FONT_COMBO-"].update(disabled=False)
             elif event.startswith("-SAVE_BASE-"):
                 config = self.config.get_config().copy()
+                config["publish_platform"] = self._get_platform_key(values["-PUBLISH_PLATFORM-"])
                 config["auto_publish"] = values["-AUTO_PUBLISH-"]
                 config["format_publish"] = values["-FORMAT_PUBLISH-"]
                 config["use_template"] = values["-USE_TEMPLATE-"]
@@ -1812,6 +2182,174 @@ class ConfigEditor:
                         else:
                             self.window[sendall_key].update(disabled=True)
                             self.window[tag_id_key].update(disabled=True)
+
+            # 创意模式相关事件
+            elif event in [
+                "-STYLE_TRANSFORM_ENABLED-",
+                "-TIME_TRAVEL_ENABLED-",
+                "-ROLE_PLAY_ENABLED-",
+            ]:
+                # 动态启用/禁用相关控件
+                if event == "-STYLE_TRANSFORM_ENABLED-":
+                    enabled = values["-STYLE_TRANSFORM_ENABLED-"]
+                    self.window["-STYLE_TARGET-"].update(disabled=not enabled)
+                elif event == "-TIME_TRAVEL_ENABLED-":
+                    enabled = values["-TIME_TRAVEL_ENABLED-"]
+                    self.window["-TIME_PERSPECTIVE-"].update(disabled=not enabled)
+                elif event == "-ROLE_PLAY_ENABLED-":
+                    enabled = values["-ROLE_PLAY_ENABLED-"]
+                    self.window["-ROLE_CHARACTER-"].update(disabled=not enabled)
+                    # 根据当前选择决定是否启用自定义输入框
+                    current_role = self._get_role_key(values["-ROLE_CHARACTER-"])
+                    self.window["-CUSTOM_CHARACTER-"].update(
+                        disabled=not enabled or current_role != "custom"
+                    )
+
+            elif event == "-ROLE_CHARACTER-":
+                selected_role = self._get_role_key(values["-ROLE_CHARACTER-"])
+                enabled = values["-ROLE_PLAY_ENABLED-"]
+
+                # 当选择"自定义"时启用输入框，否则禁用
+                if selected_role == "custom":
+                    self.window["-CUSTOM_CHARACTER-"].update(disabled=not enabled)
+                else:
+                    self.window["-CUSTOM_CHARACTER-"].update(disabled=True, value="")
+
+                self.window.refresh()
+
+            elif event == "-SAVE_CREATIVE_CONFIG-":
+                config = self.config.get_config().copy()
+
+                # 构建创意配置
+                selected_role = self._get_role_key(values["-ROLE_CHARACTER-"])
+                custom_character = values["-CUSTOM_CHARACTER-"] if selected_role == "custom" else ""
+
+                creative_config = {
+                    "style_transform": {
+                        "enabled": values["-STYLE_TRANSFORM_ENABLED-"],
+                        "style_target": self._get_style_key(values["-STYLE_TARGET-"]),
+                        "available_styles": [
+                            "shakespeare",
+                            "detective",
+                            "scifi",
+                            "classical_poetry",
+                            "modern_poetry",
+                            "academic",
+                            "news",
+                        ],
+                    },
+                    "time_travel": {
+                        "enabled": values["-TIME_TRAVEL_ENABLED-"],
+                        "time_perspective": self._get_time_key(values["-TIME_PERSPECTIVE-"]),
+                        "available_perspectives": ["ancient", "modern", "future"],
+                    },
+                    "role_play": {
+                        "enabled": values["-ROLE_PLAY_ENABLED-"],
+                        "role_character": selected_role,
+                        "custom_character": custom_character,
+                        "available_roles": [
+                            # 古典诗词
+                            "libai",
+                            "dufu",
+                            "sushi",
+                            "liqingzhao",
+                            # 古典小说
+                            "caoxueqin",
+                            "shinaian",
+                            "wuchengen",
+                            "pusonglin",
+                            # 现代文学
+                            "luxun",
+                            "laoshe",
+                            "bajin",
+                            "qianjunru",
+                            # 武侠小说
+                            "jinyong",
+                            "gulongxia",
+                            # 新闻主播/评论员
+                            "baiyansong",
+                            "cuiyongyuan",
+                            "yanglan",
+                            "luyu",
+                            # 音乐人
+                            "zhoujielun",
+                            "denglijun",
+                            "lironghao",
+                            # 相声曲艺
+                            "guodegang",
+                            "zhaobenshang",
+                            # 自定义
+                            "custom",
+                        ],
+                    },
+                    "combination_mode": values["-COMBINATION_MODE-"],
+                }
+
+                # 确定主创意模式
+                enabled_modes = []
+                if creative_config["style_transform"]["enabled"]:
+                    enabled_modes.append("style_transform")
+                if creative_config["time_travel"]["enabled"]:
+                    enabled_modes.append("time_travel")
+                if creative_config["role_play"]["enabled"]:
+                    enabled_modes.append("role_play")
+
+                # 设置 creative_mode
+                if len(enabled_modes) == 0:
+                    config["creative_mode"] = ""
+                elif len(enabled_modes) == 1:
+                    config["creative_mode"] = enabled_modes[0]
+                elif creative_config["combination_mode"]:
+                    config["creative_mode"] = ",".join(enabled_modes)  # 组合模式
+                else:
+                    # 不允许组合时，只取第一个
+                    config["creative_mode"] = enabled_modes[0]
+                    sg.popup_warning(
+                        "不允许组合模式时，只会使用第一个启用的创意模块",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
+
+                config["creative_config"] = creative_config
+
+                if self.config.save_config(config):
+                    sg.popup(
+                        "创意配置已保存",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
+                else:
+                    sg.popup_error(
+                        self.config.error_message,
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
+
+            elif event == "-RESET_CREATIVE_CONFIG-":
+                # 重置为默认配置
+                config = self.config.get_config().copy()
+                config["creative_mode"] = ""
+                config["creative_config"] = self.config.default_config["creative_config"]
+
+                if self.config.save_config(config):
+                    # 更新界面
+                    self.update_tab("-TAB_CREATIVE-", self.create_creative_tab())
+                    sg.popup(
+                        "创意配置已重置",
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
+                else:
+                    sg.popup_error(
+                        self.config.error_message,
+                        title="系统提示",
+                        icon=utils.get_gui_icon(),
+                        keep_on_top=True,
+                    )
 
         self.window.close()
 

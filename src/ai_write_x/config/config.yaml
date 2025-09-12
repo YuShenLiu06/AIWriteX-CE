@@ -143,3 +143,67 @@ auto_publish: true
 article_format: html
 format_publish: true
 creative_mode: ""
+creative_config:
+  style_transform:
+    enabled: false
+    style_target: "shakespeare"
+    available_styles:
+      - "shakespeare"
+      - "detective"
+      - "scifi"
+      - "classical_poetry"
+      - "modern_poetry"
+      - "academic"
+      - "news"
+  time_travel:
+    enabled: false
+    time_perspective: "ancient"
+    available_perspectives:
+      - "ancient"
+      - "modern"
+      - "future"
+  role_play:
+    enabled: false
+    role_character: "libai" # 默认选择
+    available_roles:
+      # 古典诗词
+      - "libai" # 李白 - 浪漫主义诗人
+      - "dufu" # 杜甫 - 现实主义诗人
+      - "sushi" # 苏轼 - 豪放派词人
+      - "liqingzhao" # 李清照 - 婉约派词人
+
+      # 古典小说
+      - "caoxueqin" # 曹雪芹 - 《红楼梦》作者
+      - "shinaian" # 施耐庵 - 《水浒传》作者
+      - "wuchengen" # 吴承恩 - 《西游记》作者
+      - "pusonglin" # 蒲松龄 - 《聊斋志异》作者
+
+      # 现代文学
+      - "luxun" # 鲁迅 - 现代文学奠基人
+      - "laoshe" # 老舍 - 人民艺术家
+      - "bajin" # 巴金 - 现代作家
+      - "qianjunru" # 钱钟书 - 学者作家
+
+      # 武侠小说
+      - "jinyong" # 金庸 - 武侠小说大师
+      - "gulongxia" # 古龙 - 新派武侠代表
+
+      # 新闻主播/评论员
+      - "baiyansong" # 白岩松 - 央视主持人
+      - "cuiyongyuan" # 崔永元 - 知名主持人
+      - "yanglan" # 杨澜 - 媒体人
+      - "luyu" # 鲁豫 - 访谈节目主持人
+
+      # 音乐人
+      - "zhoujielun" # 周杰伦 - 流行音乐天王
+      - "denglijun" # 邓丽君 - 华语歌坛传奇
+      - "lironghao" # 李荣浩 - 创作型歌手
+
+      # 相声曲艺
+      - "guodegang" # 郭德纲 - 相声演员
+      - "zhaobenshang" # 赵本山 - 小品演员
+
+      # 自定义
+      - "custom" # 自定义人物
+    custom_character: "" # 自定义人物名称
+  combination_mode: false

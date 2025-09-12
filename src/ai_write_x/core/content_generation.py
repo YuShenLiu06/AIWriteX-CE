@@ -77,9 +77,13 @@ class ContentGenerationEngine(BaseWorkflowFramework):
             result = crew.kickoff(inputs=input_data)
             if input_data.get("parse_result", True):
                 parsed_result = self._parse_result(result, input_data)
+                title = parsed_result.title
+                if not title or title.lower() == "untitled":
+                    title = input_data.get("title", None) or input_data.get("topic", "无标题")
+
             else:
                 parsed_result = ContentResult(
-                    title=input_data.get("title", "无标题"),
+                    title=input_data.get("title", None) or input_data.get("topic", "无标题"),
                     content=str(result),
                     summary="",
                     content_type=self.config.content_type,
@@ -108,7 +112,7 @@ class ContentGenerationEngine(BaseWorkflowFramework):
         parsed_content = parser.parse(str(raw_result))
 
         return ContentResult(
-            title=parsed_content.title or input_data.get("topic", "Untitled"),
+            title=parsed_content.title,
             content=parsed_content.content,
             summary=parsed_content.summary or self._generate_summary(parsed_content.content),
             content_format=parsed_content.metadata.get("content_type", "markdown"),

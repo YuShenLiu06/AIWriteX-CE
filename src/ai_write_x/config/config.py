@@ -183,6 +183,66 @@ class Config:
             "article_format": "html",
             "format_publish": True,
             "creative_mode": "",
+            "creative_config": {
+                "style_transform": {
+                    "enabled": False,
+                    "style_target": "shakespeare",
+                    "available_styles": [
+                        "shakespeare",
+                        "detective",
+                        "scifi",
+                        "classical_poetry",
+                        "modern_poetry",
+                        "academic",
+                        "news",
+                    ],
+                },
+                "time_travel": {
+                    "enabled": False,
+                    "time_perspective": "ancient",
+                    "available_perspectives": ["ancient", "modern", "future"],
+                },
+                "role_play": {
+                    "enabled": False,
+                    "role_character": "libai",
+                    "available_roles": [
+                        # 古典诗词
+                        "libai",
+                        "dufu",
+                        "sushi",
+                        "liqingzhao",
+                        # 古典小说
+                        "caoxueqin",
+                        "shinaian",
+                        "wuchengen",
+                        "pusonglin",
+                        # 现代文学
+                        "luxun",
+                        "laoshe",
+                        "bajin",
+                        "qianjunru",
+                        # 武侠小说
+                        "jinyong",
+                        "gulongxia",
+                        # 新闻主播/评论员
+                        "baiyansong",
+                        "cuiyongyuan",
+                        "yanglan",
+                        "luyu",
+                        # 音乐人
+                        "zhoujielun",
+                        "denglijun",
+                        "lironghao",
+                        # 相声曲艺
+                        "guodegang",
+                        "zhaobenshang",
+                        # 自定义
+                        "custom",
+                    ],
+                    "custom_character": "",
+                },
+                "combination_mode": False,
+            },
         }
         self.default_aiforge_config = {
             "locale": "zh",

@@ -186,7 +186,6 @@ class UnifiedContentWorkflow:
         success = False
         config = Config.get_instance()
         publish_platform = config.publish_platform
-        creative_mode = config.creative_mode
         # 构建标题：platform|topic 格式
         platform = kwargs.get("platform", "")
 
@@ -202,16 +201,7 @@ class UnifiedContentWorkflow:
             )
 
             # 2. 可选创意变换
-            if creative_mode and creative_mode in self.creative_modules:
-                # 传入工厂函数而不是让模块自己创建引擎
-                def engine_factory(config):
-                    return ContentGenerationEngine(config)
-
-                final_content = self.creative_modules[creative_mode].transform(
-                    base_content, engine_factory=engine_factory, **kwargs
-                )
-            else:
-                final_content = base_content
+            final_content = self._apply_creative_transformation(base_content, **kwargs)
 
             # 3. 转换处理（template或design）
             transform_content = self._transform_content(final_content, publish_platform, **kwargs)
@@ -227,7 +217,7 @@ class UnifiedContentWorkflow:
                 publish_result = self._publish_content(
                     transform_content, publish_platform, **kwargs
                 )
-                log.print_log(f"发布执行完成，发布结果：{publish_result.get('message')}")
+                log.print_log(f"发布完成，总结：{publish_result.get('message')}")
 
             results = {
                 "base_content": base_content,
@@ -301,6 +291,62 @@ class UnifiedContentWorkflow:
         }
 
         return engine.execute_workflow(input_data)
+
+    def _apply_creative_transformation(self, base_content, **kwargs):
+        """应用创意变换，支持组合使用"""
+
+        def create_engine(config):
+            """创建内容生成引擎的工厂方法"""
+            return ContentGenerationEngine(config)
+
+        config = Config.get_instance()
+        creative_mode = config.config.get("creative_mode", "")
+        creative_config = config.config.get("creative_config", {})
+
+        if not creative_mode:
+            return base_content
+
+        # 支持组合模式
+        modes = [mode.strip() for mode in creative_mode.split(",")]
+        current_content = base_content
+
+        for mode in modes:
+            if mode == "style_transform" and creative_config.get("style_transform", {}).get(
+                "enabled"
+            ):
+                style_config = creative_config["style_transform"]
+                module = self.creative_modules.get("style_transform")
+                if module:
+                    current_content = module.transform(
+                        current_content,
+                        style_target=style_config.get("style_target", "shakespeare"),
+                        engine_factory=create_engine,
+                        **kwargs,
+                    )
+
+            elif mode == "time_travel" and creative_config.get("time_travel", {}).get("enabled"):
+                time_config = creative_config["time_travel"]
+                module = self.creative_modules.get("time_travel")
+                if module:
+                    current_content = module.transform(
+                        current_content,
+                        time_perspective=time_config.get("time_perspective", "ancient"),
+                        engine_factory=create_engine,
+                        **kwargs,
+                    )
+
+            elif mode == "role_play" and creative_config.get("role_play", {}).get("enabled"):
+                role_config = creative_config["role_play"]
+                module = self.creative_modules.get("role_play")
+                if module:
+                    current_content = module.transform(
+                        current_content,
+                        role_character=role_config.get("role_character", "celebrity"),
+                        engine_factory=create_engine,
+                        **kwargs,
+                    )
+
+        return current_content
 
     def _get_template_workflow_config(
         self, publish_platform: str = PlatformType.WECHAT.value, **kwargs
