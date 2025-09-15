@@ -43,7 +43,7 @@ AIWriteX 独创的多维度创意变换系统，让 AI 内容创作突破传统�
   
 ### ✨ 三大创意模块
   
-#### 🎭 风格转换 (Style Transform)  
+#### 🎭 风格转换
 将同一话题转换为完全不同的文体风格，让内容焕然一新：  
   
 - **莎士比亚戏剧** - 古典英式戏剧的优雅与深邃  
@@ -54,14 +54,14 @@ AIWriteX 独创的多维度创意变换系统，让 AI 内容创作突破传统�
 - **学术论文** - 严谨理性的学术分析  
 - **新闻报道** - 客观及时的事实呈现  
   
-#### ⏰ 时空穿越 (Time Travel)  
+#### ⏰ 时空穿越
 从不同时代视角重新审视现代话题，创造跨越时空的独特内容：  
   
 - **古代视角** - 古人如何看待现代 AI 技术？  
 - **现代视角** - 当代人的理性分析与思考  
 - **未来视角** - 2050年回望今天的热点事件  
   
-#### 🎪 角色扮演 (Role Play)  
+#### 🎪 角色扮演
 以具体人物的身份和风格进行创作，每个角色都有独特的表达方式：  
   
 **古典文学大师**  
@@ -181,10 +181,10 @@ uv pip install -r requirements.txt
 
 | 网盘类型                     | 下载链接                                                                                              | 提取码  | 版本    |是否最新     |
 |-----------------------------|-------------------------------------------------------------------------------------------------------|--------|---------|------------|
-| **百度网盘**                 |[Win](https://pan.baidu.com/s/1XAGujOVUwGZE28db56gLHg?pwd=12tt) / [Mac](https://pan.baidu.com/s/1Nukeli4adGBfEzPwjtMlmQ?pwd=2qcp) |12tt / 2qcp   |V2.1.9    |✅ |
+| **百度网盘**                 |[Win](https://pan.baidu.com/s/1XAGujOVUwGZE28db56gLHg?pwd=12tt) / [Mac](https://pan.baidu.com/s/1Nukeli4adGBfEzPwjtMlmQ?pwd=2qcp) |12tt / 2qcp   |V2.1.9    |❌ |
 | **移动云盘**                 |[Win](https://caiyun.139.com/w/i/2pU912rrU0vny) / [Mac](https://caiyun.139.com/w/i/2prAJs8RjNhlv)                                 |e6q4 / p7ut   |V2.1.9    |✅         |
-| **Google Drive**            |[Win](https://drive.google.com/file/d/1IzIyvo7AOi_LakcM_rrqiTPtJkd4-MLR/view?usp=sharing)              |/      |V2.1.9    |✅         |
-| **Microsoft OneDrive**      |[Win](https://1drv.ms/u/c/c831e3cc9be11110/ESCb5aORxalMnHTQGIPPmDUBIE8BXyjzUigaet9CcjEmGA?e=xXCAoc)    |/      |V2.1.9    |✅         |
+| **Google Drive**            |[Win](https://drive.google.com/file/d/1IzIyvo7AOi_LakcM_rrqiTPtJkd4-MLR/view?usp=sharing)              |/      |V2.1.9    |❌         |
+| **Microsoft OneDrive**      |[Win](https://1drv.ms/u/c/c831e3cc9be11110/ESCb5aORxalMnHTQGIPPmDUBIE8BXyjzUigaet9CcjEmGA?e=xXCAoc)    |/      |V2.1.9    |❌         |
 
 2. 打开软件，进行必须要配置（*微信公众号AppID/AppSecret、大模型提供商的API KEY*）
 3. 点击`开始执行`

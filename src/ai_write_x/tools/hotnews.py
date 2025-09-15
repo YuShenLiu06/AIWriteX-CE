@@ -12,7 +12,7 @@
 
 import requests
 import random
-from typing import Optional, List, Dict
+from typing import Any, Optional, List, Dict
 from bs4 import BeautifulSoup
 
 from src.ai_write_x.utils import log
@@ -165,7 +165,7 @@ def get_platform_news(platform: str, cnt: int = 10) -> List[str]:
     return [item["title"] for item in platform_data[:cnt]]
 
 
-def select_platform_topic(platform: str, cnt: int = 10) -> str:
+def select_platform_topic(platform: Any, cnt: int = 10) -> str:
     """
     获取指定平台的新闻话题，并按排名加权随机选择一个话题。
     若无话题，返回默认话题。

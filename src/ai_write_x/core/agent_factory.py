@@ -24,7 +24,7 @@ class AgentFactory:
         """注册工具类"""
         self._tool_registry.register_tool(name, tool_class)
 
-    def _get_llm(self, llm_config: Dict[str, Any] = None) -> Optional[LLM]:
+    def _get_llm(self, llm_config: Dict[str, Any] | None = None) -> Optional[LLM]:
         """获取LLM实例，支持缓存"""
         config = Config.get_instance()
 
@@ -46,7 +46,7 @@ class AgentFactory:
             self._llm_cache[cache_key] = LLM(**llm_config)
         return self._llm_cache[cache_key]
 
-    def create_agent(self, config: AgentConfig, custom_llm: LLM = None) -> Agent:
+    def create_agent(self, config: AgentConfig, custom_llm: LLM | None = None) -> Agent:
         """创建智能体实例"""
         tools = []
         if config.tools:

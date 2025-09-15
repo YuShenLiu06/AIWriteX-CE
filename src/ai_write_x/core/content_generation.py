@@ -10,6 +10,7 @@ from src.ai_write_x.core.base_framework import (
 from src.ai_write_x.core.agent_factory import AgentFactory
 from src.ai_write_x.core.monitoring import WorkflowMonitor
 from src.ai_write_x.utils.content_parser import ContentParser
+from src.ai_write_x.utils import utils
 
 
 class ContentGenerationEngine(BaseWorkflowFramework):
@@ -75,16 +76,18 @@ class ContentGenerationEngine(BaseWorkflowFramework):
             )
 
             result = crew.kickoff(inputs=input_data)
+            result = utils.remove_code_blocks(str(result))
             if input_data.get("parse_result", True):
                 parsed_result = self._parse_result(result, input_data)
-                title = parsed_result.title
-                if not title or title.lower() == "untitled":
-                    title = input_data.get("title", None) or input_data.get("topic", "无标题")
+                if not parsed_result.title or parsed_result.title.lower() == "untitled":
+                    parsed_result.title = input_data.get("title", None) or input_data.get(
+                        "topic", "无标题"
+                    )
 
             else:
                 parsed_result = ContentResult(
                     title=input_data.get("title", None) or input_data.get("topic", "无标题"),
-                    content=str(result),
+                    content=result,
                     summary="",
                     content_type=self.config.content_type,
                     content_format=input_data.get("content_format", "html"),
@@ -107,9 +110,9 @@ class ContentGenerationEngine(BaseWorkflowFramework):
             duration = time.time() - start_time
             self.monitor.track_execution(self.config.name, duration, success)
 
-    def _parse_result(self, raw_result: Any, input_data: Dict[str, Any]) -> ContentResult:
+    def _parse_result(self, raw_result: str, input_data: Dict[str, Any]) -> ContentResult:
         parser = ContentParser()
-        parsed_content = parser.parse(str(raw_result))
+        parsed_content = parser.parse(raw_result)
 
         return ContentResult(
             title=parsed_content.title,

@@ -1,3 +1,4 @@
+from typing import Any, Dict
 import os
 import yaml
 import threading
@@ -39,7 +40,7 @@ class Config:
         if hasattr(self, "_initialized"):
             return
         self._initialized = True
-        self.config = None
+        self.config: Dict[Any, Any] = {}
         self.aiforge_config = None
         self.error_message = None
         self.config_path = self.__get_config_path()

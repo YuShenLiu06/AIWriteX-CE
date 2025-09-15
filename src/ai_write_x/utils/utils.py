@@ -303,19 +303,18 @@ def is_llm_supported(llm, key_name, env_vars):
     return False
 
 
-def remove_markdown_code_blocks(content):
+def remove_code_blocks(content):
     """
     移除所有Markdown代码块标识但保留内容
     处理以下格式：
       ```markdown 内容 ```
+      ```html 内容 ```
+      ```javascript 内容 ```
       ``` 内容 ```
       `内容`
     """
-    # 移除多行代码块标识（带markdown标签）
-    content = re.sub(r"```markdown\s*", "", content, flags=re.IGNORECASE)
-
-    # 移除通用多行代码块标识
-    content = re.sub(r"```\s*", "", content)
+    # 移除多行代码块标识（带任何语言标签）
+    content = re.sub(r"```\w*\s*", "", content, flags=re.IGNORECASE)
 
     # 移除单行内联代码块标识
     content = re.sub(r"`([^`]*)`", r"\1", content)
