@@ -98,6 +98,7 @@ def run_crew_in_process(inputs, log_queue, config_data=None):
 
         # 发送进程结束消息
         log_queue.put({"type": "system", "message": "任务进程即将退出", "timestamp": time.time()})
+        time.sleep(0.5)
         os._exit(0)
 
 

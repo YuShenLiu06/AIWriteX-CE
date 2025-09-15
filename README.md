@@ -140,7 +140,6 @@ creative_config:
 | **use_template**           | 是否使用内置模板 ，不使用则AI根据要求直接生成文章HTML                           |
 | **template**               | 指定模板文件名（如 `template1`），为空或不存在时随机选择                         |
 | **template_category**      | 模板分类，精确匹配话题类型（如健康养生），需分类下存在指定模板                    |
-| **need_auditor**           | 是否启用质量审核 agent/task，关闭可降低 token 消耗（默认关闭）                  |
 | **use_compress**           | 是否压缩模板上传，降低 token 消耗                                             |
 | **aiforge_search_max_results**| AIForge 最大返回搜索结果条数，控制搜索广度                                  |
 | **aiforge_search_min_results**| AIForge 最小返回搜索结果条数，越大内容越丰富，但失败率越高                   |

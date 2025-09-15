@@ -133,7 +133,6 @@ img_api:
 use_template: true
 template_category: ""
 template: ""
-need_auditor: false
 use_compress: true
 aiforge_search_max_results: 10
 aiforge_search_min_results: 1

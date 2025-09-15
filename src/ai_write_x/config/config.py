@@ -173,7 +173,6 @@ class Config:
             "use_template": True,
             "template_category": "",
             "template": "",
-            "need_auditor": False,
             "use_compress": True,
             "aiforge_search_max_results": 10,
             "aiforge_search_min_results": 1,
@@ -434,13 +433,6 @@ class Config:
             if self.config is None:
                 raise ValueError("配置未加载")
             return self.config["template"]
-
-    @property
-    def need_auditor(self):
-        with self._lock:
-            if self.config is None:
-                raise ValueError("配置未加载")
-            return self.config["need_auditor"]
 
     @property
     def use_compress(self):

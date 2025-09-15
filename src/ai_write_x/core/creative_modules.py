@@ -12,76 +12,37 @@ class StyleTransformModule(CreativeModule):
     """文章变身术模块"""
 
     def get_workflow_config(self, style_target: str = "shakespeare", **kwargs) -> WorkflowConfig:
-        """获取文体转换工作流配置"""
+        """文体转换工作流配置"""
 
         agents = [
             AgentConfig(
-                role="内容分析专家",
-                name="content_analyzer",
-                goal="分析原始内容的核心信息和结构",
-                backstory="你是内容分析专家，擅长提取文章精髓和核心观点",
-            ),
-            AgentConfig(
                 role="风格转换专家",
                 name="style_transformer",
-                goal=f"将内容转换为{style_target}风格",
-                backstory=f"你是文体转换大师，能够将任何内容改写成{style_target}风格，保持原意的同时完全改变表达方式",
-            ),
-            AgentConfig(
-                role="风格审核专家",
-                name="style_auditor",
-                goal="确保转换后的内容既保持原文核心信息，又完美体现目标文体特色",
-                backstory="你是文体质量审核专家，能够判断文体转换是否成功，确保内容质量和风格一致性",
+                goal=f"将内容转换为{style_target}风格并进行质量审核",
+                backstory=f"你是文体转换大师，能够将任何内容改写成{style_target}风格，同时确保质量",
             ),
         ]
 
         tasks = [
             TaskConfig(
-                name="analyze_content_structure",
-                description="""分析原始内容'{original_content}'的核心信息、逻辑结构和关键要点，为文体转换做准备。
+                name="transform_and_audit_style",
+                description=f"""将原始内容'{{original_content}}'转换为{style_target}风格。
+    转换要求：
+    1. 保持原文所有核心信息和要点的完整性
+    2. 完全采用{style_target}的表达风格和语言特色
+    3. 确保转换后内容逻辑清晰连贯
+    4. 体现{style_target}风格的典型特征
+    5. 进行质量审核和必要优化
 
-                重要要求：
-                1. 你必须返回完整的原始内容，不要进行任何摘要或删减
-                2. 不要输出分析报告，直接输出原始内容的完整文本
-                3. 保持所有段落、细节和信息的完整性
-                4. 这个步骤只是为了理解内容结构，但输出必须是完整原文""",
-                agent_name="content_analyzer",
-                expected_output="完整的原始内容（保持所有信息完整性，不是分析报告）",
-            ),
-            TaskConfig(
-                name="transform_style",
-                description=f"""根据选定的文体风格'{style_target}'，将完整内容进行创意转换。
-
-                转换要求：
-                1. 基于上一步传递的完整原始内容进行转换
-                2. 保持原文所有核心信息和要点的完整性
-                3. 完全采用{style_target}的表达风格和语言特色
-                4. 确保转换后内容逻辑清晰连贯
-                5. 体现{style_target}风格的典型特征
-
-                支持的风格包括：莎士比亚戏剧、侦探小说、科幻小说、古典诗词、现代诗歌、学术论文、新闻报道等""",
+    支持的风格：莎士比亚戏剧、侦探小说、科幻小说、古典诗词、现代诗歌、学术论文、新闻报道等""",
                 agent_name="style_transformer",
-                expected_output=f"转换为{style_target}风格的完整文章（保持原文信息完整性）",
-                context=["analyze_content_structure"],
-            ),
-            TaskConfig(
-                name="audit_style_quality",
-                description="""审核文体转换质量，确保既保持原文核心信息完整性，又完美体现目标文体特色。
-
-                审核标准：
-                1. 信息完整性：检查是否保留了原文的所有重要信息
-                2. 风格一致性：确保完全符合目标文体的表达特色
-                3. 逻辑连贯性：保证转换后内容逻辑清晰流畅
-                4. 质量优化：对转换结果进行必要的润色和优化""",
-                agent_name="style_auditor",
-                expected_output="最终优化后的文体转换文章",
-                context=["transform_style"],
+                expected_output=f"转换为{style_target}风格的优质文章",
             ),
         ]
 
         return WorkflowConfig(
-            name="style_transform",
-            description="文章变身术 - 将同一话题转换为不同文体风格",
+            name="simplified_style_transform",
+            description="文章风格转换工作流",
             workflow_type=WorkflowType.SEQUENTIAL,
             content_type=ContentType.ARTICLE,
             agents=agents,

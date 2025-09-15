@@ -435,8 +435,6 @@ class ConfigEditor:
             "- 指定分类：选择特定分类，然后从该分类下选择模板",
             "template": "选择模板：\n- 随机模板：从选定分类中随机选取模板\n"
             "- 指定模板：使用选定分类下的特定模板文件",
-            "need_auditor": "需要审核者：\n- 需要：生成文章后执行审核，文章可能更好，但token消耗更高\n"
-            "- 不需要：生成文章后直接填充模板，消耗低，文章可能略差",
             "use_compress": "压缩模板：\n- 压缩：读取模板后压缩，降低token消耗，可能影响AI解析模板\n"
             "- 不压缩：token消耗，AI可能理解更精确",
             "aiforge_search_max_results": "最大搜索数量：返回的最大搜索结果数（1~20）",
@@ -547,15 +545,6 @@ class ConfigEditor:
 
         # 生成配置区块
         generation_layout = [
-            [
-                sg.Text("审核设置：", size=(15, 1), tooltip=tips["need_auditor"]),
-                sg.Checkbox(
-                    "需要审核者",
-                    default=self.config.need_auditor,
-                    key="-NEED_AUDITOR-",
-                    tooltip=tips["need_auditor"],
-                ),
-            ],
             [
                 sg.Text("最大搜索数量：", size=(15, 1), tooltip=tips["aiforge_search_max_results"]),
                 sg.InputText(
@@ -1749,7 +1738,6 @@ class ConfigEditor:
                 config["auto_publish"] = values["-AUTO_PUBLISH-"]
                 config["format_publish"] = values["-FORMAT_PUBLISH-"]
                 config["use_template"] = values["-USE_TEMPLATE-"]
-                config["need_auditor"] = values["-NEED_AUDITOR-"]
                 config["use_compress"] = values["-USE_COMPRESS-"]
                 config["article_format"] = values["-ARTICLE_FORMAT-"]
 
@@ -1971,7 +1959,6 @@ class ConfigEditor:
                 config["auto_publish"] = self.config.default_config["auto_publish"]
                 config["format_publish"] = self.config.default_config["format_publish"]
                 config["use_template"] = self.config.default_config["use_template"]
-                config["need_auditor"] = self.config.default_config["need_auditor"]
                 config["use_compress"] = self.config.default_config["use_compress"]
                 config["article_format"] = self.config.default_config["article_format"]
                 config["aiforge_search_max_results"] = self.config.default_config[

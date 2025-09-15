@@ -59,58 +59,32 @@ class UnifiedContentWorkflow:
         config = Config.get_instance()
         # 获取目标平台
         publish_platform = kwargs.get("publish_platform", PlatformType.WECHAT.value)
+        writer_des = f"""基于话题'{{topic}}'和搜索工具获取的最新信息，撰写一篇高质量的文章。
 
-        topic_analyzer_des = """解析话题'{topic}'，确定文章的核心要点和结构。
-生成一份包含文章大纲和核心要点的报告。
-注意：
-1. 关于文章标题的日期处理：
-    - 严格检查：'{topic}'中是否已包含具体年份或日期信息
-    - 如果包含，则保留该日期信息在文章标题中
-    - 如果不包含，则文章标题不能带任何年份或日期信息
-    - 禁止自行添加当前年份或任何其他年份到文章标题中
-2. 内容中的日期处理：
-    - 如果'{topic}'包含日期，在内容中使用该日期
-    - 如果不包含，对于需要提及年份的内容，使用"20xx年"格式
-"""
-        writer_des = f"""基于生成的文章大纲和搜索工具获取的最新信息，撰写一篇高质量的文章。
-确保文章内容准确、逻辑清晰、语言流畅，并具有独到的见解。
-工具 aiforge_search_tool 使用以下参数：
+工具 aiforge_search_tool 使用参数：
     topic={{topic}}
     urls={{urls}}
-    reference_ratio={{reference_ratio}}。
+    reference_ratio={{reference_ratio}}
 
 执行步骤：
 1. 使用 aiforge_search_tool 获取关于'{{topic}}'的最新信息
-2. 根据获取的结果的类型和内容深度调整写作策略：
-    - 如果获取到有效搜索结果：
-    * 包含"参考比例"时：融合生成的文章大纲与参考文章结果的内容，并根据比例调整借鉴程度
-    * 不包含"参考比例"时：融合生成的文章大纲和与'{{topic}}'相关的搜索结果进行原创写作
-    * 用搜索结果中的真实时间替换大纲中的占位符
-        - 如果搜索结果有具体日期，直接替换"20xx年"等占位符
-        - 如果搜索结果无具体日期，使用"近期"、"最近"、"据最新数据显示"等表述
-    - 如果没有获取到有效搜索结果：
-    * 基于文章大纲进行原创写作，确保内容的完整性和可读性
-    * 将所有日期占位符（如"20xx年"）替换为通用时间表述：
-        - "近年来"、"近期"、"最近几年"
-        - "当前"、"目前"、"现阶段"
-        - "据业界观察"、"根据行业趋势"
-3. 最终检查：确保文章中不存在任何未替换的日期占位符
+2. 根据搜索结果的来源类型调整写作策略：
+    - 如果是"参考文章"结果：基于提供的参考内容进行创作，根据参考比例调整借鉴程度
+    - 如果是"搜索"结果：基于搜索到的信息进行原创写作
+    - 优先使用搜索结果中的真实发布时间和数据
+    - 如果没有获取到有效结果：使用通用时间表述进行原创写作
+3. 确保文章逻辑清晰、内容完整、语言流畅
 
-生成的文章要求：
+文章要求：
 - 标题：当{{platform}}不为空时为"{{platform}}|{{topic}}"，否则为"{{topic}}"
-- 总字数：{config.min_article_len}~{config.max_article_len}字（纯文本字数，不包括Markdown语法、空格）
-- 文章内容：仅输出最终纯文章内容，禁止包含思考过程、分析说明、字数统计等额外注释、说明"""
+- 总字数：{config.min_article_len}~{config.max_article_len}字（纯文本字数）
+- 格式：标准Markdown格式
+- 内容：仅输出最终文章内容，严禁包含思考过程或额外说明"""
 
         config = Config.get_instance()
 
         # 基础配置
         agents = [
-            AgentConfig(
-                role="话题分析专家",
-                name="topic_analyzer",
-                goal="解析话题，确定文章的核心要点和结构",
-                backstory="你是一位内容策略师",
-            ),
             AgentConfig(
                 role="内容创作专家",
                 name="writer",
@@ -122,12 +96,6 @@ class UnifiedContentWorkflow:
 
         tasks = [
             TaskConfig(
-                name="analyze_topic",
-                description=topic_analyzer_des,
-                agent_name="topic_analyzer",
-                expected_output="文章大纲",
-            ),
-            TaskConfig(
                 name="write_content",
                 description=writer_des,
                 agent_name="writer",
@@ -135,23 +103,6 @@ class UnifiedContentWorkflow:
                 context=["analyze_topic"],
             ),
         ]
-
-        # 动态添加审核（基于配置）
-        if config.need_auditor:
-            agents.append(
-                AgentConfig(
-                    role="质量审核专家", name="auditor", goal="质量审核", backstory="质量专家"
-                )
-            )
-            tasks.append(
-                TaskConfig(
-                    name="audit_content",
-                    description="质量审核",
-                    agent_name="auditor",
-                    expected_output="审核后文章",
-                    context=["write_content"],
-                )
-            )
 
         return WorkflowConfig(
             name=f"{publish_platform}_content_generation",
@@ -293,11 +244,7 @@ class UnifiedContentWorkflow:
         return engine.execute_workflow(input_data)
 
     def _apply_creative_transformation(self, base_content, **kwargs):
-        """应用创意变换，支持组合使用"""
-
-        def create_engine(config):
-            """创建内容生成引擎的工厂方法"""
-            return ContentGenerationEngine(config)
+        """创意变换，支持引擎缓存"""
 
         config = Config.get_instance()
         creative_mode = config.config.get("creative_mode", "")
@@ -310,39 +257,50 @@ class UnifiedContentWorkflow:
         modes = [mode.strip() for mode in creative_mode.split(",")]
         current_content = base_content
 
+        # 缓存引擎实例以减少重复创建开销
+        engine_cache = {}
+
+        def get_or_create_engine(mode, mode_config):
+            """获取或创建缓存的引擎实例"""
+            cache_key = f"{mode}_{hash(str(mode_config))}"
+            if cache_key not in engine_cache:
+                module = self.creative_modules.get(mode)
+                if module:
+                    workflow_config = module.get_workflow_config(**mode_config, **kwargs)
+                    engine_cache[cache_key] = ContentGenerationEngine(workflow_config)
+            return engine_cache.get(cache_key)
+
         for mode in modes:
-            if mode == "style_transform" and creative_config.get("style_transform", {}).get(
-                "enabled"
-            ):
-                style_config = creative_config["style_transform"]
-                module = self.creative_modules.get("style_transform")
-                if module:
+            mode_config = creative_config.get(mode, {})
+            if not mode_config.get("enabled", False):
+                continue
+
+            engine = get_or_create_engine(mode, mode_config)
+            if not engine:
+                continue
+
+            # 执行变换
+            module = self.creative_modules.get(mode)
+            if module:
+                if mode == "style_transform":
                     current_content = module.transform(
                         current_content,
-                        style_target=style_config.get("style_target", "shakespeare"),
-                        engine_factory=create_engine,
+                        style_target=mode_config.get("style_target", "shakespeare"),
+                        engine_factory=lambda config: engine,
                         **kwargs,
                     )
-
-            elif mode == "time_travel" and creative_config.get("time_travel", {}).get("enabled"):
-                time_config = creative_config["time_travel"]
-                module = self.creative_modules.get("time_travel")
-                if module:
+                elif mode == "time_travel":
                     current_content = module.transform(
                         current_content,
-                        time_perspective=time_config.get("time_perspective", "ancient"),
-                        engine_factory=create_engine,
+                        time_perspective=mode_config.get("time_perspective", "ancient"),
+                        engine_factory=lambda config: engine,
                         **kwargs,
                     )
-
-            elif mode == "role_play" and creative_config.get("role_play", {}).get("enabled"):
-                role_config = creative_config["role_play"]
-                module = self.creative_modules.get("role_play")
-                if module:
+                elif mode == "role_play":
                     current_content = module.transform(
                         current_content,
-                        role_character=role_config.get("role_character", "celebrity"),
-                        engine_factory=create_engine,
+                        role_character=mode_config.get("role_character", "celebrity"),
+                        engine_factory=lambda config: engine,
                         **kwargs,
                     )
 
