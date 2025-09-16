@@ -181,8 +181,8 @@ uv pip install -r requirements.txt
 
 | 网盘类型                     | 下载链接                                                                                              | 提取码  | 版本    |是否最新     |
 |-----------------------------|-------------------------------------------------------------------------------------------------------|--------|---------|------------|
-| **百度网盘**                 |[Win](https://pan.baidu.com/s/1XAGujOVUwGZE28db56gLHg?pwd=12tt) / [Mac](https://pan.baidu.com/s/1Nukeli4adGBfEzPwjtMlmQ?pwd=2qcp) |12tt / 2qcp   |V2.1.9    |❌ |
-| **移动云盘**                 |[Win](https://caiyun.139.com/w/i/2pU912rrU0vny) / [Mac](https://caiyun.139.com/w/i/2prAJs8RjNhlv)                                 |e6q4 / p7ut   |V2.1.9    |✅         |
+| **百度网盘**                 |[Win](https://pan.baidu.com/s/1uv7vulttiN4Fet0rt89ACQ?pwd=phbd) / [Mac](https://pan.baidu.com/s/1o-MJUDEJCMx4UeTqbbQBkQ?pwd=cau5) |phbd / cau5   |V2.2.0    |✅ |
+| **移动云盘**                 |[Win](https://caiyun.139.com/w/i/2pU915rEZsccm) / [Mac](https://caiyun.139.com/w/i/2pU918rUkwoi1)                                 |0kol / nnoq   |V2.2.0    |✅         |
 | **Google Drive**            |[Win](https://drive.google.com/file/d/1IzIyvo7AOi_LakcM_rrqiTPtJkd4-MLR/view?usp=sharing)              |/      |V2.1.9    |❌         |
 | **Microsoft OneDrive**      |[Win](https://1drv.ms/u/c/c831e3cc9be11110/ESCb5aORxalMnHTQGIPPmDUBIE8BXyjzUigaet9CcjEmGA?e=xXCAoc)    |/      |V2.1.9    |❌         |
 
