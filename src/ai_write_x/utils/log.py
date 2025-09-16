@@ -332,8 +332,8 @@ def print_log(msg, msg_type="status"):
         if not utils.get_is_release_ver():
             try:
                 terminal_msg = f"[{time.strftime('%H:%M:%S')}] [{msg_type.upper()}]: {msg}"
-                sys.__stdout__.write(terminal_msg + "\n")
-                sys.__stdout__.flush()
+                sys.__stdout__.write(terminal_msg + "\n")  # type: ignore
+                sys.__stdout__.flush()  # type: ignore
             except Exception:
                 pass
     else:

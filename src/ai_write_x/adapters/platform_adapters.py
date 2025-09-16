@@ -85,14 +85,17 @@ class WeChatAdapter(PlatformAdapter):
         else:
             fmt = config.article_format.lower()
 
-            # 自动发布，不保存最终文章
+            # 格式化发布
             if config.format_publish:
+                content = content_result.content
                 if fmt == "markdown":
                     content = f"# {content_result.title}\n\n{content_result.content}"
                 elif fmt == "text":
                     content = f"{content_result.title}\n\n{content_result.content}"
 
                 return utils.get_format_article(f".{fmt}", content)
+            else:
+                return content_result.content
 
     def publish_content(self, content_result: ContentResult, **kwargs) -> PublishResult:
         """发布到微信公众号"""

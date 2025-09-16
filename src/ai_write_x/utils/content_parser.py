@@ -201,7 +201,7 @@ class ContentParser:
             elem = soup.select_one(selector)
             if elem:
                 if elem.name == "meta":
-                    title = elem.get("content", "").strip()
+                    title = elem.get("content", "").strip()  # type: ignore
                 else:
                     title = elem.get_text().strip()
 
@@ -288,7 +288,7 @@ class ContentParser:
             # 获取标题后的内容直到下一个同级或更高级标题
             current = header.next_sibling
             while current:
-                if hasattr(current, "name") and current.name in [
+                if hasattr(current, "name") and current.name in [  # type: ignore
                     "h1",
                     "h2",
                     "h3",
@@ -306,7 +306,7 @@ class ContentParser:
                     {
                         "title": section_title,
                         "content": section_content.strip()[:500],  # 限制长度
-                        "level": int(header.name[1]),
+                        "level": int(header.name[1]),  # type: ignore
                     }
                 )
 

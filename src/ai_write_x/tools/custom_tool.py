@@ -45,7 +45,7 @@ class ReadTemplateTool(BaseTool):
             template = config.template
 
         random_template = True
-        selected_template_file = None
+        selected_template_file: str = ""
 
         # 如果指定了具体模板且存在，则不随机
         if template and template != "":  # 随机模板的条件是""
@@ -56,7 +56,7 @@ class ReadTemplateTool(BaseTool):
                 category_dir = os.path.join(template_dir_abs, template_category)
                 selected_template_file = os.path.join(category_dir, template_filename)
 
-            if os.path.exists(selected_template_file):
+            if os.path.exists(path=selected_template_file):
                 random_template = False
 
         # 需要随机选择模板
@@ -227,7 +227,7 @@ class AIForgeSearchTool(BaseTool):
             # 因为没输出格式要求，这里需要获取到后进行映射
             # 即使指定也不一定能保证，所以最好固定进行映射
             return AIForgeEngine.map_result_to_format(
-                results.data, ["title", "abstract", "url", "pub_time"]
+                results.data, ["title", "abstract", "url", "pub_time"]  # type: ignore
             )[:max_results]
         except Exception as e:
             log.print_traceback("搜索过程中发生错误：", e)

@@ -48,7 +48,7 @@ def get_is_release_ver():
 
 def get_res_path(file_name, basedir=""):
     if get_is_release_ver():
-        return os.path.join(sys._MEIPASS, file_name)
+        return os.path.join(sys._MEIPASS, file_name)  # type: ignore
 
     return os.path.join(basedir, file_name)
 
@@ -207,9 +207,9 @@ def decompress_html(compressed_content, use_compress=True):
 
         # 移除多余空白和注释，清理输出
         for element in soup.find_all(text=True):
-            if element.strip() == "":
+            if element.strip() == "":  # type: ignore
                 element.extract()  # 移除空文本节点
-            elif element.strip().startswith("<!--") and element.strip().endswith("-->"):
+            elif element.strip().startswith("<!--") and element.strip().endswith("-->"):  # type: ignore # noqa 501
                 element.extract()  # 移除注释
 
         # 判断是否为 HTML 片段（无 DOCTYPE 或 <html> 标签）
@@ -223,7 +223,7 @@ def decompress_html(compressed_content, use_compress=True):
             formatted_lines = []
             for child in soup.contents:
                 if hasattr(child, "prettify"):
-                    formatted_lines.append(child.prettify().strip())
+                    formatted_lines.append(child.prettify().strip())  # type: ignore
                 else:
                     formatted_lines.append(str(child).strip())
             return "\n".join(line for line in formatted_lines if line)
@@ -465,7 +465,7 @@ def crop_cover_image(image_path, target_size=(900, 384)):
         # 缩放图片
         new_width = int(original_width * scale)
         new_height = int(original_height * scale)
-        img = img.resize((new_width, new_height), Image.LANCZOS)
+        img = img.resize((new_width, new_height), Image.LANCZOS)  # type: ignore
 
         # 居中裁剪
         left = (new_width - target_width) // 2

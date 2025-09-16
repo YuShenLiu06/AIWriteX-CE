@@ -183,6 +183,7 @@ class ArticleManager:
             editors = [
                 "cursor",
                 "trae",
+                "qoder",
                 "windsurf",
                 "zed",
                 "tabby",
@@ -202,6 +203,7 @@ class ArticleManager:
             editors = [
                 "cursor",
                 "trae",
+                "qoder",
                 "windsurf",
                 "zed",
                 "tabby",
@@ -220,6 +222,7 @@ class ArticleManager:
             editors = [
                 "cursor",
                 "trae",
+                "qoder",
                 "windsurf",
                 "zed",
                 "tabby",
@@ -509,7 +512,7 @@ class ArticleManager:
             )
             history_text = f"《{short_title}》发布记录:\n◯ 尚未发布"
 
-        self._window["-PUBLISH_HISTORY-"].update(history_text)
+        self._window["-PUBLISH_HISTORY-"].update(value=history_text)  # type: ignore
 
     def _build_table_data(self, articles=None):
         """构建表格数据"""
@@ -544,12 +547,12 @@ class ArticleManager:
         self._window["-TABLE-"].bind("<Double-1>", "_DoubleClick")
 
         while True:
-            event, values = self._window.read()
+            event, values = self._window.read()  # type: ignore
             if event == sg.WIN_CLOSED:
                 break
             elif event in ["-APPID-", "-APPSECRET-"]:
                 if sys.platform == "darwin" and values[event]:
-                    self._window[event].update(utils.fix_mac_clipboard(values[event]))
+                    self._window[event].update(value=utils.fix_mac_clipboard(values[event]))
             elif event == "-TABLE-" and values["-TABLE-"]:
                 # 显示选中文章的发布记录
                 if values["-TABLE-"]:
@@ -682,9 +685,9 @@ class ArticleManager:
                         )
                         or ["无配置"]
                     )
-                    self._window["-APPID-"].update("")
-                    self._window["-APPSECRET-"].update("")
-                    self._window["-AUTHOR-"].update("")
+                    self._window["-APPID-"].update(value="")
+                    self._window["-APPSECRET-"].update(value="")
+                    self._window["-AUTHOR-"].update(value="")
             elif event == "-PUBLISH_COMPLETE-":
                 results = values[event]
                 # 处理发布结果，更新界面
@@ -715,7 +718,7 @@ class ArticleManager:
         window = sg.Window("发布结果", layout, icon=utils.get_gui_icon())
 
         while True:
-            event, _ = window.read()
+            event, _ = window.read()  # type: ignore
             if event in (sg.WIN_CLOSED, "关闭"):
                 break
             elif event == "打开公众号后台":
@@ -729,9 +732,9 @@ class ArticleManager:
         # 发布后刷新文章列表以更新状态
         self._articles = self._get_articles()
         data = self._build_table_data()
-        self._window["-TABLE-"].update(values=data)
+        self._window["-TABLE-"].update(values=data)  # type: ignore
 
-        self._window["-PUBLISH_HISTORY-"].update("发布完成，请选择文章查看发布记录")
+        self._window["-PUBLISH_HISTORY-"].update(value="发布完成，请选择文章查看发布记录")  # type: ignore
 
     def _publish_articles_background(self, articles, credentials):
         """后台执行发布操作"""
@@ -799,7 +802,7 @@ class ArticleManager:
         ]
 
         for button_key in buttons_to_disable:
-            self._window[button_key].update(disabled=disabled)
+            self._window[button_key].update(disabled=disabled)  # type: ignore
 
         # 也可以禁用右键菜单中的发布选项
         # 但PySimpleGUI的右键菜单不支持动态禁用，需要其他处理方式
@@ -833,9 +836,11 @@ class ArticleManager:
         self._disable_publish_buttons(True)
 
         # 使用 perform_long_operation 执行发布
-        self._window.perform_long_operation(
-            lambda: self._publish_articles_background(articles, selected_credentials),
-            "-PUBLISH_COMPLETE-",
+        self._window.perform_long_operation(  # type: ignore
+            func=lambda: self._publish_articles_background(
+                articles, credentials=selected_credentials
+            ),
+            end_key="-PUBLISH_COMPLETE-",
         )
 
         # 显示进度提示

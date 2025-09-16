@@ -90,21 +90,21 @@ def get_tophub_hotnews(platform: str, cnt: int = 10) -> Optional[List[Dict]]:
         platform_divs = soup.find_all("div", class_="cc-cd")
 
         for div in platform_divs:
-            platform_span = div.find("div", class_="cc-cd-lb").find("span")
-            if platform_span and platform_span.text.strip() == platform:
-                news_items = div.find_all("div", class_="cc-cd-cb-ll")[:cnt]
+            platform_span = div.find("div", class_="cc-cd-lb").find("span")  # type: ignore
+            if platform_span and platform_span.text.strip() == platform:  # type: ignore
+                news_items = div.find_all("div", class_="cc-cd-cb-ll")[:cnt]  # type: ignore
                 hotnews = []
                 for item in news_items:
-                    rank = item.find("span", class_="s").text.strip()
-                    title = item.find("span", class_="t").text.strip()
-                    engagement = item.find("span", class_="e")
+                    rank = item.find("span", class_="s").text.strip()  # type: ignore
+                    title = item.find("span", class_="t").text.strip()  # type: ignore
+                    engagement = item.find("span", class_="e")  # type: ignore
                     last_count = engagement.text.strip() if engagement else "0"
                     hotnews.append(
                         {
                             "name": title,
                             "rank": int(rank),
                             "lastCount": last_count,
-                            "url": item.find("a")["href"] if item.find("a") else "",
+                            "url": item.find("a")["href"] if item.find("a") else "",  # type: ignore
                         }
                     )
                 return hotnews

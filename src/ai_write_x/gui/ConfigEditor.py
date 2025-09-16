@@ -23,7 +23,6 @@ class ConfigEditor:
         if not self._validate_font_selection(self.global_font):
             self.global_font = "Helvetica"
 
-        self.window = None
         self.window = sg.Window(
             "AIWriteX - 配置管理",
             self.create_layout(),
@@ -273,10 +272,10 @@ class ConfigEditor:
             target_tab_text = api_type
 
         tab_group = self.window["-API_TAB_GROUP-"]
-        for tab in tab_group.Widget.tabs():
-            tab_text = tab_group.Widget.tab(tab, "text")
+        for tab in tab_group.Widget.tabs():  # type: ignore
+            tab_text = tab_group.Widget.tab(tab, "text")  # type: ignore
             if tab_text == target_tab_text:
-                tab_group.Widget.select(tab)
+                tab_group.Widget.select(tab)  # type: ignore
                 break
         self.window.refresh()
 
@@ -1322,7 +1321,7 @@ class ConfigEditor:
 
     def run(self):
         while True:
-            event, values = self.window.read()
+            event, values = self.window.read()  # type: ignore
             if event in (sg.WIN_CLOSED, "-EXIT-"):
                 break
 
@@ -1387,10 +1386,10 @@ class ConfigEditor:
             elif event == "-API_TYPE-":
                 tab_group = self.window["-API_TAB_GROUP-"]
                 # 遍历 TabGroup 的子 TAB，找到匹配的标题
-                for tab in tab_group.Widget.tabs():
-                    tab_text = tab_group.Widget.tab(tab, "text")
+                for tab in tab_group.Widget.tabs():  # type: ignore
+                    tab_text = tab_group.Widget.tab(tab, "text")  # type: ignore
                     if tab_text == values["-API_TYPE-"]:
-                        tab_group.Widget.select(tab)
+                        tab_group.Widget.select(tab)  # type: ignore
                         break
                 self.window.refresh()
 
@@ -1410,13 +1409,13 @@ class ConfigEditor:
                 self.wechat_count = len(credentials)
                 try:
                     self.update_tab("-TAB_WECHAT-", self.create_wechat_tab())
-                    self.window["-WECHAT_CREDENTIALS_COLUMN-"].contents_changed()
-                    self.window["-WECHAT_CREDENTIALS_COLUMN-"].Widget.canvas.yview_moveto(1.0)
+                    self.window["-WECHAT_CREDENTIALS_COLUMN-"].contents_changed()  # type: ignore
+                    self.window["-WECHAT_CREDENTIALS_COLUMN-"].Widget.canvas.yview_moveto(1.0)  # type: ignore # noqa 501
                     self.window.TKroot.update_idletasks()
                     self.window.TKroot.update()
                     self.window.refresh()
-                    self.window["-TAB_WECHAT-"].Widget.update()
-                    self.window["-WECHAT_CREDENTIALS_COLUMN-"].Widget.update()
+                    self.window["-TAB_WECHAT-"].Widget.update()  # type: ignore
+                    self.window["-WECHAT_CREDENTIALS_COLUMN-"].Widget.update()  # type: ignore
                 except Exception as e:
                     sg.popup_error(
                         f"添加凭证失败: {e}",
@@ -1438,8 +1437,8 @@ class ConfigEditor:
                             self.window.TKroot.update_idletasks()
                             self.window.TKroot.update()
                             self.window.refresh()
-                            self.window["-TAB_WECHAT-"].Widget.update()
-                            self.window["-WECHAT_CREDENTIALS_COLUMN-"].Widget.update()
+                            self.window["-TAB_WECHAT-"].Widget.update()  # type: ignore
+                            self.window["-WECHAT_CREDENTIALS_COLUMN-"].Widget.update()  # type: ignore # noqa 501
                         except Exception as e:
                             sg.popup_error(
                                 f"删除凭证失败: {e}",
@@ -1604,8 +1603,8 @@ class ConfigEditor:
                     self.window.TKroot.update_idletasks()
                     self.window.TKroot.update()
                     self.window.refresh()
-                    self.window["-TAB_WECHAT-"].Widget.update()
-                    self.window["-WECHAT_CREDENTIALS_COLUMN-"].Widget.update()
+                    self.window["-TAB_WECHAT-"].Widget.update()  # type: ignore
+                    self.window["-WECHAT_CREDENTIALS_COLUMN-"].Widget.update()  # type: ignore
                     sg.popup(
                         "微信配置已保存",
                         title="系统提示",
@@ -1683,8 +1682,8 @@ class ConfigEditor:
             elif event == "-API_TAB_GROUP-":
                 try:
                     tab_group = self.window["-API_TAB_GROUP-"]
-                    selected_tab_index = tab_group.Widget.index("current")
-                    selected_tab_text = tab_group.Widget.tab(selected_tab_index, "text")
+                    selected_tab_index = tab_group.Widget.index("current")  # type: ignore
+                    selected_tab_text = tab_group.Widget.tab(selected_tab_index, "text")  # type: ignore # noqa 501
 
                     # 转换 tab 文本为显示名称（保持一致性）
                     if selected_tab_text == "硅基流动":
@@ -2291,7 +2290,7 @@ class ConfigEditor:
                 else:
                     # 不允许组合时，只取第一个
                     config["creative_mode"] = enabled_modes[0]
-                    sg.popup_warning(
+                    sg.popup_error(
                         "不允许组合模式时，只会使用第一个启用的创意模块",
                         title="系统提示",
                         icon=utils.get_gui_icon(),

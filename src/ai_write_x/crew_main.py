@@ -24,6 +24,8 @@ os.environ["CREWAI_DISABLE_TELEMETRY"] = "true"
 
 def run_crew_in_process(inputs, log_queue, config_data=None):
     """在独立进程中运行 CrewAI 工作流"""
+
+    env_file_path = ""
     try:
         # 设置信号处理器
         def signal_handler(signum, frame):

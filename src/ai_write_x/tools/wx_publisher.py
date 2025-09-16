@@ -410,6 +410,7 @@ def pub2wx(title, digest, article, appid, appsecret, author):
     publisher = WeixinPublisher(appid, appsecret, author)
 
     config = Config.get_instance()
+    cropped_image_path = ""
     if config.current_preview_cover:
         # 裁剪封面图片
         cropped_image_path = utils.crop_cover_image(config.current_preview_cover, (900, 384))
@@ -481,7 +482,7 @@ def pub2wx(title, digest, article, appid, appsecret, author):
 
         publish_result, err_msg = publisher.publish(add_draft_result.publishId)
         if publish_result is None:
-            if "api unauthorized" in err_msg:
+            if "api unauthorized" in err_msg:  # type: ignore
                 return (
                     "自动发布失败，【自2025年7月15日起，个人主体账号、未认证企业账号及不支持认证的账号的发布权限被回收，需到公众号管理后台->草稿箱->发表】",
                     article,
@@ -493,7 +494,7 @@ def pub2wx(title, digest, article, appid, appsecret, author):
         # 显示到列表
         media_id, ret = publisher.media_uploadnews(article, title, digest, media_id)
         if media_id is None:
-            if "api unauthorized" in ret:
+            if "api unauthorized" in ret:  # type: ignore
                 return (
                     "账号虽认证（非企业账号），但无发布权限，发布失败，无法自动发布文章",
                     article,

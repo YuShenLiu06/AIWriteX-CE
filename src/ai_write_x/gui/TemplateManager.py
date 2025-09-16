@@ -139,10 +139,10 @@ class TemplateManager:
                 "-DETAIL_TIME-",
                 "-DETAIL_PATH-",
             ]:
-                self._window[key].update("")
+                self._window[key].update(value="")
 
             # 清空预览内容
-            self._window["-PREVIEW_CONTENT-"].update("")
+            self._window["-PREVIEW_CONTENT-"].update(value="")
 
             # 禁用操作按钮
             for key in ["-EDIT-", "-PREVIEW-", "-COPY-", "-RENAME-", "-DELETE-", "-MOVE-"]:
@@ -296,6 +296,7 @@ class TemplateManager:
             editors = [
                 "cursor",
                 "trae",
+                "qoder",
                 "windsurf",
                 "zed",
                 "tabby",
@@ -315,6 +316,7 @@ class TemplateManager:
             editors = [
                 "cursor",
                 "trae",
+                "qoder",
                 "windsurf",
                 "zed",
                 "tabby",
@@ -333,6 +335,7 @@ class TemplateManager:
             editors = [
                 "cursor",
                 "trae",
+                "qoder",
                 "windsurf",
                 "zed",
                 "tabby",
@@ -393,11 +396,11 @@ class TemplateManager:
             try:
                 with open(path, "r", encoding="utf-8") as f:
                     content = f.read()  # 读取全部内容，不截断
-                    self._window["-PREVIEW_CONTENT-"].update(content)
+                    self._window["-PREVIEW_CONTENT-"].update(value=content)  # type: ignore
             except Exception:
-                self._window["-PREVIEW_CONTENT-"].update("无法读取文件内容")
+                self._window["-PREVIEW_CONTENT-"].update(value="无法读取文件内容")  # type: ignore
         else:
-            self._window["-PREVIEW_CONTENT-"].update("文件不存在")
+            self._window["-PREVIEW_CONTENT-"].update(value="文件不存在")  # type: ignore
 
     def _view_template(self, template):
         """在浏览器中预览模板"""
@@ -464,7 +467,7 @@ class TemplateManager:
         window = sg.Window("系统提示", layout, modal=True, icon=utils.get_gui_icon())
 
         while True:
-            event, values = window.read()
+            event, values = window.read()  # type: ignore
             if event in (sg.WIN_CLOSED, "取消"):
                 break
             elif event == "-MOVE_CONFIRM-" and values["-TARGET_CATEGORY-"]:
@@ -679,7 +682,7 @@ class TemplateManager:
         )
 
         while True:
-            event, values = window.read()
+            event, values = window.read()  # type: ignore
 
             if event in (sg.WIN_CLOSED, "-CANCEL-"):
                 break
@@ -900,7 +903,7 @@ class TemplateManager:
                         values=[template["size"], template["create_time"]],
                     )
 
-        self._window["-TREE-"].update(values=treedata)
+        self._window["-TREE-"].update(values=treedata)  # type: ignore
 
     def _edit_category(self, old_category_name):
         """编辑分类称"""
@@ -1025,7 +1028,7 @@ class TemplateManager:
         self._update_detail_panel()
 
         while True:
-            event, values = self._window.read()
+            event, values = self._window.read()  # type: ignore
 
             if event == sg.WIN_CLOSED:
                 break

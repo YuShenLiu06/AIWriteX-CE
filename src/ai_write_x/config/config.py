@@ -41,7 +41,7 @@ class Config:
             return
         self._initialized = True
         self.config: Dict[Any, Any] = {}
-        self.aiforge_config = None
+        self.aiforge_config: Dict[Any, Any] = {}
         self.error_message = None
         self.config_path = self.__get_config_path()
         self.config_aiforge_path = self.__get_config_path("aiforge.toml")
@@ -316,7 +316,7 @@ class Config:
         # 自定义话题和文章参考链接，根据是否为空判断是否自定义
         self.custom_topic = ""  # 自定义话题（字符串）
         self.urls = []  # 参考链接（列表）
-        self.reference_ratio = 0  # 文章借鉴比例[0-1]
+        self.reference_ratio = 0.0  # 文章借鉴比例[0-1]
         self.custom_template_category = ""  # 自定义话题时，模板分类
         self.custom_template = ""  # 自定义话题时，模板
         self.current_preview_cover = ""  # 当前设置的封面
@@ -343,35 +343,35 @@ class Config:
     @property
     def platforms(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["platforms"]
 
     @property
     def wechat_credentials(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["wechat"]["credentials"]
 
     @property
     def api_type(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["api"]["api_type"]
 
     @property
     def api_key_name(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["api"][self.config["api"]["api_type"]]["key"]
 
     @property
     def api_key(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             api_key = self.config["api"][self.config["api"]["api_type"]]["api_key"]
             key_index = self.config["api"][self.config["api"]["api_type"]]["key_index"]
@@ -380,7 +380,7 @@ class Config:
     @property
     def api_model(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             model = self.config["api"][self.config["api"]["api_type"]]["model"]
             model_index = self.config["api"][self.config["api"]["api_type"]]["model_index"]
@@ -389,126 +389,126 @@ class Config:
     @property
     def api_apibase(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["api"][self.config["api"]["api_type"]]["api_base"]
 
     @property
     def img_api_type(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["img_api"]["api_type"]
 
     @property
     def img_api_key(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["img_api"][self.config["img_api"]["api_type"]]["api_key"]
 
     @property
     def img_api_model(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["img_api"][self.config["img_api"]["api_type"]]["model"]
 
     @property
     def use_template(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["use_template"]
 
     @property
     def template_category(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["template_category"]
 
     @property
     def template(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["template"]
 
     @property
     def use_compress(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["use_compress"]
 
     @property
     def aiforge_search_max_results(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["aiforge_search_max_results"]
 
     @property
     def aiforge_search_min_results(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["aiforge_search_min_results"]
 
     @property
     def min_article_len(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["min_article_len"]
 
     @property
     def max_article_len(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["max_article_len"]
 
     @property
     def article_format(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["article_format"]
 
     @property
     def auto_publish(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["auto_publish"]
 
     @property
     def format_publish(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["format_publish"]
 
     @property
     def publish_platform(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["publish_platform"]
 
     @property
     def creative_mode(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config["creative_mode"]
 
     @property
     def api_list(self):
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
 
             api_keys_list = list(self.config["api"].keys())
@@ -521,7 +521,7 @@ class Config:
     def api_list_display(self):
         """返回用于界面显示的API类型列表"""
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
 
             api_keys_list = list(self.config["api"].keys())
@@ -542,14 +542,14 @@ class Config:
     @property
     def aiforge_default_llm_provider(self):
         with self._lock:
-            if self.aiforge_config is None:
+            if not self.aiforge_config:
                 raise ValueError("配置未加载")
             return self.aiforge_config["default_llm_provider"]
 
     @property
     def aiforge_api_key(self):
         with self._lock:
-            if self.aiforge_config is None:
+            if not self.aiforge_config:
                 raise ValueError("配置未加载")
             return self.aiforge_config["llm"][self.aiforge_config["default_llm_provider"]][
                 "api_key"
@@ -595,7 +595,7 @@ class Config:
                 try:
                     with open(self.config_path, "r", encoding="utf-8") as f:
                         self.config = yaml.safe_load(f)
-                        if self.config is None:
+                        if not self.config:
                             self.config = self.default_config
                 except Exception as e:
                     self.error_message = f"加载 config.yaml 失败: {e}"
@@ -609,7 +609,7 @@ class Config:
                 try:
                     with open(self.config_aiforge_path, "r", encoding="utf-8") as f:
                         self.aiforge_config = tomlkit.parse(f.read())
-                        if self.aiforge_config is None:
+                        if not self.aiforge_config:
                             self.aiforge_config = self.default_aiforge_config
                 except Exception as e:
                     self.error_message = f"加载 aiforge.toml 失败: {e}"
@@ -671,7 +671,7 @@ class Config:
     def get_config(self):
         """获取配置，不验证"""
         with self._lock:
-            if self.config is None:
+            if not self.config:
                 raise ValueError("配置未加载")
             return self.config
 

@@ -8,6 +8,7 @@ import sys
 import os
 import glob
 import shutil
+from typing import Any
 import PySimpleGUI as sg
 from PIL import Image
 import io
@@ -135,7 +136,7 @@ class ImageConfigWindow:
         self.current_cover_filename = None
         Config.get_instance().current_preview_cover = ""
         if self.window and "-CURRENT_COVER_DISPLAY-" in self.window.AllKeysDict:
-            self.window["-CURRENT_COVER_DISPLAY-"].update("未设置")
+            self.window["-CURRENT_COVER_DISPLAY-"].update(value="未设置")
             self.window["-PREVIEW_COVER-"].update(disabled=True)
             self.window["-CLEAR_COVER-"].update(disabled=True)
 
@@ -193,7 +194,7 @@ class ImageConfigWindow:
             search_start = 0
 
             for i, url in enumerate(current_urls):
-                pos = content.find(url, search_start)
+                pos = content.find(url, search_start)  # type: ignore
                 if pos == -1:
                     return False
                 url_positions.append((pos, pos + len(url), url, i))
@@ -206,9 +207,9 @@ class ImageConfigWindow:
             if position_index < len(url_positions):
                 start_pos, end_pos, _, _ = url_positions[position_index]
                 self.modified_content = (
-                    self.modified_content[:start_pos]
+                    self.modified_content[:start_pos]  # type: ignore
                     + new_image_path
-                    + self.modified_content[end_pos:]
+                    + self.modified_content[end_pos:]  # type: ignore
                 )
                 return True
 
@@ -244,7 +245,7 @@ class ImageConfigWindow:
                     )
                     display_list.append(f"{i+1}. {display_name}")
 
-        self.window["-ARTICLE_IMAGES-"].update(values=display_list)
+        self.window["-ARTICLE_IMAGES-"].update(values=display_list)  # type: ignore
 
     def _convert_to_bytes(self, file_path, resize=None):
         """转换图片为字节数据用于显示，等比例缩放填充锁定区域"""
@@ -445,7 +446,7 @@ class ImageConfigWindow:
         self.window["-IMAGE_LIST-"].bind("<Button-3>", "+RIGHT_CLICK+")
 
         while True:
-            event, values = self.window.read()
+            event, values = self.window.read()  # type: ignore
 
             if event in (sg.WIN_CLOSED, "-CLOSE-"):
                 break
@@ -468,7 +469,7 @@ class ImageConfigWindow:
                         prefix="preview_",
                         delete=False,
                     ) as temp_f:
-                        temp_f.write(self.modified_content)
+                        temp_f.write(self.modified_content)  # type: ignore
                         temp_file = temp_f.name
 
                     # 存储临时文件路径用于后续清理
@@ -496,7 +497,7 @@ class ImageConfigWindow:
                 # 保存配图配置到原文件
                 try:
                     with open(self.article["path"], "w", encoding="utf-8") as f:
-                        f.write(self.modified_content)
+                        f.write(self.modified_content)  # type: ignore
                     sg.popup(
                         "配图设置已保存到文章文件",
                         title="系统提示",
@@ -517,6 +518,7 @@ class ImageConfigWindow:
                     if sys.platform == "win32":
                         editors = [
                             "cursor",
+                            "qoder",
                             "trae",
                             "windsurf",
                             "zed",
@@ -537,6 +539,7 @@ class ImageConfigWindow:
                         editors = [
                             "cursor",
                             "trae",
+                            "qoder",
                             "windsurf",
                             "zed",
                             "tabby",
@@ -555,6 +558,7 @@ class ImageConfigWindow:
                         editors = [
                             "cursor",
                             "trae",
+                            "qoder",
                             "windsurf",
                             "zed",
                             "tabby",
@@ -730,9 +734,9 @@ class ImageConfigWindow:
                 # 获取右键点击时的鼠标位置对应的列表项
                 try:
                     listbox = self.window["-IMAGE_LIST-"].Widget
-                    index = listbox.nearest(
-                        self.window["-IMAGE_LIST-"].Widget.winfo_pointery()
-                        - self.window["-IMAGE_LIST-"].Widget.winfo_rooty()
+                    index = listbox.nearest(  # type: ignore
+                        self.window["-IMAGE_LIST-"].Widget.winfo_pointery()  # type: ignore
+                        - self.window["-IMAGE_LIST-"].Widget.winfo_rooty()  # type: ignore
                     )
                     if index >= 0:
                         image_filenames = self._get_image_files()
@@ -886,12 +890,12 @@ class ImageConfigWindow:
                     )
 
             elif event == "-SET_AS_COVER-":
-                self.current_cover_filename = self.current_preview_filename
-                self.window["-CURRENT_COVER_DISPLAY-"].update(self.current_cover_filename)
+                self.current_cover_filename: Any | None = self.current_preview_filename
+                self.window["-CURRENT_COVER_DISPLAY-"].update(value=self.current_cover_filename)
                 self.window["-PREVIEW_COVER-"].update(disabled=False)
                 self.window["-CLEAR_COVER-"].update(disabled=False)
                 Config.get_instance().current_preview_cover = str(
-                    PathManager.get_image_dir() / new_filename
+                    PathManager.get_image_dir() / self.current_preview_filename  # type: ignore
                 )
             elif event == "-PREVIEW_COVER-":
                 if self.current_cover_filename:
@@ -912,7 +916,7 @@ class ImageConfigWindow:
             # 清除封面设置
             elif event == "-CLEAR_COVER-":
                 self.current_cover_filename = None
-                self.window["-CURRENT_COVER_DISPLAY-"].update("未设置")
+                self.window["-CURRENT_COVER_DISPLAY-"].update(value="未设置")
                 self.window["-PREVIEW_COVER-"].update(disabled=True)
                 self.window["-CLEAR_COVER-"].update(disabled=True)
                 Config.get_instance().current_preview_cover = ""

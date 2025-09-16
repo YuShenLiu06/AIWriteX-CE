@@ -42,7 +42,11 @@ class WorkflowMonitor:
         return cls._instance
 
     def track_execution(
-        self, workflow_name: str, duration: float, success: bool, input_data: Dict[str, Any] = None
+        self,
+        workflow_name: str,
+        duration: float,
+        success: bool,
+        input_data: Dict[str, Any] | None = None,
     ):
         """记录工作流执行指标"""
         with self._lock:
@@ -77,7 +81,9 @@ class WorkflowMonitor:
             if len(self.logs) > self.max_logs:
                 self.logs = self.logs[-self.max_logs :]  # noqa 501
 
-    def log_error(self, workflow_name: str, error_message: str, input_data: Dict[str, Any] = None):
+    def log_error(
+        self, workflow_name: str, error_message: str, input_data: Dict[str, Any] | None = None
+    ):
         """记录错误日志"""
         with self._lock:
             log_entry = ExecutionLog(
@@ -90,13 +96,15 @@ class WorkflowMonitor:
             )
             self.logs.append(log_entry)
 
-    def get_metrics(self, workflow_name: str = None) -> Dict[str, Any]:
+    def get_metrics(self, workflow_name: str | None = None) -> Dict[str, Any]:
         """获取指标数据"""
         if workflow_name:
             return asdict(self.metrics.get(workflow_name, WorkflowMetrics()))
         return {name: asdict(metrics) for name, metrics in self.metrics.items()}
 
-    def get_recent_logs(self, workflow_name: str = None, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_recent_logs(
+        self, workflow_name: str | None = None, limit: int = 50
+    ) -> List[Dict[str, Any]]:
         """获取最近的日志"""
         logs = self.logs
         if workflow_name:

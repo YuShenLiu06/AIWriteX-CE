@@ -35,8 +35,8 @@ def test_llm_support():
     agent = Agent(role="test role", goal="test goal", backstory="test backstory", llm=llm)
 
     # 检查LLM是否正确创建
-    print(f"Agent LLM model: {agent.llm.model}")
-    print(f"Agent LLM API key set: {'Yes' if agent.llm.api_key else 'No'}")
+    print(f"Agent LLM model: {agent.llm.model}")  # type:ignore
+    print(f"Agent LLM API key set: {'Yes' if agent.llm.api_key else 'No'}")  # type:ignore
 
 
 article = """"""

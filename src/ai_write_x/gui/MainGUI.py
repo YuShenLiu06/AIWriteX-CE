@@ -306,7 +306,7 @@ class MainGUI(object):
             self._menu = None  # MenubarCustom 没有 TKMenu 属性
             self._use_menubar_custom = True
         else:  # Windows 和 Linux 使用标准 Menu
-            self._menu = self._window["-MENU-"].TKMenu
+            self._menu = self._window["-MENU-"].TKMenu  # type: ignore
             self._use_menubar_custom = False
 
     def load_saved_font(self):
@@ -314,12 +314,12 @@ class MainGUI(object):
         saved_font = sg.user_settings_get_entry("-global_font-", "Helvetica|10")
 
         try:
-            if "|" in saved_font:
+            if "|" in saved_font:  # type: ignore
                 # 新格式：字体名|大小
-                font_name, size = saved_font.split("|", 1)
+                font_name, size = saved_font.split("|", 1)  # type: ignore
             else:
                 # 兼容旧格式
-                parts = saved_font.split()
+                parts = saved_font.split()  # type: ignore
                 if len(parts) >= 2:
                     size = parts[-1]
                     font_name = " ".join(parts[:-1])
@@ -447,7 +447,7 @@ class MainGUI(object):
                     break
 
                 try:
-                    log_msg = self._log_queue.get(timeout=0.05)  # 短超时
+                    log_msg = self._log_queue.get(timeout=0.05)  # type: ignore
                     self._process_log_message(log_msg)
                     messages_processed += 1
                 except queue.Empty:
@@ -466,7 +466,7 @@ class MainGUI(object):
             if self._process_lock.acquire(timeout=2.0):  # 带超时的锁获取
                 try:
                     if self._crew_process:
-                        exit_code = self._crew_process.exitcode
+                        exit_code = self._crew_process.exitcode  # type: ignore
 
                         # 最后一次尝试清理剩余消息
                         self._drain_remaining_logs_with_timeout()
@@ -487,7 +487,7 @@ class MainGUI(object):
 
         while time.time() - start_time < timeout:
             try:
-                log_msg = self._log_queue.get_nowait()
+                log_msg = self._log_queue.get_nowait()  # type: ignore
                 self._process_log_message(log_msg)
                 messages_processed += 1
             except queue.Empty:
@@ -546,7 +546,7 @@ class MainGUI(object):
                         break
 
                     # 基于进程的实际状态判断是否结束
-                    process_ended = self._crew_process and self._crew_process.exitcode is not None
+                    process_ended = self._crew_process and self._crew_process.exitcode is not None  # type: ignore # noqa 501
 
                 finally:
                     self._process_lock.release()
@@ -713,7 +713,7 @@ class MainGUI(object):
         # 强制清理任何残留状态
         with self._process_lock:
             if self._crew_process:
-                if not self._crew_process.is_alive():
+                if not self._crew_process.is_alive():  # type: ignore
                     self._crew_process = None
                     self._log_queue = None
                 else:
@@ -814,7 +814,7 @@ class MainGUI(object):
                     self._is_running = True
                     self._task_stopping = False
 
-                self._crew_process.start()
+                self._crew_process.start()  # type: ignore
 
                 # 启动监控线程
                 if self._monitor_thread and self._monitor_thread.is_alive():
@@ -858,7 +858,7 @@ class MainGUI(object):
                 )
                 return
 
-            if not self._crew_process or not self._crew_process.is_alive():
+            if not self._crew_process or not self._crew_process.is_alive():  # type: ignore
                 self._reset_task_state()
                 self._window["-START_BTN-"].update(disabled=False)
                 self._window["-STOP_BTN-"].update(disabled=True)
@@ -880,17 +880,17 @@ class MainGUI(object):
         def terminate_process():
             try:
                 # 首先尝试优雅终止
-                if self._crew_process and self._crew_process.is_alive():
-                    self._crew_process.terminate()
-                    self._crew_process.join(timeout=2.0)
+                if self._crew_process and self._crew_process.is_alive():  # type: ignore
+                    self._crew_process.terminate()  # type: ignore
+                    self._crew_process.join(timeout=2.0)  # type: ignore
 
                     # 检查是否真正终止
-                    if self._crew_process.is_alive():
+                    if self._crew_process.is_alive():  # type: ignore
                         self._display_log("执行未响应，强制终止", "system")
-                        self._crew_process.kill()
-                        self._crew_process.join(timeout=1.0)
+                        self._crew_process.kill()  # type: ignore
+                        self._crew_process.join(timeout=1.0)  # type: ignore
 
-                        if self._crew_process.is_alive():
+                        if self._crew_process.is_alive():  # type: ignore
                             self._display_log("警告：执行可能未完全终止", "warning")
                         else:
                             self._display_log("任务执行已强制终止", "system")
@@ -901,7 +901,7 @@ class MainGUI(object):
                 if self._log_queue:
                     try:
                         while True:
-                            self._log_queue.get_nowait()
+                            self._log_queue.get_nowait()  # type: ignore
                     except queue.Empty:
                         pass
 
@@ -912,7 +912,7 @@ class MainGUI(object):
                     "-TASK_TERMINATED-",
                     {
                         "fully_stopped": (
-                            not self._crew_process.is_alive() if self._crew_process else True
+                            not self._crew_process.is_alive() if self._crew_process else True  # type: ignore # noqa 501
                         )
                     },
                 )
@@ -942,20 +942,20 @@ class MainGUI(object):
     def run(self):
         try:
             while True:
-                event, values = self._window.read(timeout=100)
+                event, values = self._window.read(timeout=100)  # type: ignore
 
                 if event == sg.WIN_CLOSED:  # always,  always give a way out!
-                    if self._is_running and self._crew_process and self._crew_process.is_alive():
-                        self._crew_process.terminate()
-                        self._crew_process.join(timeout=2.0)
-                        if self._crew_process.is_alive():
-                            self._crew_process.kill()
+                    if self._is_running and self._crew_process and self._crew_process.is_alive():  # type: ignore # noqa 501
+                        self._crew_process.terminate()  # type: ignore
+                        self._crew_process.join(timeout=2.0)  # type: ignore
+                        if self._crew_process.is_alive():  # type: ignore
+                            self._crew_process.kill()  # type: ignore
                     break
 
                 # 处理自定义事件
                 elif event == "-UPDATE_LOG-":
                     # 线程安全的日志更新
-                    self._window["-STATUS-"].update("\n".join(self._log_buffer), append=False)
+                    self._window["-STATUS-"].update(value="\n".join(self._log_buffer), append=False)
                     continue
                 elif event == "-TASK_COMPLETED-":
                     # 处理任务完成事件
@@ -1144,10 +1144,10 @@ class MainGUI(object):
                     )
                 elif event == "-SET_LOG_LIMIT-":
                     self._log_buffer = deque(self._log_buffer, maxlen=values["-LOG_LIMIT-"])
-                    self._window["-STATUS-"].update("\n".join(self._log_buffer))
+                    self._window["-STATUS-"].update(value="\n".join(self._log_buffer))
                 elif event == "-CLEAR_LOG-":
                     self._log_buffer.clear()
-                    self._window["-STATUS-"].update("")
+                    self._window["-STATUS-"].update(vaule="")
                 elif event in self._log_list:
                     if event == "更多...":
                         logs_path = os.path.abspath(PathManager.get_log_dir())
@@ -1206,11 +1206,11 @@ class MainGUI(object):
                 # 处理队列更新（非阻塞）
                 self.process_queue()
         finally:
-            if self._is_running and self._crew_process and self._crew_process.is_alive():
-                self._crew_process.terminate()
-                self._crew_process.join(timeout=2.0)
-                if self._crew_process.is_alive():
-                    self._crew_process.kill()
+            if self._is_running and self._crew_process and self._crew_process.is_alive():  # type: ignore # noqa 501
+                self._crew_process.terminate()  # type: ignore
+                self._crew_process.join(timeout=2.0)  # type: ignore
+                if self._crew_process.is_alive():  # type: ignore
+                    self._crew_process.kill()  # type: ignore
 
             # 等待监控线程结束
             if self._monitor_thread and self._monitor_thread.is_alive():
