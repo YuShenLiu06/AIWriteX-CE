@@ -3,8 +3,22 @@ import time
 from typing import Dict, Any
 from src.ai_write_x.core.creative_modules import (
     StyleTransformModule,
-    TimeTravelModule,
-    RolePlayModule,
+    CulturalFusionModule,
+    MultiDimensionalCreativeModule,
+    # 配置类导入
+    RolePlayConfig,
+    StyleTransformConfig,
+    TimeTravelConfig,
+    DynamicTransformConfig,
+    GenreFusionConfig,
+    CulturalFusionConfig,
+    MultiDimensionalConfig,
+)
+from src.ai_write_x.core.creative_dimensions_engine import (
+    get_creative_dimensions_engine,
+)
+from src.ai_write_x.core.ai_persona_team import (
+    get_ai_persona_team,
 )
 from src.ai_write_x.core.base_framework import (
     WorkflowConfig,
@@ -39,8 +53,9 @@ class UnifiedContentWorkflow:
         self.content_engine = None
         self.creative_modules = {
             "style_transform": StyleTransformModule(),
-            "time_travel": TimeTravelModule(),
-            "role_play": RolePlayModule(),
+            "multi_dimensional": MultiDimensionalCreativeModule(),
+            "cultural_fusion": CulturalFusionModule(),
+            # TODO: 其他模块需要按照新模式重构
         }
         self.platform_adapters = {
             PlatformType.WECHAT.value: WeChatAdapter(),
@@ -52,6 +67,9 @@ class UnifiedContentWorkflow:
             PlatformType.DOUBAN.value: DoubanAdapter(),
         }
         self.monitor = WorkflowMonitor.get_instance()
+        # 初始化创意引擎和AI人格团队
+        self.creative_engine = get_creative_dimensions_engine()
+        self.ai_persona_team = get_ai_persona_team()
 
     def get_base_content_config(self, **kwargs) -> WorkflowConfig:
         """动态生成基础内容配置，根据平台和需求定制"""
@@ -253,56 +271,220 @@ class UnifiedContentWorkflow:
         if not creative_mode:
             return base_content
 
-        # 支持组合模式
+        # 支持组合模式和新的创意模式
         modes = [mode.strip() for mode in creative_mode.split(",")]
         current_content = base_content
 
         # 缓存引擎实例以减少重复创建开销
         engine_cache = {}
 
-        def get_or_create_engine(mode, mode_config):
+        def get_or_create_engine(mode, mode_config, **extra_params):
             """获取或创建缓存的引擎实例"""
-            cache_key = f"{mode}_{hash(str(mode_config))}"
+            cache_key = f"{mode}_{hash(str(mode_config))}_{hash(str(extra_params))}"
             if cache_key not in engine_cache:
                 module = self.creative_modules.get(mode)
                 if module:
-                    workflow_config = module.get_workflow_config(**mode_config, **kwargs)
+                    # 根据模块类型创建相应的配置对象
+                    if mode == "multi_dimensional":
+                        dimensions = extra_params.get("dimensions", [])
+                        config_obj = MultiDimensionalConfig(dimensions=dimensions)
+                        workflow_config = module.get_workflow_config(config_obj)
+                    elif mode == "cultural_fusion":
+                        cultural_perspective = extra_params.get(
+                            "cultural_perspective",
+                            mode_config.get("cultural_perspective", "eastern_philosophy"),
+                        )
+                        config_obj = CulturalFusionConfig(cultural_perspective=cultural_perspective)
+                        workflow_config = module.get_workflow_config(config_obj)
+                    elif mode == "style_transform":
+                        style_target = extra_params.get(
+                            "style_target", mode_config.get("style_target", "shakespeare")
+                        )
+                        config_obj = StyleTransformConfig(style_target=style_target)
+                        workflow_config = module.get_workflow_config(config_obj)
+                    elif mode == "time_travel":
+                        time_perspective = extra_params.get(
+                            "time_perspective", mode_config.get("time_perspective", "ancient")
+                        )
+                        config_obj = TimeTravelConfig(time_perspective=time_perspective)
+                        workflow_config = module.get_workflow_config(config_obj)
+                    elif mode == "role_play":
+                        role_character = extra_params.get(
+                            "role_character", mode_config.get("role_character", "celebrity")
+                        )
+                        custom_character = mode_config.get("custom_character", "")
+                        config_obj = RolePlayConfig(
+                            role_character=role_character, custom_character=custom_character
+                        )
+                        workflow_config = module.get_workflow_config(config_obj)
+                    elif mode == "dynamic_transform":
+                        scenario = extra_params.get(
+                            "scenario", mode_config.get("scenario", "elevator_pitch")
+                        )
+                        config_obj = DynamicTransformConfig(scenario=scenario)
+                        workflow_config = module.get_workflow_config(config_obj)
+                    elif mode == "genre_fusion":
+                        genre_combination = extra_params.get(
+                            "genre_combination",
+                            mode_config.get("genre_combination", ["scifi", "wuxia"]),
+                        )
+                        config_obj = GenreFusionConfig(genre_combination=genre_combination)
+                        workflow_config = module.get_workflow_config(config_obj)
+                    else:
+                        # 对于未识别的模块，返回 None
+                        return None
+
                     engine_cache[cache_key] = ContentGenerationEngine(workflow_config)
             return engine_cache.get(cache_key)
 
         for mode in modes:
             mode_config = creative_config.get(mode, {})
-            if not mode_config.get("enabled", False):
-                continue
 
-            engine = get_or_create_engine(mode, mode_config)
-            if not engine:
-                continue
+            # 处理新的创意模式
+            if mode == "multi_dimensional":
+                if mode_config.get("enabled", False):
+                    # 获取创意维度组合
+                    topic = base_content.title
+                    if "|" in topic:
+                        topic = topic.split("|", 1)[1].strip()
 
-            # 执行变换
-            module = self.creative_modules.get(mode)
-            if module:
-                if mode == "style_transform":
-                    current_content = module.transform(
-                        current_content,
-                        style_target=mode_config.get("style_target", "shakespeare"),
-                        engine_factory=lambda config: engine,
-                        **kwargs,
+                    # 生成智能创意组合
+                    combinations = self.creative_engine.generate_smart_combinations(
+                        topic=topic,
+                        target_audience=mode_config.get("target_audience", ""),
+                        num_combinations=1,
                     )
-                elif mode == "time_travel":
-                    current_content = module.transform(
-                        current_content,
-                        time_perspective=mode_config.get("time_perspective", "ancient"),
-                        engine_factory=lambda config: engine,
-                        **kwargs,
+
+                    if combinations:
+                        dimensions = combinations[0].dimensions
+                        module = self.creative_modules.get("multi_dimensional")
+                        if module:
+                            multi_config = mode_config.copy()
+                            multi_config["dimensions"] = dimensions
+                            engine = get_or_create_engine(
+                                "multi_dimensional", multi_config, dimensions=dimensions
+                            )
+                            current_content = module.transform(
+                                current_content,
+                                engine_factory=lambda config: engine,
+                                config=MultiDimensionalConfig(dimensions=dimensions),
+                            )
+
+            elif mode == "cultural_fusion":
+                if mode_config.get("enabled", False):
+                    cultural_perspective = mode_config.get(
+                        "cultural_perspective", "eastern_philosophy"
                     )
-                elif mode == "role_play":
-                    current_content = module.transform(
-                        current_content,
-                        role_character=mode_config.get("role_character", "celebrity"),
-                        engine_factory=lambda config: engine,
-                        **kwargs,
-                    )
+                    module = self.creative_modules.get("cultural_fusion")
+                    if module:
+                        engine = get_or_create_engine(
+                            "cultural_fusion",
+                            mode_config,
+                            cultural_perspective=cultural_perspective,
+                        )
+                        current_content = module.transform(
+                            current_content,
+                            engine_factory=lambda config: engine,
+                            config=CulturalFusionConfig(cultural_perspective=cultural_perspective),
+                        )
+
+            elif mode == "dynamic_transform":
+                if mode_config.get("enabled", False):
+                    scenario = mode_config.get("scenario", "elevator_pitch")
+                    module = self.creative_modules.get("dynamic_transform")
+                    if module:
+                        engine = get_or_create_engine(
+                            "dynamic_transform", mode_config, scenario=scenario
+                        )
+                        current_content = module.transform(
+                            current_content,
+                            engine_factory=lambda config: engine,
+                            config=DynamicTransformConfig(scenario=scenario),
+                        )
+
+            elif mode == "genre_fusion":
+                if mode_config.get("enabled", False):
+                    genre_combination = mode_config.get("genre_combination", ["scifi", "wuxia"])
+                    module = self.creative_modules.get("genre_fusion")
+                    if module:
+                        engine = get_or_create_engine(
+                            "genre_fusion", mode_config, genre_combination=genre_combination
+                        )
+                        current_content = module.transform(
+                            current_content,
+                            engine_factory=lambda config: engine,
+                            config=GenreFusionConfig(genre_combination=genre_combination),
+                        )
+
+            elif mode == "ai_persona":
+                if mode_config.get("enabled", False):
+                    # 智能选择合适的AI人格
+                    topic = base_content.title
+                    if "|" in topic:
+                        topic = topic.split("|", 1)[1].strip()
+
+                    ai_persona_module = self.creative_modules.get("ai_persona")
+                    if ai_persona_module:
+                        persona_type = ai_persona_module.get_suitable_persona_for_topic(topic)
+                        engine = get_or_create_engine(
+                            "ai_persona", mode_config, persona_type=persona_type
+                        )
+                        current_content = ai_persona_module.transform(
+                            current_content,
+                            engine_factory=lambda config: engine,
+                            persona_type=persona_type,
+                        )
+
+            # 保持原有的创意模式处理逻辑
+            elif not mode_config.get("enabled", False):
+                continue
+            else:
+                engine = get_or_create_engine(mode, mode_config)
+                if not engine:
+                    continue
+
+                # 执行变换
+                module = self.creative_modules.get(mode)
+                if module:
+                    if mode == "style_transform":
+                        style_target = mode_config.get("style_target", "shakespeare")
+                        engine = get_or_create_engine(
+                            "style_transform", mode_config, style_target=style_target
+                        )
+                        # 创建配置对象
+                        config_obj = StyleTransformConfig(style_target=style_target)
+                        current_content = module.transform(
+                            current_content,
+                            engine_factory=lambda config: engine,
+                            config=config_obj,
+                        )
+                    elif mode == "time_travel":
+                        time_perspective = mode_config.get("time_perspective", "ancient")
+                        engine = get_or_create_engine(
+                            "time_travel", mode_config, time_perspective=time_perspective
+                        )
+                        # 创建配置对象
+                        config_obj = TimeTravelConfig(time_perspective=time_perspective)
+                        current_content = module.transform(
+                            current_content,
+                            engine_factory=lambda config: engine,
+                            config=config_obj,
+                        )
+                    elif mode == "role_play":
+                        role_character = mode_config.get("role_character", "celebrity")
+                        custom_character = mode_config.get("custom_character", "")
+                        engine = get_or_create_engine(
+                            "role_play", mode_config, role_character=role_character
+                        )
+                        # 创建配置对象
+                        config_obj = RolePlayConfig(
+                            role_character=role_character, custom_character=custom_character
+                        )
+                        current_content = module.transform(
+                            current_content,
+                            engine_factory=lambda config: engine,
+                            config=config_obj,
+                        )
 
         return current_content
 
@@ -424,7 +606,7 @@ class UnifiedContentWorkflow:
 ## 其他要求：
     - 先思考排版布局，然后再填充文章内容
     - 输出长度：10屏以内 (移动端)
-    - 生成的代码**必须**放在Markdown ``` 标签中
+    - 生成的代码**必须**放在`` 标签中
     - 主体内容必须是**中文**，但可以用部分英语装逼
     - 不能使用position: absolute
 <|eot_id|>"""

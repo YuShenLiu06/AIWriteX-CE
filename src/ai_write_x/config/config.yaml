@@ -1,3 +1,4 @@
+config_version: 2.2.1
 platforms:
   - name: 微博
     weight: 0.3
@@ -43,11 +44,12 @@ wechat:
       sendall: true
       tag_id: 0
 api:
-  api_type: OpenRouter
+  api_type: Deepseek
   Grok:
     key: XAI_API_KEY
     key_index: 0
     api_key:
+      - ""
       - ""
     model_index: 0
     model:
@@ -58,6 +60,7 @@ api:
     key_index: 0
     api_key:
       - ""
+      - ""
     model_index: 0
     model:
       - openai/qwen-plus
@@ -67,6 +70,7 @@ api:
     key_index: 0
     api_key:
       - ""
+      - ""
     model_index: 0
     model:
       - gemini/gemini-1.5-flash
@@ -75,10 +79,11 @@ api:
     api_base: https://generativelanguage.googleapis.com/v1beta/openai/
   OpenRouter:
     key: OPENROUTER_API_KEY
+    model_index: 0
     key_index: 0
     api_key:
       - ""
-    model_index: 0
+      - ""
     model:
       - openrouter/deepseek/deepseek-chat-v3-0324:free
       - openrouter/deepseek/deepseek-r1-0528:free
@@ -92,10 +97,10 @@ api:
     api_base: https://openrouter.ai/api/v1
   Ollama:
     key: OPENAI_API_KEY
+    model_index: 0
     key_index: 0
     api_key:
       - tmp-key
-    model_index: 0
     model:
       - ollama/deepseek-r1:14b
       - ollama/deepseek-r1:7b
@@ -114,6 +119,7 @@ api:
     key: OPENAI_API_KEY
     key_index: 0
     api_key:
+      - ""
       - ""
     model_index: 0
     model:
@@ -138,71 +144,140 @@ aiforge_search_max_results: 10
 aiforge_search_min_results: 1
 min_article_len: 1000
 max_article_len: 2000
-auto_publish: true
+auto_publish: false
 article_format: html
 format_publish: true
-creative_mode: ""
+creative_mode: role_play,multi_dimensional,genre_fusion
 creative_config:
   style_transform:
     enabled: false
-    style_target: "shakespeare"
+    style_target: shakespeare
     available_styles:
-      - "shakespeare"
-      - "detective"
-      - "scifi"
-      - "classical_poetry"
-      - "modern_poetry"
-      - "academic"
-      - "news"
+      - shakespeare
+      - detective
+      - scifi
+      - classical_poetry
+      - modern_poetry
+      - academic
+      - news
   time_travel:
     enabled: false
-    time_perspective: "ancient"
+    time_perspective: ancient
     available_perspectives:
-      - "ancient"
-      - "modern"
-      - "future"
+      - ancient
+      - modern
+      - future
   role_play:
-    enabled: false
-    role_character: "libai" # 默认选择
+    enabled: true
+    role_character: luxun
     available_roles:
-      # 古典诗词
-      - "libai" # 李白 - 浪漫主义诗人
-      - "dufu" # 杜甫 - 现实主义诗人
-      - "sushi" # 苏轼 - 豪放派词人
-      - "liqingzhao" # 李清照 - 婉约派词人
-
-      # 古典小说
-      - "caoxueqin" # 曹雪芹 - 《红楼梦》作者
-      - "shinaian" # 施耐庵 - 《水浒传》作者
-      - "wuchengen" # 吴承恩 - 《西游记》作者
-      - "pusonglin" # 蒲松龄 - 《聊斋志异》作者
-
-      # 现代文学
-      - "luxun" # 鲁迅 - 现代文学奠基人
-      - "laoshe" # 老舍 - 人民艺术家
-      - "bajin" # 巴金 - 现代作家
-      - "qianjunru" # 钱钟书 - 学者作家
-
-      # 武侠小说
-      - "jinyong" # 金庸 - 武侠小说大师
-      - "gulongxia" # 古龙 - 新派武侠代表
-
-      # 新闻主播/评论员
-      - "baiyansong" # 白岩松 - 央视主持人
-      - "cuiyongyuan" # 崔永元 - 知名主持人
-      - "yanglan" # 杨澜 - 媒体人
-      - "luyu" # 鲁豫 - 访谈节目主持人
-
-      # 音乐人
-      - "zhoujielun" # 周杰伦 - 流行音乐天王
-      - "denglijun" # 邓丽君 - 华语歌坛传奇
-      - "lironghao" # 李荣浩 - 创作型歌手
-
-      # 相声曲艺
-      - "guodegang" # 郭德纲 - 相声演员
-      - "zhaobenshang" # 赵本山 - 小品演员
-
-      # 自定义
-      - "custom" # 自定义人物
-    custom_character: "" # 自定义人物名称
-  combination_mode: false
+      - libai
+      - dufu
+      - sushi
+      - liqingzhao
+      - caoxueqin
+      - shinaian
+      - wuchengen
+      - pusonglin
+      - luxun
+      - laoshe
+      - bajin
+      - qianjunru
+      - jinyong
+      - gulongxia
+      - baiyansong
+      - cuiyongyuan
+      - yanglan
+      - luyu
+      - zhoujielun
+      - denglijun
+      - lironghao
+      - guodegang
+      - zhaobenshang
+      - custom
+    custom_character: ""
+  multi_dimensional:
+    enabled: true
+    target_audience: 投资者
+    creativity_level: balanced
+    available_creativity_levels:
+      - conservative
+      - balanced
+      - experimental
+    auto_select_dimensions: true
+  cultural_fusion:
+    enabled: false
+    cultural_perspective: eastern_philosophy
+    available_perspectives:
+      - eastern_philosophy
+      - western_logic
+      - japanese_mono
+      - french_romance
+      - american_freedom
+  dynamic_transform:
+    enabled: false
+    scenario: elevator_pitch
+    available_scenarios:
+      - elevator_pitch
+      - bedtime_story
+      - debate_argument
+      - poetry_version
+      - comic_script
+      - podcast_script
+      - social_media
+  genre_fusion:
+    enabled: true
+    genre_combination:
+      - romance
+    available_genres:
+      - scifi
+      - wuxia
+      - detective
+      - romance
+      - history
+      - fantasy
+      - thriller
+      - comedy
+    max_genres: 3
+  ai_persona:
+    enabled: false
+    persona_type: auto
+    available_personas:
+      - auto
+      - dreamer_poet
+      - data_philosopher
+      - time_traveler
+      - emotion_healer
+      - mystery_detective
+      - culture_explorer
+      - tech_visionary
+      - life_observer
+    persona_descriptions:
+      dreamer_poet: 梦境诗人 - 善于将现实与梦境交织
+      data_philosopher: 数据哲学家 - 用数据思维解读人文
+      time_traveler: 时空旅者 - 穿梭时代的独特视角
+      emotion_healer: 情感治愈师 - 温暖人心的文字治愈
+      mystery_detective: 悬疑侦探 - 逻辑推理揭秘真相
+      culture_explorer: 文化探索者 - 深入挖掘文化内涵
+      tech_visionary: 科技预言家 - 洞察科技趋势
+      life_observer: 生活观察家 - 从平凡中发现不平凡
+  combination_mode: true
+  mode_priority:
+    - ai_persona
+    - multi_dimensional
+    - cultural_fusion
+    - genre_fusion
+    - dynamic_transform
+    - style_transform
+    - time_travel
+    - role_play
+  mode_conflicts:
+    ai_persona:
+      - role_play
+    multi_dimensional:
+      - style_transform
+  smart_recommendation:
+    enabled: true
+    topic_based: true
+    audience_based: true
+    platform_based: true

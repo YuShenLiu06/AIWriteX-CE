@@ -39,6 +39,8 @@ def run_crew_in_process(inputs, log_queue, config_data=None):
 
         # 设置进程专用日志系统
         log.setup_process_logging(log_queue)
+        # 设置进程间日志队列
+        log.set_process_queue(log_queue)
 
         # 恢复环境变量
         env_file_path = None
@@ -59,10 +61,7 @@ def run_crew_in_process(inputs, log_queue, config_data=None):
         # 获取子进程的 Config 实例
         config = Config.get_instance()
 
-        # 设置进程队列引用，让 print_log 可以访问
-        config._process_log_queue = log_queue
-
-        # 同步主进程的配置数据到子进程（包括 ui_mode）
+        # 同步主进程的配置数据到子进程
         if config_data:
             for key, value in config_data.items():
                 # 跳过环境文件路径，这个不是配置属性
@@ -73,7 +72,7 @@ def run_crew_in_process(inputs, log_queue, config_data=None):
         config.load_config()
 
         # 添加调试信息
-        log.print_log(f"配置信息：API类型={config.api_type}，模型={config.api_model} ", "status")
+        log.print_log(f"任务参数：API类型={config.api_type}，模型={config.api_model} ", "status")
 
         # 执行任务
         result = run(inputs)
@@ -130,7 +129,7 @@ def ai_write_x_run(config_data=None):
     """执行 AI 写作任务"""
     config = Config.get_instance()
     # 准备输入参数
-    log.print_log("正在初始化配置参数，请耐心等待...")
+    log.print_log("正在初始化任务参数，请耐心等待...")
     if not config.custom_topic:
         platform = utils.get_random_platform(config.platforms)
         topic = hotnews.select_platform_topic(platform, 5)  # 前五个热门话题根据一定权重选一个

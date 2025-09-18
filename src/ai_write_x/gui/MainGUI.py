@@ -37,7 +37,7 @@ __author__ = "iniwaper@gmail.com"
 __copyright__ = "Copyright (C) 2025 iniwap"
 # __date__ = "2025/04/17"
 
-__version___ = "v2.2.0"
+__version___ = "v2.2.1"
 
 
 class MainGUI(object):
@@ -49,6 +49,8 @@ class MainGUI(object):
             PathManager.get_log_dir() / f"UI_{datetime.now().strftime('%Y-%m-%d')}.log"
         )
         self._log_list = self.__get_logs()
+        # 初始化日志系统为UI模式
+        log.init_ui_mode()
         # 配置 CrewAI 日志处理器
         log.setup_logging("crewai", self._update_queue)
 
@@ -63,8 +65,12 @@ class MainGUI(object):
 
         self.load_saved_font()
 
-        # 加载配置，不验证
         config = Config.get_instance()
+        # 静默执行配置迁移，失败时自动使用默认配置
+        if not config.migrate_config_if_needed():
+            log.print_log("配置初始化失败，请检查系统环境", "warning")
+
+        # 加载配置，不验证
         if not config.load_config():
             # 配置信息未填写，仅作提示，用户点击开始任务时才禁止操作并提示错误
             log.print_log(config.error_message, "error")
@@ -787,7 +793,6 @@ class MainGUI(object):
 
         # 收集需要同步到子进程的配置数据
         config_data = {
-            "ui_mode": True,  # 明确设置为 True
             "custom_topic": config.custom_topic,
             "urls": config.urls,
             "reference_ratio": config.reference_ratio,
@@ -940,6 +945,7 @@ class MainGUI(object):
         self._monitor_thread = None
 
     def run(self):
+        """主事件循环，处理用户交互"""
         try:
             while True:
                 event, values = self._window.read(timeout=100)  # type: ignore
@@ -1147,7 +1153,7 @@ class MainGUI(object):
                     self._window["-STATUS-"].update(value="\n".join(self._log_buffer))
                 elif event == "-CLEAR_LOG-":
                     self._log_buffer.clear()
-                    self._window["-STATUS-"].update(vaule="")
+                    self._window["-STATUS-"].update(value="")
                 elif event in self._log_list:
                     if event == "更多...":
                         logs_path = os.path.abspath(PathManager.get_log_dir())
@@ -1205,6 +1211,12 @@ class MainGUI(object):
 
                 # 处理队列更新（非阻塞）
                 self.process_queue()
+        except KeyboardInterrupt:
+            # 捕获Ctrl+C，优雅退出
+            pass
+        except Exception as e:
+            # 记录其他异常但不显示给用户
+            self._display_log(f"应用程序异常: {str(e)}", "error")
         finally:
             if self._is_running and self._crew_process and self._crew_process.is_alive():  # type: ignore # noqa 501
                 self._crew_process.terminate()  # type: ignore
@@ -1220,7 +1232,15 @@ class MainGUI(object):
 
 
 def gui_start():
-    MainGUI().run()
+    """启动GUI应用程序入口"""
+    try:
+        MainGUI().run()
+    except KeyboardInterrupt:
+        # 捕获Ctrl+C，静默退出
+        pass
+    except Exception:
+        # 对于其他异常，也静默处理以避免显示堆栈跟踪
+        pass
 
 
 if __name__ == "__main__":

@@ -20,6 +20,27 @@ class ContentType(Enum):
     SOCIAL_POST = "social_post"
     VIDEO_SCRIPT = "video_script"
     PODCAST_SCRIPT = "podcast_script"
+    MULTIMEDIA = "multimedia"  # 新增多媒体类型
+
+
+@dataclass
+class CreativeDimension:
+    """创意维度配置"""
+
+    name: str
+    value: str
+    weight: float = 1.0
+    description: str = ""
+
+
+@dataclass
+class MultimediaAsset:
+    """多媒体资源"""
+
+    type: str  # image, audio, video
+    url: str
+    description: str
+    metadata: Dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -37,6 +58,7 @@ class AgentConfig:
     system_template: Optional[str] = None
     prompt_template: Optional[str] = None
     response_template: Optional[str] = None
+    personality_traits: Dict[str, Any] = field(default_factory=dict)  # 新增人格特征
 
 
 @dataclass
@@ -49,6 +71,7 @@ class TaskConfig:
     tools: List[str] = field(default_factory=list)
     callback: Optional[str] = None
     async_execution: bool = False
+    creative_dimensions: List[CreativeDimension] = field(default_factory=list)  # 新增创意维度
 
 
 @dataclass
@@ -61,6 +84,7 @@ class WorkflowConfig:
     tasks: List[TaskConfig]
     validation_rules: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
+    creative_dimensions: List[CreativeDimension] = field(default_factory=list)  # 全局创意维度
 
 
 @dataclass
@@ -74,6 +98,10 @@ class ContentResult:
     metadata: Dict[str, Any] = field(default_factory=dict)
     created_at: datetime = field(default_factory=datetime.now)
     content_type: ContentType = ContentType.ARTICLE
+    multimedia_assets: List[MultimediaAsset] = field(default_factory=list)  # 多媒体资源
+    creative_dimensions_applied: List[CreativeDimension] = field(
+        default_factory=list
+    )  # 应用的创意维度
 
 
 class BaseWorkflowFramework(ABC):

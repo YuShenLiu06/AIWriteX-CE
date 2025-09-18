@@ -7,8 +7,72 @@ import multiprocessing
 import threading
 
 from src.ai_write_x.utils import comm
-from src.ai_write_x.config.config import Config
 from src.ai_write_x.utils import utils
+
+
+class LogManager:
+    """
+    日志管理器 - 负责管理日志系统的运行模式和进程间通信
+    完全独立于配置系统，避免循环依赖
+    """
+
+    _instance = None
+    _lock = threading.Lock()
+
+    def __init__(self):
+        if hasattr(self, "_initialized"):
+            return
+        self._initialized = True
+
+        # 日志系统的核心状态
+        self._ui_mode = False  # 默认为命令行模式
+        self._process_log_queue = None  # 进程间日志队列
+
+    @classmethod
+    def get_instance(cls):
+        """get the single instance of LogManager"""
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = cls()
+            return cls._instance
+
+    def set_ui_mode(self, ui_mode: bool):
+        """设置日志系统运行模式"""
+        self._ui_mode = ui_mode
+
+    def set_process_log_queue(self, queue):
+        """设置进程间日志队列"""
+        self._process_log_queue = queue
+
+    def get_ui_mode(self) -> bool:
+        """获取当前运行模式"""
+        return self._ui_mode
+
+    def get_process_log_queue(self):
+        """获取进程间日志队列"""
+        return self._process_log_queue
+
+
+# 全局日志管理器实例
+_log_manager = LogManager.get_instance()
+
+
+# ==================== 日志系统初始化函数 ====================
+
+
+def init_ui_mode():
+    """初始化为UI模式"""
+    _log_manager.set_ui_mode(True)
+
+
+def init_cli_mode():
+    """初始化为命令行模式"""
+    _log_manager.set_ui_mode(False)
+
+
+def set_process_queue(queue):
+    """设置进程间日志队列"""
+    _log_manager.set_process_log_queue(queue)
 
 
 def strip_ansi_codes(text):
@@ -262,7 +326,14 @@ class QueueStreamHandler:
 
 
 def setup_logging(log_name, queue):
-    """配置日志处理器，将 CrewAI 日志发送到队列"""
+    """
+    配置日志处理器，将 CrewAI 日志发送到队列
+    自动从 LogManager 获取 ui_mode 状态
+
+    Args:
+        log_name: 日志名称
+        queue: 日志队列
+    """
     logger = logging.getLogger(log_name)
     logger.setLevel(logging.WARNING)  # 改为 WARNING 级别
     handler = QueueLoggingHandler(queue)
@@ -274,9 +345,9 @@ def setup_logging(log_name, queue):
         if isinstance(h, logging.StreamHandler) and h is not handler:
             logger.removeHandler(h)
 
-    # 只在 UI 模式下重定向 stdout，保留终端输出
-    config = Config.get_instance()
-    if config.ui_mode and not hasattr(sys.stdout, "_is_queue_handler"):
+    # 从 LogManager 获取 ui_mode 状态
+    ui_mode = _log_manager.get_ui_mode()
+    if ui_mode and not hasattr(sys.stdout, "_is_queue_handler"):
         # 创建一个包装器，同时输出到队列和终端
         class DualOutputHandler:
             def __init__(self, queue, original_stdout):
@@ -314,19 +385,35 @@ def setup_logging(log_name, queue):
 
 
 def print_log(msg, msg_type="status"):
-    """统一日志接口函数"""
-    config = Config.get_instance()
+    """
+    统一日志接口函数 - 不再需要外部传参，自动从 LogManager 获取状态
 
-    if config.ui_mode:
-        # 检查是否在子进程中
-        if hasattr(config, "_process_log_queue") and config._process_log_queue:
+    Args:
+        msg: 日志消息
+        msg_type: 消息类型
+    """
+    # 从日志管理器获取当前状态
+    ui_mode = _log_manager.get_ui_mode()
+    process_log_queue = _log_manager.get_process_log_queue()
+
+    if ui_mode:
+        # UI模式：发送到线程或进程队列
+        if process_log_queue is not None:
             # 子进程模式：直接发送到进程队列
-            config._process_log_queue.put(
-                {"type": msg_type, "message": msg, "timestamp": time.time()}
-            )
+            try:
+                process_log_queue.put({"type": msg_type, "message": msg, "timestamp": time.time()})
+            except Exception:
+                # 队列已关闭或其他错误，回退到控制台输出
+                print(f"[{time.strftime('%H:%M:%S')}] [{msg_type.upper()}]: {msg}")
+                return
         else:
             # 主进程模式：发送到线程队列
-            comm.send_update(msg_type, msg)
+            try:
+                comm.send_update(msg_type, msg)
+            except Exception:
+                # comm 模块不可用，回退到控制台输出
+                print(f"[{time.strftime('%H:%M:%S')}] [{msg_type.upper()}]: {msg}")
+                return
 
         # 在开发模式下同时输出到终端
         if not utils.get_is_release_ver():

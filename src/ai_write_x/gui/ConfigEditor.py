@@ -290,12 +290,13 @@ class ConfigEditor:
 
         layout = [
             [
-                sg.Text("API 类型"),
+                sg.Text("API 类型: "),
                 sg.Combo(
                     self.config.api_list_display,
                     default_value=display_api_type,
                     key="-API_TYPE-",
                     enable_events=True,
+                    size=(20, 1),
                 ),
             ],
             [
@@ -339,47 +340,141 @@ class ConfigEditor:
     def create_img_api_tab(self):
         """创建图像 API TAB 布局"""
         img_api = self.config.get_config()["img_api"]
-        layout = [
+
+        # API类型配置区块
+        api_type_layout = [
             [
-                sg.Text("API 类型"),
+                sg.Text("API类型:", size=(15, 1), tooltip="选择图片生成API类型"),
                 sg.Combo(
-                    ["picsum", "ali"], default_value=img_api["api_type"], key="-IMG_API_TYPE-"
+                    ["picsum", "ali"],
+                    default_value=img_api["api_type"],
+                    key="-IMG_API_TYPE-",
+                    size=(50, 1),
+                    readonly=True,
+                    tooltip="picsum: 免费随机图片API; ali: 阿里云通义万相图片生成API",
                 ),
             ],
-            [sg.Text("阿里 API 配置")],
+        ]
+
+        # 阿里API配置区块
+        ali_layout = [
             [
-                sg.Text("API KEY:", size=(15, 1)),
-                sg.InputText(img_api["ali"]["api_key"], key="-ALI_API_KEY-", enable_events=True),
+                sg.Text("API KEY:", size=(15, 1), tooltip="阿里云通义万相API密钥"),
+                sg.InputText(
+                    img_api["ali"]["api_key"],
+                    key="-ALI_API_KEY-",
+                    size=(50, 1),
+                    enable_events=True,
+                    tooltip="阿里云通义万相API密钥，与QWen API KEY相同",
+                ),
             ],
             [
-                sg.Text("模型:", size=(15, 1)),
-                sg.InputText(img_api["ali"]["model"], key="-ALI_MODEL-"),
+                sg.Text("模型:", size=(15, 1), tooltip="图片生成模型"),
+                sg.InputText(
+                    img_api["ali"]["model"],
+                    key="-ALI_MODEL-",
+                    size=(50, 1),
+                    tooltip="阿里云通义万相图片生成模型名称",
+                ),
             ],
-            [sg.Text("Picsum API 配置")],
+        ]
+
+        # Picsum API配置区块
+        picsum_layout = [
             [
-                sg.Text("API KEY:", size=(15, 1)),
-                sg.InputText(img_api["picsum"]["api_key"], key="-PICSUM_API_KEY-", disabled=True),
+                sg.Text("API KEY:", size=(15, 1), tooltip="Picsum API密钥（免费服务无需配置）"),
+                sg.InputText(
+                    img_api["picsum"]["api_key"],
+                    key="-PICSUM_API_KEY-",
+                    size=(50, 1),
+                    disabled=True,
+                    tooltip="Picsum提供免费随机图片服务，无需API KEY",
+                ),
             ],
             [
-                sg.Text("模型:", size=(15, 1)),
-                sg.InputText(img_api["picsum"]["model"], key="-PICSUM_MODEL-", disabled=True),
+                sg.Text("模型:", size=(15, 1), tooltip="Picsum模型（免费服务无需配置）"),
+                sg.InputText(
+                    img_api["picsum"]["model"],
+                    key="-PICSUM_MODEL-",
+                    size=(50, 1),
+                    disabled=True,
+                    tooltip="Picsum提供免费随机图片服务，无需指定模型",
+                ),
             ],
             [
                 sg.Text(
-                    "Tips：\n"
-                    "1、选择picsum时，无需填写KEY和模型；\n"
-                    "2、选择阿里时，均为必填项，API KEY跟QWen相同。",
+                    "Tips：Picsum提供免费的随机图片服务，无需配置API KEY和模型。",
+                    size=(70, 1),
+                    text_color="gray",
+                ),
+            ],
+        ]
+
+        # 主布局
+        content_layout = [
+            [
+                sg.Frame(
+                    "API类型配置",
+                    api_type_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
+                )
+            ],
+            [
+                sg.Frame(
+                    "阿里API配置",
+                    ali_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
+                )
+            ],
+            [
+                sg.Frame(
+                    "Picsum API配置",
+                    picsum_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
+                )
+            ],
+            [
+                sg.Text(
+                    "使用说明：\n"
+                    "1、选择picsum时，使用免费随机图片服务，无需填写KEY和模型；\n"
+                    "2、选择阿里时，需要配置API KEY和模型，API KEY与QWen相同。",
                     size=(70, 3),
                     text_color="gray",
                 ),
             ],
+            [sg.VPush()],  # 垂直填充，将按钮推到底部
             [
                 sg.Button("保存配置", key="-SAVE_IMG_API-"),
                 sg.Button("恢复默认", key="-RESET_IMG_API-"),
             ],
         ]
-        # 使用 sg.Column 包裹布局，设置 pad=(0, 0) 确保顶部无额外边距
-        return [[sg.Column(layout, scrollable=False, vertical_scroll_only=False, pad=(0, 0))]]
+
+        # 使用Frame包装内容，避免滚动问题
+        content_frame = sg.Frame("", content_layout, border_width=0, pad=(0, 0))
+
+        # 外层Column充满高度，不启用滚动
+        return [
+            [
+                sg.Column(
+                    [[content_frame]],
+                    expand_x=True,
+                    expand_y=True,
+                    pad=(0, 0),
+                )
+            ]
+        ]
 
     def create_base_tab(self):
         """创建基础 TAB 布局"""
@@ -474,7 +569,7 @@ class ConfigEditor:
                     ["html", "markdown", "txt"],
                     default_value=self.config.article_format,
                     key="-ARTICLE_FORMAT-",
-                    size=(10, 1),
+                    size=(11, 1),
                     readonly=True,
                     tooltip=tips["article_format"],
                     enable_events=True,
@@ -616,6 +711,7 @@ class ConfigEditor:
                     relief=sg.RELIEF_GROOVE,
                     border_width=2,
                     pad=(5, 5),
+                    expand_x=True,
                 )
             ],
             [
@@ -626,6 +722,7 @@ class ConfigEditor:
                     relief=sg.RELIEF_GROOVE,
                     border_width=2,
                     pad=(5, 5),
+                    expand_x=True,
                 )
             ],
             [
@@ -636,6 +733,7 @@ class ConfigEditor:
                     relief=sg.RELIEF_GROOVE,
                     border_width=2,
                     pad=(5, 5),
+                    expand_x=True,
                 )
             ],
             [
@@ -646,12 +744,24 @@ class ConfigEditor:
                     relief=sg.RELIEF_GROOVE,
                     border_width=2,
                     pad=(5, 5),
+                    expand_x=True,
                 )
             ],
-            # 按钮紧贴内容下方
+            [sg.VPush()],  # 垂直填充，将按钮和版本信息推到底部
+            # 按钮行
             [
                 sg.Button("保存配置", key="-SAVE_BASE-"),
                 sg.Button("恢复默认", key="-RESET_BASE-"),
+            ],
+            # 软件版本信息固定在底部
+            [
+                sg.Push(),  # 将版本信息推到右侧
+                sg.Text(
+                    f"软件版本: {self.config.get_config_version()}",
+                    key="-CONFIG_VERSION-",
+                    font=("Arial", 8),
+                    text_color="gray",
+                ),
             ],
         ]
 
@@ -666,8 +776,6 @@ class ConfigEditor:
                     expand_x=True,
                     expand_y=True,
                     pad=(0, 0),
-                    scrollable=True,  # 启用滚动
-                    vertical_scroll_only=True,  # 只允许垂直滚动
                 )
             ]
         ]
@@ -688,7 +796,7 @@ class ConfigEditor:
                 sg.InputText(
                     "中文",
                     key="-AIFORGE_LOCALE-",
-                    size=(35, 1),
+                    size=(50, 1),
                     tooltip="AIForge使用的语言",
                     disabled=True,
                 ),
@@ -698,16 +806,14 @@ class ConfigEditor:
                 sg.InputText(
                     aiforge_config["max_rounds"],
                     key="-AIFORGE_MAXROUNDS-",
-                    size=(35, 1),
+                    size=(11, 1),
                     tooltip="代码生成最大重试次数",
                 ),
-            ],
-            [
                 sg.Text("默认最大Tokens:", size=(15, 1)),
                 sg.InputText(
                     aiforge_config.get("max_tokens", 4096),
                     key="-AIFORGE_DEFAULT_MAX_TOKENS-",
-                    size=(35, 1),
+                    size=(11, 1),
                     tooltip="默认的最大Token数量",
                 ),
             ],
@@ -726,13 +832,11 @@ class ConfigEditor:
                     enable_events=True,
                     tooltip="AIForge使用的LLM 提供商",
                 ),
-            ],
-            [
-                sg.Text("类型:", size=(15, 1)),
+                sg.Text("类型:", size=(10, 1)),
                 sg.InputText(
                     provider_config.get("type", ""),
                     key="-AIFORGE_TYPE-",
-                    size=(35, 1),
+                    size=(15, 1),
                     disabled=True,  # 类型通常不可编辑
                 ),
             ],
@@ -741,7 +845,7 @@ class ConfigEditor:
                 sg.InputText(
                     provider_config.get("model", ""),
                     key="-AIFORGE_MODEL-",
-                    size=(35, 1),
+                    size=(50, 1),
                     tooltip="使用的具体模型名称",
                 ),
             ],
@@ -750,7 +854,7 @@ class ConfigEditor:
                 sg.InputText(
                     provider_config.get("api_key", ""),
                     key="-AIFORGE_API_KEY-",
-                    size=(35, 1),
+                    size=(50, 1),
                     tooltip="模型提供商的API KEY（必填）",
                     enable_events=True,
                     # password_char="*",
@@ -761,7 +865,7 @@ class ConfigEditor:
                 sg.InputText(
                     provider_config.get("base_url", ""),
                     key="-AIFORGE_BASE_URL-",
-                    size=(35, 1),
+                    size=(50, 1),
                     tooltip="API的基础地址",
                 ),
             ],
@@ -770,16 +874,14 @@ class ConfigEditor:
                 sg.InputText(
                     provider_config.get("timeout", 30),
                     key="-AIFORGE_TIMEOUT-",
-                    size=(35, 1),
+                    size=(11, 1),
                     tooltip="API请求的超时时间（秒）",
                 ),
-            ],
-            [
                 sg.Text("最大 Tokens:", size=(15, 1)),
                 sg.InputText(
                     provider_config.get("max_tokens", 8192),
                     key="-AIFORGE_MAX_TOKENS-",
-                    size=(35, 1),
+                    size=(11, 1),
                     tooltip="控制生成内容的长度，建议根据模型支持范围设置",
                 ),
             ],
@@ -802,16 +904,14 @@ class ConfigEditor:
                 sg.InputText(
                     cache_config.get("max_modules", 20),
                     key="-CACHE_MAX_MODULES-",
-                    size=(35, 1),
+                    size=(10, 1),
                     tooltip="缓存中保存的最大模块数量",
                 ),
-            ],
-            [
-                sg.Text("失败阈值:", size=(15, 1)),
+                sg.Text("失败阈值:", size=(10, 1)),
                 sg.InputText(
                     cache_config.get("failure_threshold", 0.8),
                     key="-CACHE_FAILURE_THRESHOLD-",
-                    size=(35, 1),
+                    size=(10, 1),
                     tooltip="缓存失败率阈值（0.0-1.0）",
                 ),
             ],
@@ -820,23 +920,21 @@ class ConfigEditor:
                 sg.InputText(
                     cache_config.get("max_age_days", 30),
                     key="-CACHE_MAX_AGE_DAYS-",
-                    size=(35, 1),
+                    size=(10, 1),
                     tooltip="缓存数据的最大保存天数",
                 ),
-            ],
-            [
                 sg.Text("清理间隔 (分钟):", size=(15, 1)),
                 sg.InputText(
                     cache_config.get("cleanup_interval", 10),
                     key="-CACHE_CLEANUP_INTERVAL-",
-                    size=(35, 1),
+                    size=(10, 1),
                     tooltip="自动清理缓存的时间间隔（分钟）",
                 ),
             ],
         ]
 
         # 使用Frame将不同配置区块分组
-        layout = [
+        content_layout = [
             [
                 sg.Frame(
                     "通用配置",
@@ -845,6 +943,7 @@ class ConfigEditor:
                     relief=sg.RELIEF_GROOVE,
                     border_width=2,
                     pad=(5, 5),
+                    expand_x=True,
                 )
             ],
             [
@@ -855,6 +954,7 @@ class ConfigEditor:
                     relief=sg.RELIEF_GROOVE,
                     border_width=2,
                     pad=(5, 5),
+                    expand_x=True,
                 )
             ],
             [
@@ -865,21 +965,26 @@ class ConfigEditor:
                     relief=sg.RELIEF_GROOVE,
                     border_width=2,
                     pad=(5, 5),
+                    expand_x=True,
                 )
             ],
+            [sg.VPush()],  # 垂直填充，将按钮推到底部
             [
                 sg.Button("保存配置", key="-SAVE_AIFORGE-"),
                 sg.Button("恢复默认", key="-RESET_AIFORGE-"),
             ],
         ]
 
+        # 使用Frame包装内容，避免滚动问题
+        content_frame = sg.Frame("", content_layout, border_width=0, pad=(0, 0))
+
+        # 外层Column充满高度，不启用滚动
         return [
             [
                 sg.Column(
-                    layout,
-                    scrollable=True,
-                    vertical_scroll_only=True,
-                    size=(500, 600),
+                    [[content_frame]],
+                    expand_x=True,
+                    expand_y=True,
                     pad=(0, 0),
                 )
             ]
@@ -893,18 +998,18 @@ class ConfigEditor:
         # 风格转换配置
         style_config = creative_config.get("style_transform", {})
         style_layout = [
+            [sg.VPush()],  # 顶部填充
             [
                 sg.Checkbox(
-                    "启用风格转换",
+                    "",
                     default=style_config.get("enabled", False),
                     key="-STYLE_TRANSFORM_ENABLED-",
                     enable_events=True,
-                    tooltip="启用文章变身术模块",
-                    size=(15, 1),
-                )
-            ],
-            [
-                sg.Text("风格类型:", size=(12, 1)),
+                    tooltip="启用风格转换",
+                    size=(1, 1),
+                    pad=((3, 0), (0, 0)),
+                ),
+                sg.Text("风格类型:", size=(8, 1), pad=((0, 5), (0, 0))),
                 sg.Combo(
                     [
                         "莎士比亚戏剧",
@@ -919,41 +1024,45 @@ class ConfigEditor:
                         style_config.get("style_target", "shakespeare")
                     ),
                     key="-STYLE_TARGET-",
-                    size=(25, 1),
+                    size=(15, 1),
                     readonly=True,
                     disabled=not style_config.get("enabled", False),
                     tooltip="选择文体转换风格",
+                    pad=((0, 3), (0, 0)),
                 ),
             ],
+            [sg.VPush()],  # 底部填充
         ]
 
         # 时空穿越配置
         time_config = creative_config.get("time_travel", {})
         time_layout = [
+            [sg.VPush()],  # 顶部填充
             [
                 sg.Checkbox(
-                    "启用时空穿越",
+                    "",
                     default=time_config.get("enabled", False),
                     key="-TIME_TRAVEL_ENABLED-",
                     enable_events=True,
-                    tooltip="启用时空穿越写作模块",
-                    size=(15, 1),
-                )
-            ],
-            [
-                sg.Text("时空视角:", size=(12, 1)),
+                    tooltip="启用时空穿越",
+                    size=(1, 1),
+                    pad=((3, 0), (0, 0)),
+                ),
+                sg.Text("时空视角:", size=(8, 1), pad=((0, 5), (0, 0))),
                 sg.Combo(
                     ["古代视角", "现代视角", "未来视角"],
                     default_value=self._get_time_display_name(
                         time_config.get("time_perspective", "ancient")
                     ),
                     key="-TIME_PERSPECTIVE-",
-                    size=(25, 1),
+                    size=(17, 1),
                     readonly=True,
                     disabled=not time_config.get("enabled", False),
                     tooltip="选择时空视角",
+                    pad=((0, 3), (0, 0)),
                 ),
             ],
+            [sg.VPush()],  # 底部填充
         ]
 
         # 角色扮演配置
@@ -962,63 +1071,339 @@ class ConfigEditor:
         custom_character = role_config.get("custom_character", "")
 
         role_layout = [
+            [sg.VPush()],  # 顶部填充
             [
                 sg.Checkbox(
-                    "启用角色扮演",
+                    "",
                     default=role_config.get("enabled", False),
                     key="-ROLE_PLAY_ENABLED-",
                     enable_events=True,
-                    tooltip="启用角色扮演内容生成模块",
-                    size=(15, 1),
-                )
-            ],
-            [
-                sg.Text("角色类型:", size=(12, 1)),
+                    tooltip="启用角色扮演",
+                    size=(1, 1),
+                    pad=((3, 0), (0, 0)),
+                ),
+                sg.Text("角色类型:", size=(8, 1), pad=((0, 5), (0, 0))),
                 sg.Combo(
                     self._get_all_role_display_names(),
                     default_value=self._get_role_display_name(current_role),
                     key="-ROLE_CHARACTER-",
-                    size=(25, 1),
+                    size=(20, 1),
                     readonly=True,
                     disabled=not role_config.get("enabled", False),
                     enable_events=True,
                     tooltip="选择角色身份或自定义人物",
+                    pad=((0, 8), (0, 0)),
                 ),
-            ],
-            [
-                sg.Text("自定义人物:", size=(12, 1)),
+                sg.Text("自定义:", size=(6, 1), pad=((0, 5), (0, 0))),
                 sg.Input(
                     default_text=custom_character,
                     key="-CUSTOM_CHARACTER-",
-                    size=(25, 1),
+                    size=(15, 1),
                     disabled=current_role != "custom" or not role_config.get("enabled", False),
-                    tooltip="输入要模仿的人物名称，如：李白、周杰伦、鲁迅等",
+                    tooltip="先选择自定义，输入要模仿的人物名称，如：张三、李四、王五等",
+                    pad=((0, 3), (0, 0)),
                 ),
             ],
+            [sg.VPush()],  # 底部填充
+        ]
+
+        # 多维度创意配置
+        multi_config = creative_config.get("multi_dimensional", {})
+        multi_layout = [
+            [sg.VPush()],  # 顶部填充
+            [
+                sg.Checkbox(
+                    "",
+                    default=multi_config.get("enabled", False),
+                    key="-MULTI_DIMENSIONAL_ENABLED-",
+                    enable_events=True,
+                    tooltip="启用多维度创意",
+                    size=(1, 1),
+                    pad=((3, 0), (0, 0)),
+                ),
+                sg.Text("目标受众:", size=(8, 1), pad=((0, 5), (0, 0))),
+                sg.Combo(
+                    [
+                        "通用受众",
+                        "Z世代",
+                        "职场精英",
+                        "学生党",
+                        "宝妈群体",
+                        "退休人员",
+                        "创业者",
+                        "技术人员",
+                        "文艺青年",
+                        "商务人士",
+                        "教育工作者",
+                        "医护人员",
+                        "自由职业者",
+                        "投资者",
+                        "运动爱好者",
+                    ],
+                    default_value=(
+                        multi_config.get("target_audience", "通用受众")
+                        if multi_config.get("target_audience")
+                        else "通用受众"
+                    ),
+                    key="-TARGET_AUDIENCE-",
+                    size=(15, 1),
+                    readonly=False,  # 允许用户输入自定义受众
+                    disabled=not multi_config.get("enabled", False),
+                    tooltip="选择目标受众群体或输入自定义受众",
+                    pad=((0, 8), (0, 0)),
+                ),
+                sg.Text("创意程度:", size=(8, 1), pad=((0, 5), (0, 0))),
+                sg.Combo(
+                    ["保守型", "平衡型", "实验型"],
+                    default_value=self._get_creativity_display_name(
+                        multi_config.get("creativity_level", "balanced")
+                    ),
+                    key="-CREATIVITY_LEVEL-",
+                    size=(12, 1),
+                    readonly=True,
+                    disabled=not multi_config.get("enabled", False),
+                    tooltip="保守型：稳妅可靠；平衡型：创意与实用并重；实验型：大胆创新",
+                    pad=((0, 3), (0, 0)),
+                ),
+            ],
+            [sg.VPush()],  # 底部填充
+        ]
+
+        # 文化融合配置
+        cultural_config = creative_config.get("cultural_fusion", {})
+        cultural_layout = [
+            [sg.VPush()],  # 顶部填充
+            [
+                sg.Checkbox(
+                    "",
+                    default=cultural_config.get("enabled", False),
+                    key="-CULTURAL_FUSION_ENABLED-",
+                    enable_events=True,
+                    tooltip="启用文化融合",
+                    size=(1, 1),
+                    pad=((3, 0), (0, 0)),
+                ),
+                sg.Text("文化视角:", size=(8, 1), pad=((0, 5), (0, 0))),
+                sg.Combo(
+                    ["东方哲学", "西方思辨", "日式物哀", "法式浪漫", "美式自由"],
+                    default_value=self._get_cultural_display_name(
+                        cultural_config.get("cultural_perspective", "eastern_philosophy")
+                    ),
+                    key="-CULTURAL_PERSPECTIVE-",
+                    size=(15, 1),
+                    readonly=True,
+                    disabled=not cultural_config.get("enabled", False),
+                    tooltip="选择文化视角进行内容重新诠释",
+                    pad=((0, 3), (0, 0)),
+                ),
+            ],
+            [sg.VPush()],  # 底部填充
+        ]
+
+        # 动态变形配置
+        dynamic_config = creative_config.get("dynamic_transform", {})
+        dynamic_layout = [
+            [sg.VPush()],  # 顶部填充
+            [
+                sg.Checkbox(
+                    "",
+                    default=dynamic_config.get("enabled", False),
+                    key="-DYNAMIC_TRANSFORM_ENABLED-",
+                    enable_events=True,
+                    tooltip="启用动态变形",
+                    size=(1, 1),
+                    pad=((3, 0), (0, 0)),
+                ),
+                sg.Text("变形场景:", size=(8, 1), pad=((0, 5), (0, 0))),
+                sg.Combo(
+                    [
+                        "电梯演讲版",
+                        "睡前故事版",
+                        "辩论赛版",
+                        "诗歌版",
+                        "漫画脚本版",
+                        "播客脚本版",
+                        "社交媒体版",
+                    ],
+                    default_value=self._get_scenario_display_name(
+                        dynamic_config.get("scenario", "elevator_pitch")
+                    ),
+                    key="-SCENARIO-",
+                    size=(15, 1),
+                    readonly=True,
+                    disabled=not dynamic_config.get("enabled", False),
+                    tooltip="选择内容变形的目标场景",
+                    pad=((0, 3), (0, 0)),
+                ),
+            ],
+            [sg.VPush()],  # 底部填充
+        ]
+
+        # 体裁融合配置
+        genre_config = creative_config.get("genre_fusion", {})
+        genre_combination = genre_config.get("genre_combination", ["scifi", "wuxia"])
+
+        genre_layout = [
+            [sg.VPush()],  # 顶部填充
+            [
+                sg.Checkbox(
+                    "",
+                    default=genre_config.get("enabled", False),
+                    key="-GENRE_FUSION_ENABLED-",
+                    enable_events=True,
+                    tooltip="启用体裁融合",
+                    size=(1, 1),
+                    pad=((0, 0), (0, 0)),
+                ),
+                sg.Text("体裁组合:", size=(8, 1), pad=((0, 5), (0, 0))),
+                sg.Checkbox(
+                    "科幻",
+                    default="scifi" in genre_combination,
+                    key="-GENRE_SCIFI-",
+                    size=(5, 1),
+                    disabled=not genre_config.get("enabled", False),
+                    pad=((0, 0), (0, 0)),
+                ),
+                sg.Checkbox(
+                    "武侠",
+                    default="wuxia" in genre_combination,
+                    key="-GENRE_WUXIA-",
+                    size=(5, 1),
+                    disabled=not genre_config.get("enabled", False),
+                    pad=((0, 0), (0, 0)),
+                ),
+            ],
+            [
+                sg.Text("", size=(9, 1)),  # 空白占位符，与上一行对齐
+                sg.Checkbox(
+                    "推理",
+                    default="mystery" in genre_combination,
+                    key="-GENRE_MYSTERY-",
+                    size=(5, 1),
+                    disabled=not genre_config.get("enabled", False),
+                    pad=((0, 0), (0, 0)),
+                ),
+                sg.Checkbox(
+                    "爱情",
+                    default="romance" in genre_combination,
+                    key="-GENRE_ROMANCE-",
+                    size=(5, 1),
+                    disabled=not genre_config.get("enabled", False),
+                    pad=((0, 0), (0, 0)),
+                ),
+            ],
+            [sg.VPush()],  # 底部填充
+        ]
+
+        # AI人格配置
+        ai_persona_config = creative_config.get("ai_persona", {})
+        ai_persona_layout = [
+            [sg.VPush()],  # 顶部填充
+            [
+                sg.Checkbox(
+                    "",
+                    default=ai_persona_config.get("enabled", False),
+                    key="-AI_PERSONA_ENABLED-",
+                    enable_events=True,
+                    tooltip="启用AI人格",
+                    size=(1, 1),
+                    pad=((3, 0), (0, 0)),
+                ),
+                sg.Text("人格类型:", size=(8, 1), pad=((0, 5), (0, 0))),
+                sg.Combo(
+                    [
+                        "自动选择",
+                        "梦境诗人",
+                        "数据哲学家",
+                        "时空旅者",
+                        "情感治愈师",
+                        "悬疑侦探",
+                        "文化探索者",
+                        "科技预言家",
+                        "生活观察家",
+                    ],
+                    default_value=self._get_persona_display_name(
+                        ai_persona_config.get("persona_type", "auto")
+                    ),
+                    key="-PERSONA_TYPE-",
+                    size=(10, 1),
+                    readonly=True,
+                    disabled=not ai_persona_config.get("enabled", False),
+                    tooltip="选择AI人格类型，或让系统自动根据话题选择最合适的人格",
+                    pad=((0, 3), (0, 0)),
+                ),
+            ],
+            [sg.VPush()],  # 底部填充
         ]
 
         # 组合模式配置
         combination_layout = [
+            [sg.VPush()],  # 顶部填充
             [
                 sg.Checkbox(
-                    "允许组合使用",
+                    "",
                     default=creative_config.get("combination_mode", False),
                     key="-COMBINATION_MODE-",
-                    tooltip="允许同时启用多个创意模块",
-                    size=(15, 1),
-                )
-            ],
-            [
+                    tooltip="允许组合使用",
+                    size=(1, 1),
+                    pad=((3, 0), (0, 0)),
+                ),
                 sg.Text(
-                    "组合模式说明：启用后可同时使用多个创意模块，按顺序应用变换效果",
-                    size=(50, 2),
+                    "启用后可同时使用多个创意模块，按顺序应用变换效果",
+                    size=(50, 1),
                     text_color="gray",
-                )
+                    pad=((0, 3), (0, 0)),
+                ),
             ],
+            [sg.VPush()],  # 底部填充
         ]
 
-        # 主布局，使用Frame分组并确保充满和对齐
+        # 智能推荐配置
+        smart_config = creative_config.get("smart_recommendation", {})
+        smart_layout = [
+            [sg.VPush()],  # 顶部填充
+            [
+                sg.Checkbox(
+                    "",
+                    default=smart_config.get("enabled", True),
+                    key="-SMART_RECOMMENDATION-",
+                    tooltip="启用智能推荐",
+                    size=(1, 1),
+                    pad=((3, 0), (0, 0)),
+                    enable_events=True,
+                ),
+                sg.Text("推荐类型:", size=(8, 1), pad=((0, 5), (0, 0))),
+                sg.Checkbox(
+                    "基于话题",
+                    default=smart_config.get("topic_based", True),
+                    key="-TOPIC_BASED-",
+                    size=(8, 1),
+                    pad=((0, 5), (0, 0)),
+                    disabled=not smart_config.get("enabled", True),
+                ),
+                sg.Checkbox(
+                    "基于受众",
+                    default=smart_config.get("audience_based", True),
+                    key="-AUDIENCE_BASED-",
+                    size=(8, 1),
+                    pad=((0, 5), (0, 0)),
+                    disabled=not smart_config.get("enabled", True),
+                ),
+                sg.Checkbox(
+                    "基于平台",
+                    default=smart_config.get("platform_based", True),
+                    key="-PLATFORM_BASED-",
+                    size=(8, 1),
+                    pad=((0, 3), (0, 0)),
+                    disabled=not smart_config.get("enabled", True),
+                ),
+            ],
+            [sg.VPush()],  # 底部填充
+        ]
+
+        # 主布局，使用Frame分组，采用与基础配置界面相同的风格
         content_layout = [
+            # 创意模式 - 两个一行，各占一半宽度
             [
                 sg.Frame(
                     "风格转换",
@@ -1028,10 +1413,7 @@ class ConfigEditor:
                     border_width=2,
                     pad=(5, 5),
                     expand_x=True,
-                    size=(460, 80),
-                )
-            ],
-            [
+                ),
                 sg.Frame(
                     "时空穿越",
                     time_layout,
@@ -1040,8 +1422,7 @@ class ConfigEditor:
                     border_width=2,
                     pad=(5, 5),
                     expand_x=True,
-                    size=(460, 80),
-                )
+                ),
             ],
             [
                 sg.Frame(
@@ -1052,9 +1433,60 @@ class ConfigEditor:
                     border_width=2,
                     pad=(5, 5),
                     expand_x=True,
-                    size=(460, 120),
                 )
             ],
+            [
+                sg.Frame(
+                    "多维度创意",
+                    multi_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
+                )
+            ],
+            [
+                sg.Frame(
+                    "文化融合",
+                    cultural_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
+                ),
+                sg.Frame(
+                    "动态变形",
+                    dynamic_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
+                ),
+            ],
+            [
+                sg.Frame(
+                    "体裁融合",
+                    genre_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
+                ),
+                sg.Frame(
+                    "AI人格团队",
+                    ai_persona_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
+                ),
+            ],
+            # 组合和智能推荐配置
             [
                 sg.Frame(
                     "组合模式",
@@ -1064,28 +1496,37 @@ class ConfigEditor:
                     border_width=2,
                     pad=(5, 5),
                     expand_x=True,
-                    size=(460, 100),
+                )
+            ],
+            [
+                sg.Frame(
+                    "智能推荐",
+                    smart_layout,
+                    font=("Arial", 10, "bold"),
+                    relief=sg.RELIEF_GROOVE,
+                    border_width=2,
+                    pad=(5, 5),
+                    expand_x=True,
                 )
             ],
             [sg.VPush()],  # 垂直填充，将按钮推到底部
             [
                 sg.Button("保存配置", key="-SAVE_CREATIVE_CONFIG-"),
                 sg.Button("恢复默认", key="-RESET_CREATIVE_CONFIG-"),
-                sg.Push(),  # 水平填充，将按钮推到左侧
             ],
         ]
 
-        # 使用Column包装，确保充满整个标签页
+        # 使用Frame包装内容，避免滚动问题
+        content_frame = sg.Frame("", content_layout, border_width=0, pad=(0, 0))
+
+        # 外层Column充满高度，不启用滚动
         return [
             [
                 sg.Column(
-                    content_layout,
+                    [[content_frame]],
                     expand_x=True,
                     expand_y=True,
-                    pad=(10, 10),
-                    scrollable=True,
-                    vertical_scroll_only=True,
-                    size=(480, 550),
+                    pad=(0, 0),
                 )
             ]
         ]
@@ -1319,12 +1760,127 @@ class ConfigEditor:
         }
         return display_mapping.get(display_name, "wechat")
 
+    def _get_creativity_display_name(self, key):
+        """将创意程度键转换为显示名称"""
+        mapping = {"conservative": "保守型", "balanced": "平衡型", "experimental": "实验型"}
+        return mapping.get(key, "平衡型")
+
+    def _get_creativity_key(self, display_name):
+        """将创意程度显示名称转换为键"""
+        mapping = {"保守型": "conservative", "平衡型": "balanced", "实验型": "experimental"}
+        return mapping.get(display_name, "balanced")
+
+    def _get_cultural_display_name(self, key):
+        """将文化视角键转换为显示名称"""
+        mapping = {
+            "eastern_philosophy": "东方哲学",
+            "western_logic": "西方思辨",
+            "japanese_mono": "日式物哀",
+            "french_romance": "法式浪漫",
+            "american_freedom": "美式自由",
+        }
+        return mapping.get(key, "东方哲学")
+
+    def _get_cultural_key(self, display_name):
+        """将文化视角显示名称转换为键"""
+        mapping = {
+            "东方哲学": "eastern_philosophy",
+            "西方思辨": "western_logic",
+            "日式物哀": "japanese_mono",
+            "法式浪漫": "french_romance",
+            "美式自由": "american_freedom",
+        }
+        return mapping.get(display_name, "eastern_philosophy")
+
+    def _get_scenario_display_name(self, key):
+        """将变形场景键转换为显示名称"""
+        mapping = {
+            "elevator_pitch": "电梯演讲版",
+            "bedtime_story": "睡前故事版",
+            "debate_argument": "辩论赛版",
+            "poetry_version": "诗歌版",
+            "comic_script": "漫画脚本版",
+            "podcast_script": "播客脚本版",
+            "social_media": "社交媒体版",
+        }
+        return mapping.get(key, "电梯演讲版")
+
+    def _get_scenario_key(self, display_name):
+        """将变形场景显示名称转换为键"""
+        mapping = {
+            "电梯演讲版": "elevator_pitch",
+            "睡前故事版": "bedtime_story",
+            "辩论赛版": "debate_argument",
+            "诗歌版": "poetry_version",
+            "漫画脚本版": "comic_script",
+            "播客脚本版": "podcast_script",
+            "社交媒体版": "social_media",
+        }
+        return mapping.get(display_name, "elevator_pitch")
+
+    def _get_genre_display_name(self, key):
+        """将体裁键转换为显示名称"""
+        mapping = {
+            "scifi": "科幻",
+            "wuxia": "武侠",
+            "detective": "推理",
+            "romance": "爱情",
+            "history": "历史",
+            "fantasy": "奇幻",
+            "thriller": "惊悚",
+            "comedy": "喜剧",
+        }
+        return mapping.get(key, "科幻")
+
+    def _get_genre_key(self, display_name):
+        """将体裁显示名称转换为键"""
+        mapping = {
+            "科幻": "scifi",
+            "武侠": "wuxia",
+            "推理": "detective",
+            "爱情": "romance",
+            "历史": "history",
+            "奇幻": "fantasy",
+            "惊悚": "thriller",
+            "喜剧": "comedy",
+        }
+        return mapping.get(display_name, "scifi")
+
+    def _get_persona_display_name(self, key):
+        """将AI人格键转换为显示名称"""
+        mapping = {
+            "auto": "自动选择",
+            "dreamer_poet": "梦境诗人",
+            "data_philosopher": "数据哲学家",
+            "time_traveler": "时空旅者",
+            "emotion_healer": "情感治愈师",
+            "mystery_detective": "悬疑侦探",
+            "culture_explorer": "文化探索者",
+            "tech_visionary": "科技预言家",
+            "life_observer": "生活观察家",
+        }
+        return mapping.get(key, "自动选择")
+
+    def _get_persona_key(self, display_name):
+        """将AI人格显示名称转换为键"""
+        mapping = {
+            "自动选择": "auto",
+            "梦境诗人": "dreamer_poet",
+            "数据哲学家": "data_philosopher",
+            "时空旅者": "time_traveler",
+            "情感治愈师": "emotion_healer",
+            "悬疑侦探": "mystery_detective",
+            "文化探索者": "culture_explorer",
+            "科技预言家": "tech_visionary",
+            "生活观察家": "life_observer",
+        }
+        return mapping.get(display_name, "auto")
+
     def run(self):
         while True:
             event, values = self.window.read()  # type: ignore
             if event in (sg.WIN_CLOSED, "-EXIT-"):
                 break
-
             # 在事件循环中使用
             elif event in self.get_mac_clipboard_events():
                 if sys.platform == "darwin" and values[event]:
@@ -2174,6 +2730,12 @@ class ConfigEditor:
                 "-STYLE_TRANSFORM_ENABLED-",
                 "-TIME_TRAVEL_ENABLED-",
                 "-ROLE_PLAY_ENABLED-",
+                # 新增的创意模式事件
+                "-MULTI_DIMENSIONAL_ENABLED-",
+                "-CULTURAL_FUSION_ENABLED-",
+                "-DYNAMIC_TRANSFORM_ENABLED-",
+                "-GENRE_FUSION_ENABLED-",
+                "-AI_PERSONA_ENABLED-",
             ]:
                 # 动态启用/禁用相关控件
                 if event == "-STYLE_TRANSFORM_ENABLED-":
@@ -2190,6 +2752,33 @@ class ConfigEditor:
                     self.window["-CUSTOM_CHARACTER-"].update(
                         disabled=not enabled or current_role != "custom"
                     )
+                # 新增创意模式的控件启用/禁用处理
+                elif event == "-MULTI_DIMENSIONAL_ENABLED-":
+                    enabled = values["-MULTI_DIMENSIONAL_ENABLED-"]
+                    self.window["-TARGET_AUDIENCE-"].update(disabled=not enabled)
+                    self.window["-CREATIVITY_LEVEL-"].update(disabled=not enabled)
+                elif event == "-CULTURAL_FUSION_ENABLED-":
+                    enabled = values["-CULTURAL_FUSION_ENABLED-"]
+                    self.window["-CULTURAL_PERSPECTIVE-"].update(disabled=not enabled)
+                elif event == "-DYNAMIC_TRANSFORM_ENABLED-":
+                    enabled = values["-DYNAMIC_TRANSFORM_ENABLED-"]
+                    self.window["-SCENARIO-"].update(disabled=not enabled)
+                elif event == "-GENRE_FUSION_ENABLED-":
+                    enabled = values["-GENRE_FUSION_ENABLED-"]
+                    self.window["-GENRE_SCIFI-"].update(disabled=not enabled)
+                    self.window["-GENRE_WUXIA-"].update(disabled=not enabled)
+                    self.window["-GENRE_MYSTERY-"].update(disabled=not enabled)
+                    self.window["-GENRE_ROMANCE-"].update(disabled=not enabled)
+                elif event == "-AI_PERSONA_ENABLED-":
+                    enabled = values["-AI_PERSONA_ENABLED-"]
+                    self.window["-PERSONA_TYPE-"].update(disabled=not enabled)
+
+            elif event == "-SMART_RECOMMENDATION-":
+                # 智能推荐主开关事件
+                enabled = values["-SMART_RECOMMENDATION-"]
+                self.window["-TOPIC_BASED-"].update(disabled=not enabled)
+                self.window["-AUDIENCE_BASED-"].update(disabled=not enabled)
+                self.window["-PLATFORM_BASED-"].update(disabled=not enabled)
 
             elif event == "-ROLE_CHARACTER-":
                 selected_role = self._get_role_key(values["-ROLE_CHARACTER-"])
@@ -2211,6 +2800,7 @@ class ConfigEditor:
                 custom_character = values["-CUSTOM_CHARACTER-"] if selected_role == "custom" else ""
 
                 creative_config = {
+                    # 原有的创意模式配置
                     "style_transform": {
                         "enabled": values["-STYLE_TRANSFORM_ENABLED-"],
                         "style_target": self._get_style_key(values["-STYLE_TARGET-"]),
@@ -2268,10 +2858,115 @@ class ConfigEditor:
                             "custom",
                         ],
                     },
+                    # 新增的创意模式配置
+                    "multi_dimensional": {
+                        "enabled": values["-MULTI_DIMENSIONAL_ENABLED-"],
+                        "target_audience": values["-TARGET_AUDIENCE-"],
+                        "creativity_level": self._get_creativity_key(values["-CREATIVITY_LEVEL-"]),
+                        "available_creativity_levels": ["conservative", "balanced", "experimental"],
+                        "auto_select_dimensions": True,
+                    },
+                    "cultural_fusion": {
+                        "enabled": values["-CULTURAL_FUSION_ENABLED-"],
+                        "cultural_perspective": self._get_cultural_key(
+                            values["-CULTURAL_PERSPECTIVE-"]
+                        ),
+                        "available_perspectives": [
+                            "eastern_philosophy",
+                            "western_logic",
+                            "japanese_mono",
+                            "french_romance",
+                            "american_freedom",
+                        ],
+                    },
+                    "dynamic_transform": {
+                        "enabled": values["-DYNAMIC_TRANSFORM_ENABLED-"],
+                        "scenario": self._get_scenario_key(values["-SCENARIO-"]),
+                        "available_scenarios": [
+                            "elevator_pitch",
+                            "bedtime_story",
+                            "debate_argument",
+                            "poetry_version",
+                            "comic_script",
+                            "podcast_script",
+                            "social_media",
+                        ],
+                    },
+                    "genre_fusion": {
+                        "enabled": values["-GENRE_FUSION_ENABLED-"],
+                        "genre_combination": [
+                            genre
+                            for genre, checked in [
+                                ("scifi", values["-GENRE_SCIFI-"]),
+                                ("wuxia", values["-GENRE_WUXIA-"]),
+                                ("mystery", values["-GENRE_MYSTERY-"]),
+                                ("romance", values["-GENRE_ROMANCE-"]),
+                            ]
+                            if checked
+                        ],
+                        "available_genres": [
+                            "scifi",
+                            "wuxia",
+                            "detective",
+                            "romance",
+                            "history",
+                            "fantasy",
+                            "thriller",
+                            "comedy",
+                        ],
+                        "max_genres": 3,
+                    },
+                    "ai_persona": {
+                        "enabled": values["-AI_PERSONA_ENABLED-"],
+                        "persona_type": self._get_persona_key(values["-PERSONA_TYPE-"]),
+                        "available_personas": [
+                            "auto",
+                            "dreamer_poet",
+                            "data_philosopher",
+                            "time_traveler",
+                            "emotion_healer",
+                            "mystery_detective",
+                            "culture_explorer",
+                            "tech_visionary",
+                            "life_observer",
+                        ],
+                        "persona_descriptions": {
+                            "dreamer_poet": "梦境诗人 - 善于将现实与梦境交织",
+                            "data_philosopher": "数据哲学家 - 用数据思维解读人文",
+                            "time_traveler": "时空旅者 - 穿梭时代的独特视角",
+                            "emotion_healer": "情感治愈师 - 温暖人心的文字治愈",
+                            "mystery_detective": "悬疑侦探 - 逻辑推理揭秘真相",
+                            "culture_explorer": "文化探索者 - 深入挖掘文化内涵",
+                            "tech_visionary": "科技预言家 - 洞察科技趋势",
+                            "life_observer": "生活观察家 - 从平凡中发现不平凡",
+                        },
+                    },
                     "combination_mode": values["-COMBINATION_MODE-"],
+                    # 智能推荐配置
+                    "smart_recommendation": {
+                        "enabled": values["-SMART_RECOMMENDATION-"],
+                        "topic_based": values["-TOPIC_BASED-"],
+                        "audience_based": values["-AUDIENCE_BASED-"],
+                        "platform_based": values["-PLATFORM_BASED-"],
+                    },
+                    # 添加模式优先级和冲突规则
+                    "mode_priority": [
+                        "ai_persona",
+                        "multi_dimensional",
+                        "cultural_fusion",
+                        "genre_fusion",
+                        "dynamic_transform",
+                        "style_transform",
+                        "time_travel",
+                        "role_play",
+                    ],
+                    "mode_conflicts": {
+                        "ai_persona": ["role_play"],
+                        "multi_dimensional": ["style_transform"],
+                    },
                 }
 
-                # 确定主创意模式
+                # 确定主创意模式 - 包含新增模式
                 enabled_modes = []
                 if creative_config["style_transform"]["enabled"]:
                     enabled_modes.append("style_transform")
@@ -2279,6 +2974,39 @@ class ConfigEditor:
                     enabled_modes.append("time_travel")
                 if creative_config["role_play"]["enabled"]:
                     enabled_modes.append("role_play")
+                # 新增模式
+                if creative_config["multi_dimensional"]["enabled"]:
+                    enabled_modes.append("multi_dimensional")
+                if creative_config["cultural_fusion"]["enabled"]:
+                    enabled_modes.append("cultural_fusion")
+                if creative_config["dynamic_transform"]["enabled"]:
+                    enabled_modes.append("dynamic_transform")
+                if creative_config["genre_fusion"]["enabled"]:
+                    enabled_modes.append("genre_fusion")
+                if creative_config["ai_persona"]["enabled"]:
+                    enabled_modes.append("ai_persona")
+
+                # 检查模式冲突
+                conflict_detected = False
+                conflicts = creative_config["mode_conflicts"]
+                for mode in enabled_modes:
+                    conflicting_modes = conflicts.get(mode, [])
+                    for conflict_mode in conflicting_modes:
+                        if conflict_mode in enabled_modes:
+                            conflict_detected = True
+                            sg.popup_error(
+                                f"检测到模式冲突：{mode} 与 {conflict_mode} 不能同时启用\n"
+                                f"系统将自动禁用冲突的模式",
+                                title="模式冲突警告",
+                                icon=utils.get_gui_icon(),
+                                keep_on_top=True,
+                            )
+                            # 移除冲突的模式（保留优先级高的）
+                            priority = creative_config["mode_priority"]
+                            if priority.index(mode) < priority.index(conflict_mode):
+                                enabled_modes.remove(conflict_mode)
+                            else:
+                                enabled_modes.remove(mode)
 
                 # 设置 creative_mode
                 if len(enabled_modes) == 0:
@@ -2300,8 +3028,11 @@ class ConfigEditor:
                 config["creative_config"] = creative_config
 
                 if self.config.save_config(config):
+                    success_msg = "创意配置已保存"
+                    if conflict_detected:
+                        success_msg += "\n注意：已自动解决模式冲突"
                     sg.popup(
-                        "创意配置已保存",
+                        success_msg,
                         title="系统提示",
                         icon=utils.get_gui_icon(),
                         keep_on_top=True,

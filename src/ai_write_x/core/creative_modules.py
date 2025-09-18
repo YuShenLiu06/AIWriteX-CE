@@ -1,42 +1,326 @@
+from typing import List, Callable, Any
+from dataclasses import dataclass
+
 from src.ai_write_x.core.base_framework import ContentResult, WorkflowConfig
 from src.ai_write_x.core.base_framework import (
     AgentConfig,
     TaskConfig,
     WorkflowType,
     ContentType,
+    CreativeDimension,
 )
-from src.ai_write_x.core.creative_base import CreativeModule
+from src.ai_write_x.core.creative_base import CreativeModule, CreativeConfig
+
+
+@dataclass
+class MultiDimensionalConfig(CreativeConfig):
+    """多维度创意模块配置"""
+
+    dimensions: List[CreativeDimension]
+
+
+@dataclass
+class CulturalFusionConfig(CreativeConfig):
+    """文化融合模块配置"""
+
+    cultural_perspective: str
+
+
+@dataclass
+class StyleTransformConfig(CreativeConfig):
+    """文体转换模块配置"""
+
+    style_target: str
+
+
+@dataclass
+class DynamicTransformConfig(CreativeConfig):
+    """动态变形模块配置"""
+
+    scenario: str
+
+
+@dataclass
+class GenreFusionConfig(CreativeConfig):
+    """跨体裁融合模块配置"""
+
+    genre_combination: List[str]
+
+
+@dataclass
+class TimeTravelConfig(CreativeConfig):
+    """时空穿越模块配置"""
+
+    time_perspective: str
+
+
+@dataclass
+class RolePlayConfig(CreativeConfig):
+    """角色扮演模块配置"""
+
+    role_character: str
+    custom_character: str = ""
+
+
+class MultiDimensionalCreativeModule(CreativeModule):
+    """多维度创意模块 - 支持组合式创意变换"""
+
+    def get_workflow_config(self, config: MultiDimensionalConfig) -> WorkflowConfig:
+        """基于多个创意维度生成工作流配置"""
+        # 构建创意指令
+        dimension_instructions = []
+        for dim in config.dimensions:
+            dimension_instructions.append(f"- {dim.name}({dim.value}): {dim.description}")
+
+        dimension_text = "\n".join(dimension_instructions)
+
+        agents = [
+            AgentConfig(
+                role="多维度创意专家",
+                name="multi_dimensional_creator",
+                goal="融合多个创意维度，创造独特的内容表达",
+                backstory=f"""你是多维度创意专家，能够同时运用多个创意维度来重新演绎内容。
+
+当前创意维度组合：
+{dimension_text}
+
+你需要将这些维度有机融合，创造出既保持原内容核心信息，又具有多重创意特色的作品。""",
+                personality_traits={
+                    "creativity_level": "high",
+                    "dimension_fusion_ability": "expert",
+                    "content_preservation": "strict",
+                },
+            ),
+        ]
+
+        tasks = [
+            TaskConfig(
+                name="multi_dimensional_transformation",
+                description=f"""基于以下创意维度组合，对原始内容进行多维度创意变换：
+
+创意维度组合：
+{dimension_text}
+
+变换要求：
+1. 保持原内容'{{original_content}}'的所有核心信息和要点
+2. 将每个创意维度的特色融入到内容中
+3. 确保各维度之间的和谐统一，避免冲突
+4. 创造出独特而富有创意的表达方式
+5. 保持内容的逻辑性和可读性
+
+输出要求：
+- 完整保留原文信息量
+- 体现所有指定创意维度的特色
+- 创造性地融合不同维度的表达方式""",
+                agent_name="multi_dimensional_creator",
+                expected_output="融合多个创意维度的创新内容",
+                creative_dimensions=config.dimensions,
+            ),
+        ]
+
+        return WorkflowConfig(
+            name="multi_dimensional_creative",
+            description="多维度创意变换工作流",
+            workflow_type=WorkflowType.SEQUENTIAL,
+            content_type=ContentType.ARTICLE,
+            agents=agents,
+            tasks=tasks,
+            creative_dimensions=config.dimensions,
+        )
+
+    def transform(
+        self,
+        base_content: ContentResult,
+        engine_factory: Callable[[WorkflowConfig], Any],
+        config: MultiDimensionalConfig,
+    ) -> ContentResult:
+        """应用多维度创意变换"""
+        workflow_config = self.get_workflow_config(config)
+        engine = engine_factory(workflow_config)
+
+        clean_topic = base_content.title
+        if "|" in clean_topic:
+            clean_topic = clean_topic.split("|", 1)[1].strip()
+
+        input_data = {
+            "topic": clean_topic,
+            "original_content": base_content.content,
+            "dimensions": [
+                {"name": d.name, "value": d.value, "description": d.description}
+                for d in config.dimensions
+            ],
+        }
+
+        transformed_content = engine.execute_workflow(input_data)
+        transformed_content.metadata.update(
+            {
+                "original_title": base_content.title,
+                "transformation_type": "multi_dimensional",
+                "applied_dimensions": [d.value for d in config.dimensions],
+                "dimension_count": len(config.dimensions),
+                "base_content_id": id(base_content),
+            }
+        )
+
+        # 标记应用的创意维度
+        transformed_content.creative_dimensions_applied = config.dimensions
+
+        return transformed_content
+
+
+class CulturalFusionModule(CreativeModule):
+    """文化融合模块 - 跨文化视角内容创作"""
+
+    def __init__(self):
+        super().__init__()
+        self.cultural_elements = {
+            "eastern_philosophy": {
+                "name": "东方哲学",
+                "elements": ["道家思想", "佛教禅意", "儒家理念", "阴阳平衡"],
+                "expression_style": "含蓄深远，寓意丰富",
+                "typical_phrases": ["道法自然", "禅意悠远", "天人合一", "中庸之道"],
+            },
+            "western_logic": {
+                "name": "西方思辨",
+                "elements": ["苏格拉底式对话", "笛卡尔理性主义", "批判思维", "逻辑分析"],
+                "expression_style": "条理清晰，逻辑严密",
+                "typical_phrases": ["理性分析", "逻辑推理", "批判思考", "实证精神"],
+            },
+            "japanese_mono": {
+                "name": "日式物哀",
+                "elements": ["瞬间美学", "季节感知", "淡淡哀愁", "简约美学"],
+                "expression_style": "细腻敏感，意境深远",
+                "typical_phrases": ["物の哀れ", "侘寂美学", "刹那芳华", "静谧时光"],
+            },
+            "french_romance": {
+                "name": "法式浪漫",
+                "elements": ["艺术气息", "优雅情调", "浪漫主义", "文化品味"],
+                "expression_style": "优雅精致，充满诗意",
+                "typical_phrases": ["艺术人生", "优雅生活", "浪漫情怀", "文化品味"],
+            },
+            "american_freedom": {
+                "name": "美式自由",
+                "elements": ["个人主义", "追求自由", "创新精神", "实用主义"],
+                "expression_style": "直接坦率，积极向上",
+                "typical_phrases": ["自由精神", "个人奋斗", "创新思维", "实用价值"],
+            },
+        }
+
+    def get_workflow_config(self, config: CulturalFusionConfig) -> WorkflowConfig:
+        """获取文化融合工作流配置"""
+        culture_info = self.cultural_elements.get(
+            config.cultural_perspective, self.cultural_elements["eastern_philosophy"]
+        )
+
+        agents = [
+            AgentConfig(
+                role=f"{culture_info['name']}文化专家",
+                name="cultural_expert",
+                goal=f"运用{culture_info['name']}的视角和思维方式重新诠释内容",
+                backstory=f"""你是{culture_info['name']}文化专家，深谙以下文化元素：
+
+文化元素：{', '.join(culture_info['elements'])}
+表达风格：{culture_info['expression_style']}
+典型表达：{', '.join(culture_info['typical_phrases'])}
+
+你能够用{culture_info['name']}的独特视角和思维方式来理解和表达任何话题，为内容注入深厚的文化底蕴。""",
+            ),
+        ]
+
+        tasks = [
+            TaskConfig(
+                name="cultural_reinterpretation",
+                description=f"""运用{culture_info['name']}的文化视角重新诠释内容：
+
+原始内容：'{{original_content}}'
+
+文化融合要求：
+1. 保持原内容的所有核心信息和观点
+2. 融入{culture_info['name']}的文化元素：{', '.join(culture_info['elements'])}
+3. 采用{culture_info['expression_style']}的表达风格
+4. 适当运用典型表达方式，但要自然不做作
+5. 让读者感受到浓厚的文化氛围和独特视角
+
+输出：既保持原文完整性，又充满{culture_info['name']}文化特色的内容""",
+                agent_name="cultural_expert",
+                expected_output=f"融入{culture_info['name']}文化特色的内容",
+            ),
+        ]
+
+        return WorkflowConfig(
+            name=f"cultural_fusion_{config.cultural_perspective}",
+            description=f"{culture_info['name']}文化融合工作流",
+            workflow_type=WorkflowType.SEQUENTIAL,
+            content_type=ContentType.ARTICLE,
+            agents=agents,
+            tasks=tasks,
+        )
+
+    def transform(
+        self,
+        base_content: ContentResult,
+        engine_factory: Callable[[WorkflowConfig], Any],
+        config: CulturalFusionConfig,
+    ) -> ContentResult:
+        """应用文化融合变换"""
+        workflow_config = self.get_workflow_config(config)
+        engine = engine_factory(workflow_config)
+
+        clean_topic = base_content.title
+        if "|" in clean_topic:
+            clean_topic = clean_topic.split("|", 1)[1].strip()
+
+        input_data = {
+            "topic": clean_topic,
+            "original_content": base_content.content,
+            "cultural_perspective": config.cultural_perspective,
+        }
+
+        transformed_content = engine.execute_workflow(input_data)
+        transformed_content.metadata.update(
+            {
+                "original_title": base_content.title,
+                "transformation_type": "cultural_fusion",
+                "cultural_perspective": config.cultural_perspective,
+                "culture_name": self.cultural_elements.get(config.cultural_perspective, {}).get(
+                    "name", config.cultural_perspective
+                ),
+                "base_content_id": id(base_content),
+            }
+        )
+
+        return transformed_content
 
 
 class StyleTransformModule(CreativeModule):
     """文章变身术模块"""
 
-    def get_workflow_config(self, style_target: str = "shakespeare", **kwargs) -> WorkflowConfig:
+    def get_workflow_config(self, config: StyleTransformConfig) -> WorkflowConfig:
         """文体转换工作流配置"""
-
         agents = [
             AgentConfig(
                 role="风格转换专家",
                 name="style_transformer",
-                goal=f"将内容转换为{style_target}风格并进行质量审核",
-                backstory=f"你是文体转换大师，能够将任何内容改写成{style_target}风格，同时确保质量",
+                goal=f"将内容转换为{config.style_target}风格并进行质量审核",
+                backstory=f"你是文体转换大师，能够将任何内容改写成{config.style_target}风格，同时确保质量",
             ),
         ]
 
         tasks = [
             TaskConfig(
                 name="transform_and_audit_style",
-                description=f"""将原始内容'{{original_content}}'转换为{style_target}风格。
-    转换要求：
-    1. 保持原文所有核心信息和要点的完整性
-    2. 完全采用{style_target}的表达风格和语言特色
-    3. 确保转换后内容逻辑清晰连贯
-    4. 体现{style_target}风格的典型特征
-    5. 进行质量审核和必要优化
+                description=f"""将原始内容'{{original_content}}'转换为{config.style_target}风格。
 
-    支持的风格：莎士比亚戏剧、侦探小说、科幻小说、古典诗词、现代诗歌、学术论文、新闻报道等""",
+转换要求：
+1. 保持原文所有核心信息和要点的完整性
+2. 完全采用{config.style_target}的表达风格和语言特色
+3. 确保转换后内容逻辑清晰连贯
+4. 体现{config.style_target}风格的典型特征
+5. 进行质量审核和必要优化
+
+支持的风格：莎士比亚戏剧、侦探小说、科幻小说、古典诗词、现代诗歌、学术论文、新闻报道等""",
                 agent_name="style_transformer",
-                expected_output=f"转换为{style_target}风格的优质文章",
+                expected_output=f"转换为{config.style_target}风格的优质文章",
             ),
         ]
 
@@ -52,17 +336,13 @@ class StyleTransformModule(CreativeModule):
     def transform(
         self,
         base_content: ContentResult,
-        style_target: str = "shakespeare",
-        engine_factory=None,
-        **kwargs,
+        engine_factory: Callable[[WorkflowConfig], Any],
+        config: StyleTransformConfig,
     ) -> ContentResult:
         """应用文体转换"""
-        # 创建专门的内容生成引擎来执行转换
-        if engine_factory is None:
-            raise ValueError("engine_factory is required")
+        workflow_config = self.get_workflow_config(config)
+        engine = engine_factory(workflow_config)
 
-        config = self.get_workflow_config(style_target=style_target, **kwargs)
-        engine = engine_factory(config)
         clean_topic = base_content.title
         if "|" in clean_topic:
             clean_topic = clean_topic.split("|", 1)[1].strip()
@@ -70,7 +350,7 @@ class StyleTransformModule(CreativeModule):
         input_data = {
             "topic": clean_topic,
             "original_content": base_content.content,
-            "style_target": style_target,
+            "style_target": config.style_target,
         }
 
         # 执行转换工作流
@@ -81,7 +361,249 @@ class StyleTransformModule(CreativeModule):
             {
                 "original_title": base_content.title,
                 "transformation_type": "style_transform",
-                "style_target": style_target,
+                "style_target": config.style_target,
+                "base_content_id": id(base_content),
+            }
+        )
+
+        return transformed_content
+
+
+class DynamicTransformModule(CreativeModule):
+    """动态内容变形器 - 将内容转换为不同场景和形式"""
+
+    def __init__(self):
+        super().__init__()
+        self.scenarios = {
+            "elevator_pitch": {
+                "name": "电梯演讲版",
+                "constraints": "2分钟内说完，抓住核心要点",
+                "style": "简洁有力，突出重点",
+            },
+            "bedtime_story": {
+                "name": "睡前故事版",
+                "constraints": "温和平静，富有想象力",
+                "style": "温暖治愈，寓教于乐",
+            },
+            "debate_format": {
+                "name": "辩论赛版",
+                "constraints": "逻辑清晰，论据充分",
+                "style": "理性分析，条理分明",
+            },
+            "social_media": {
+                "name": "社交媒体版",
+                "constraints": "吸引眼球，易于传播",
+                "style": "生动有趣，互动性强",
+            },
+        }
+
+    def get_workflow_config(self, config: DynamicTransformConfig) -> WorkflowConfig:
+        """获取动态变形工作流配置"""
+
+        scenario_info = self.scenarios.get(
+            config.scenario,
+            {"name": config.scenario, "constraints": "按照指定场景要求", "style": "符合场景特点"},
+        )
+
+        agents = [
+            AgentConfig(
+                role=f"内容变形专家 - {scenario_info['name']}",
+                name="dynamic_transformer",
+                goal=f"将内容转换为{scenario_info['name']}格式",
+                backstory=f"""你是{scenario_info['name']}的专业转换专家。
+
+你的专长：
+- 理解{scenario_info['name']}的特点和要求
+- 约束条件：{scenario_info['constraints']}
+- 表达风格：{scenario_info['style']}
+- 保持原文核心信息不变
+
+你能够将任何内容巧妙地转换为{scenario_info['name']}格式，既符合场景要求，又保持信息完整性。""",
+            ),
+        ]
+
+        tasks = [
+            TaskConfig(
+                name="dynamic_content_transform",
+                description=f"""将原始内容转换为{scenario_info['name']}格式。
+
+转换要求：
+1. 严格遵循{scenario_info['name']}的特点
+2. 约束条件：{scenario_info['constraints']}
+3. 表达风格：{scenario_info['style']}
+4. 保持原文'{{original_content}}'的核心信息
+5. 适应目标场景的表达习惯
+
+请创作出符合{scenario_info['name']}要求的内容版本。""",
+                agent_name="dynamic_transformer",
+                expected_output=f"符合{scenario_info['name']}格式的转换内容",
+            ),
+        ]
+
+        return WorkflowConfig(
+            name=f"dynamic_transform_{config.scenario}",
+            description=f"动态内容变形 - {scenario_info['name']}",
+            workflow_type=WorkflowType.SEQUENTIAL,
+            content_type=ContentType.ARTICLE,
+            agents=agents,
+            tasks=tasks,
+        )
+
+    def transform(
+        self,
+        base_content: ContentResult,
+        engine_factory: Callable[[WorkflowConfig], Any],
+        config: DynamicTransformConfig,
+    ) -> ContentResult:
+        """应用动态变形转换"""
+
+        workflow_config = self.get_workflow_config(config)
+        engine = engine_factory(workflow_config)
+
+        clean_topic = base_content.title
+        if "|" in clean_topic:
+            clean_topic = clean_topic.split("|", 1)[1].strip()
+
+        input_data = {
+            "topic": clean_topic,
+            "original_content": base_content.content,
+            "scenario": config.scenario,
+        }
+
+        transformed_content = engine.execute_workflow(input_data)
+        transformed_content.metadata.update(
+            {
+                "original_title": base_content.title,
+                "transformation_type": "dynamic_transform",
+                "scenario": config.scenario,
+                "base_content_id": id(base_content),
+            }
+        )
+
+        return transformed_content
+
+
+class GenreFusionModule(CreativeModule):
+    """跨体裁融合模块 - 混合不同文学体裁的创作"""
+
+    def __init__(self):
+        super().__init__()
+        self.genres = {
+            "sci_fi": {
+                "name": "科幻",
+                "elements": ["未来技术", "科学设定", "思辨性", "想象力"],
+                "style": "理性推演，充满想象",
+            },
+            "martial_arts": {
+                "name": "武侠",
+                "elements": ["江湖情义", "武功秘籍", "侠客精神", "恩怨情仇"],
+                "style": "豪迈洒脱，快意恩仇",
+            },
+            "mystery": {
+                "name": "推理",
+                "elements": ["悬疑氛围", "逻辑推理", "线索布局", "真相揭示"],
+                "style": "严密逻辑，悬念迭起",
+            },
+            "romance": {
+                "name": "爱情",
+                "elements": ["情感描写", "心理刻画", "浪漫情节", "情感冲突"],
+                "style": "细腻感人，情真意切",
+            },
+            "horror": {
+                "name": "恐怖",
+                "elements": ["恐怖氛围", "心理压迫", "悬疑元素", "惊悚情节"],
+                "style": "紧张刺激，扣人心弦",
+            },
+        }
+
+    def get_workflow_config(self, config: GenreFusionConfig) -> WorkflowConfig:
+        """获取跨体裁融合工作流配置"""
+
+        genre_descriptions = []
+        for genre in config.genre_combination:
+            if genre in self.genres:
+                info = self.genres[genre]
+                genre_descriptions.append(
+                    f"- {info['name']}：{info['style']}，融入{', '.join(info['elements'])}"
+                )
+
+        fusion_text = "\n".join(genre_descriptions)
+
+        agents = [
+            AgentConfig(
+                role="跨体裁融合大师",
+                name="genre_fusion_master",
+                goal="巧妙融合多种文学体裁的特色元素",
+                backstory=f"""你是跨体裁融合大师，擅长将不同文学体裁的精华融为一体。
+
+当前融合体裁：
+{fusion_text}
+
+你能够：
+- 识别每种体裁的核心特征
+- 巧妙地将不同体裁元素有机结合
+- 创造出独特而和谐的跨体裁作品
+- 保持各体裁特色的同时避免冲突""",
+            ),
+        ]
+
+        tasks = [
+            TaskConfig(
+                name="genre_fusion_creation",
+                description=f"""将原始内容进行跨体裁融合创作。
+
+融合体裁：
+{fusion_text}
+
+创作要求：
+1. 基于原文'{{original_content}}'进行体裁融合改写
+2. 巧妙融入所有指定体裁的典型元素
+3. 保持各体裁特色的平衡，避免突兀
+4. 创造独特的跨体裁阅读体验
+5. 保持原文的核心信息和价值
+
+请创作出融合多种体裁特色的创新内容。""",
+                agent_name="genre_fusion_master",
+                expected_output="融合多种体裁特色的创新文学作品",
+            ),
+        ]
+
+        return WorkflowConfig(
+            name="genre_fusion",
+            description="跨体裁融合创作工作流",
+            workflow_type=WorkflowType.SEQUENTIAL,
+            content_type=ContentType.ARTICLE,
+            agents=agents,
+            tasks=tasks,
+        )
+
+    def transform(
+        self,
+        base_content: ContentResult,
+        engine_factory: Callable[[WorkflowConfig], Any],
+        config: GenreFusionConfig,
+    ) -> ContentResult:
+        """应用跨体裁融合转换"""
+
+        workflow_config = self.get_workflow_config(config)
+        engine = engine_factory(workflow_config)
+
+        clean_topic = base_content.title
+        if "|" in clean_topic:
+            clean_topic = clean_topic.split("|", 1)[1].strip()
+
+        input_data = {
+            "topic": clean_topic,
+            "original_content": base_content.content,
+            "genre_combination": config.genre_combination,
+        }
+
+        transformed_content = engine.execute_workflow(input_data)
+        transformed_content.metadata.update(
+            {
+                "original_title": base_content.title,
+                "transformation_type": "genre_fusion",
+                "genre_combination": config.genre_combination,
                 "base_content_id": id(base_content),
             }
         )
@@ -90,64 +612,96 @@ class StyleTransformModule(CreativeModule):
 
 
 class TimeTravelModule(CreativeModule):
-    """时空穿越写作模块"""
+    """时空穿越模块 - 不同时代视角的内容重写"""
 
-    def get_workflow_config(self, time_perspective: str = "ancient", **kwargs) -> WorkflowConfig:
+    def __init__(self):
+        super().__init__()
+        self.time_perspectives = {
+            "ancient_china": {
+                "name": "古代中国",
+                "period": "唐宋明清",
+                "style": "文言雅致，诗词韵味",
+                "elements": ["诗词歌赋", "琴棋书画", "儒道释思想", "君臣民情"],
+            },
+            "medieval_europe": {
+                "name": "中世纪欧洲",
+                "period": "5-15世纪",
+                "style": "骑士精神，宗教色彩",
+                "elements": ["骑士道", "城堡贵族", "宗教信仰", "封建制度"],
+            },
+            "industrial_age": {
+                "name": "工业时代",
+                "period": "18-19世纪",
+                "style": "理性务实，进步思维",
+                "elements": ["科技进步", "工业革命", "社会变革", "启蒙思想"],
+            },
+            "future_2100": {
+                "name": "2100年未来",
+                "period": "22世纪",
+                "style": "科技感强，前瞻思维",
+                "elements": ["人工智能", "太空殖民", "生物技术", "可持续发展"],
+            },
+        }
+
+    def get_workflow_config(self, config: TimeTravelConfig) -> WorkflowConfig:
         """获取时空穿越工作流配置"""
+
+        time_info = self.time_perspectives.get(
+            config.time_perspective,
+            {
+                "name": config.time_perspective,
+                "period": "指定时代",
+                "style": "符合时代特点",
+                "elements": ["时代特色"],
+            },
+        )
 
         agents = [
             AgentConfig(
-                role="时空穿越者",
-                name="time_traveler",
-                goal="从不同时代视角分析现代话题",
-                backstory="你是时空穿越者，能够站在古代、现代、未来的不同时间点，以不同时代的思维方式和知识背景来理解和分析话题",
-            ),
-            AgentConfig(
-                role="历史学家",
-                name="historical_analyst",
-                goal="提供历史背景和时代特色分析",
-                backstory="你是历史学家，深谙各个时代的文化特色、思维方式和表达习惯",
-            ),
-            AgentConfig(
-                role="时空合成者",
-                name="temporal_synthesizer",
-                goal="综合不同时代视角，创造时空对比内容",
-                backstory="你擅长将不同时代的观点融合，创造出具有时空穿越感的独特内容",
+                role=f"{time_info['name']}时代学者",
+                name="time_scholar",
+                goal=f"以{time_info['name']}的视角重新阐释内容",
+                backstory=f"""你是{time_info['name']}（{time_info['period']}）的博学学者。
+
+时代背景：
+- 历史时期：{time_info['period']}
+- 表达风格：{time_info['style']}
+- 时代元素：{', '.join(time_info['elements'])}
+
+你能够：
+- 深刻理解{time_info['name']}的文化背景
+- 运用该时代的语言风格和思维方式
+- 将现代内容转化为符合时代特点的表达
+- 融入时代的典型元素和价值观念""",
             ),
         ]
 
         tasks = [
             TaskConfig(
-                name="time_perspective_analysis",
-                description=f"""从'{time_perspective}'时代视角分析话题，如'古代人看现在的AI'、'2050年回望今天的热点'。
+                name="time_travel_rewrite",
+                description=f"""以{time_info['name']}的视角重写内容。
 
-                重要要求：
-                1. 基于原始内容'{{original_content}}'进行时空视角分析
-                2. 必须返回完整的原始内容，不要删减任何信息
-                3. 在保持内容完整的基础上，融入时代视角的思考
-                4. 体现不同时代的思维差异和认知特点""",
-                agent_name="time_traveler",
-                expected_output="融入时空视角的完整内容（保持原文信息完整性）",
-            ),
-            TaskConfig(
-                name="historical_context_enhancement",
-                description="为时空对比内容添加历史背景和时代特色细节，保持内容完整性",
-                agent_name="historical_analyst",
-                expected_output="历史背景增强的完整内容",
-                context=["time_perspective_analysis"],
-            ),
-            TaskConfig(
-                name="temporal_synthesis",
-                description="综合时空视角和历史背景，生成最终的时空穿越文章",
-                agent_name="temporal_synthesizer",
-                expected_output="完整的时空穿越主题文章",
-                context=["time_perspective_analysis", "historical_context_enhancement"],
+时空设定：
+- 时代：{time_info['period']}
+- 风格：{time_info['style']}
+- 元素：{', '.join(time_info['elements'])}
+
+重写要求：
+1. 将原文'{{original_content}}'转换为{time_info['name']}的表达方式
+2. 融入该时代的典型元素和思维模式
+3. 使用符合时代特点的语言风格
+4. 保持原文的核心观点和价值
+5. 体现时代的文化背景和价值观
+
+请创作出具有{time_info['name']}时代特色的内容版本。""",
+                agent_name="time_scholar",
+                expected_output=f"具有{time_info['name']}时代特色的重写内容",
             ),
         ]
 
         return WorkflowConfig(
-            name="time_travel_writing",
-            description="时空穿越写作 - 从不同时代视角分析现代话题",
+            name=f"time_travel_{config.time_perspective}",
+            description=f"时空穿越 - {time_info['name']}",
             workflow_type=WorkflowType.SEQUENTIAL,
             content_type=ContentType.ARTICLE,
             agents=agents,
@@ -157,16 +711,13 @@ class TimeTravelModule(CreativeModule):
     def transform(
         self,
         base_content: ContentResult,
-        engine_factory=None,
-        time_perspective: str = "ancient",
-        **kwargs,
+        engine_factory: Callable[[WorkflowConfig], Any],
+        config: TimeTravelConfig,
     ) -> ContentResult:
-        """应用时空穿越变换"""
-        if engine_factory is None:
-            raise ValueError("engine_factory is required")
+        """应用时空穿越转换"""
 
-        config = self.get_workflow_config(time_perspective=time_perspective, **kwargs)
-        engine = engine_factory(config)
+        workflow_config = self.get_workflow_config(config)
+        engine = engine_factory(workflow_config)
 
         clean_topic = base_content.title
         if "|" in clean_topic:
@@ -175,7 +726,7 @@ class TimeTravelModule(CreativeModule):
         input_data = {
             "topic": clean_topic,
             "original_content": base_content.content,
-            "time_perspective": time_perspective,
+            "time_perspective": config.time_perspective,
         }
 
         transformed_content = engine.execute_workflow(input_data)
@@ -183,7 +734,7 @@ class TimeTravelModule(CreativeModule):
             {
                 "original_title": base_content.title,
                 "transformation_type": "time_travel",
-                "time_perspective": time_perspective,
+                "time_perspective": config.time_perspective,
                 "base_content_id": id(base_content),
             }
         )
@@ -192,262 +743,107 @@ class TimeTravelModule(CreativeModule):
 
 
 class RolePlayModule(CreativeModule):
-    """角色扮演内容生成模块"""
+    """角色扮演模块 - 以特定角色身份重写内容"""
 
-    def get_workflow_config(
-        self, role_character: str = "libai", custom_character: str = "", **kwargs
-    ) -> WorkflowConfig:
-        """获取角色扮演工作流配置"""
-
-        # 预定义中国代表人物配置
-        character_profiles = {
-            # 古典诗词
-            "libai": {
-                "name": "李白",
-                "era": "唐代",
-                "style": "浪漫主义诗人",
-                "output_format": "古体诗/律诗",
-                "characteristics": ["豪放不羁", "想象丰富", "用词华丽", "意境深远", "酒仙诗仙"],
-                "signature_style": "飘逸洒脱，气势磅礴",
+    def __init__(self):
+        super().__init__()
+        self.role_characters = {
+            "philosopher": {
+                "name": "哲学家",
+                "traits": ["深邃思考", "逻辑严密", "善于思辨", "追求真理"],
+                "style": "理性分析，深度思考",
+                "expression": "喜欢探讨本质，提出深刻问题",
             },
-            "dufu": {
-                "name": "杜甫",
-                "era": "唐代",
-                "style": "现实主义诗人",
-                "output_format": "律诗/古体诗",
-                "characteristics": ["忧国忧民", "沉郁顿挫", "语言精练", "格律严谨", "诗圣"],
-                "signature_style": "深沉厚重，关注民生",
+            "poet": {
+                "name": "诗人",
+                "traits": ["敏感细腻", "想象丰富", "情感充沛", "艺术气质"],
+                "style": "诗意表达，意象丰富",
+                "expression": "善用比喻和象征，语言优美",
             },
-            "sushi": {
-                "name": "苏轼",
-                "era": "宋代",
-                "style": "豪放派词人",
-                "output_format": "词/诗/散文",
-                "characteristics": ["豪放旷达", "才华横溢", "多才多艺", "乐观豁达"],
-                "signature_style": "豪放中见细腻，旷达中有深情",
+            "scientist": {
+                "name": "科学家",
+                "traits": ["理性客观", "严谨求实", "逻辑清晰", "追求真相"],
+                "style": "数据驱动，实证分析",
+                "expression": "用事实说话，逻辑推理",
             },
-            "liqingzhao": {
-                "name": "李清照",
-                "era": "宋代",
-                "style": "婉约派词人",
-                "output_format": "词/诗",
-                "characteristics": ["婉约细腻", "情感真挚", "才华出众", "女性视角"],
-                "signature_style": "婉约中见豪放，细腻中有深情",
+            "child": {
+                "name": "儿童",
+                "traits": ["天真好奇", "想象力强", "直接纯真", "充满疑问"],
+                "style": "简单直接，充满童趣",
+                "expression": "爱问为什么，用简单话语表达",
             },
-            # 古典小说
-            "caoxueqin": {
-                "name": "曹雪芹",
-                "era": "清代",
-                "style": "古典小说家",
-                "output_format": "章回小说片段",
-                "characteristics": ["细腻入微", "人物刻画深刻", "语言优美", "情感丰富"],
-                "signature_style": "细致入微的心理描写和人物刻画",
-            },
-            "shinaian": {
-                "name": "施耐庵",
-                "era": "元末明初",
-                "style": "古典小说家",
-                "output_format": "章回小说片段",
-                "characteristics": ["英雄豪杰", "江湖义气", "民间传说", "通俗易懂"],
-                "signature_style": "英雄传奇与民间智慧的结合",
-            },
-            "wuchengen": {
-                "name": "吴承恩",
-                "era": "明代",
-                "style": "神话小说家",
-                "output_format": "神话小说片段",
-                "characteristics": ["想象奇特", "神话色彩", "哲理深刻", "幽默诙谐"],
-                "signature_style": "神话与现实的巧妙融合",
-            },
-            "pusonglin": {
-                "name": "蒲松龄",
-                "era": "清代",
-                "style": "志怪小说家",
-                "output_format": "短篇志怪小说",
-                "characteristics": ["想象奇特", "寓意深刻", "文笔简洁", "讽刺辛辣"],
-                "signature_style": "奇幻与现实交融，寓教于乐",
-            },
-            # 现代文学
-            "luxun": {
-                "name": "鲁迅",
-                "era": "现代",
-                "style": "现代文学家",
-                "output_format": "杂文/小说",
-                "characteristics": ["犀利深刻", "批判精神", "忧国忧民", "文笔犀利"],
-                "signature_style": "深刻的社会批判和人性剖析",
-            },
-            "laoshe": {
-                "name": "老舍",
-                "era": "现代",
-                "style": "人民艺术家",
-                "output_format": "小说/话剧",
-                "characteristics": ["幽默风趣", "京味浓郁", "平民视角", "语言生动"],
-                "signature_style": "京味十足的幽默和对平民生活的关注",
-            },
-            "bajin": {
-                "name": "巴金",
-                "era": "现代",
-                "style": "现代作家",
-                "output_format": "小说/散文",
-                "characteristics": ["情感真挚", "人道主义", "反封建", "青春激情"],
-                "signature_style": "真挚的情感表达和人道主义关怀",
-            },
-            "qianjunru": {
-                "name": "钱钟书",
-                "era": "现代",
-                "style": "学者作家",
-                "output_format": "学术散文/小说",
-                "characteristics": ["博学深厚", "机智幽默", "文化底蕴", "讽刺艺术"],
-                "signature_style": "博学与机智的完美结合",
-            },
-            # 武侠小说
-            "jinyong": {
-                "name": "金庸",
-                "era": "现代",
-                "style": "武侠小说大师",
-                "output_format": "武侠小说",
-                "characteristics": ["侠之大者", "为国为民", "情节跌宕", "人物丰满"],
-                "signature_style": "侠义精神与家国情怀的完美融合",
-            },
-            "gulongxia": {
-                "name": "古龙",
-                "era": "现代",
-                "style": "新派武侠代表",
-                "output_format": "武侠小说",
-                "characteristics": ["独特文风", "哲理深刻", "人性探索", "诗意表达"],
-                "signature_style": "诗意与哲理并重的武侠世界",
-            },
-            # 新闻主播/评论员
-            "baiyansong": {
-                "name": "白岩松",
-                "era": "当代",
-                "style": "新闻评论员",
-                "output_format": "新闻评论/时事分析",
-                "characteristics": ["理性分析", "人文关怀", "深度思考", "平实语言"],
-                "signature_style": "理性分析中见人文情怀",
-            },
-            "cuiyongyuan": {
-                "name": "崔永元",
-                "era": "当代",
-                "style": "知名主持人",
-                "output_format": "访谈/评论",
-                "characteristics": ["真诚直率", "敢说敢言", "幽默风趣", "人情味浓"],
-                "signature_style": "真诚直率的表达方式",
-            },
-            "yanglan": {
-                "name": "杨澜",
-                "era": "当代",
-                "style": "媒体人",
-                "output_format": "访谈/文章",
-                "characteristics": ["知性优雅", "国际视野", "深度对话", "文化底蕴"],
-                "signature_style": "知性优雅的国际化表达",
-            },
-            "luyu": {
-                "name": "鲁豫",
-                "era": "当代",
-                "style": "访谈节目主持人",
-                "output_format": "访谈/对话",
-                "characteristics": ["亲和力强", "善于倾听", "情感细腻", "平易近人"],
-                "signature_style": "温暖亲和的对话风格",
-            },
-            # 音乐人
-            "zhoujielun": {
-                "name": "周杰伦",
-                "era": "当代",
-                "style": "流行音乐天王",
-                "output_format": "歌词/音乐评论",
-                "characteristics": ["中国风", "创新融合", "才华横溢", "个性鲜明"],
-                "signature_style": "中国风与流行音乐的完美结合",
-            },
-            "denglijun": {
-                "name": "邓丽君",
-                "era": "现代",
-                "style": "华语歌坛传奇",
-                "output_format": "歌词/音乐感悟",
-                "characteristics": ["甜美温柔", "情感真挚", "经典永恒", "跨越时代"],
-                "signature_style": "甜美温柔中的深情表达",
-            },
-            "lironghao": {
-                "name": "李荣浩",
-                "era": "当代",
-                "style": "创作型歌手",
-                "output_format": "歌词/创作感悟",
-                "characteristics": ["才华洋溢", "创作能力强", "音乐风格独特", "真实表达"],
-                "signature_style": "真实而富有创意的音乐表达",
-            },
-            # 相声曲艺
-            "guodegang": {
-                "name": "郭德纲",
-                "era": "当代",
-                "style": "相声演员",
-                "output_format": "相声段子/幽默文章",
-                "characteristics": ["幽默风趣", "包袱密集", "传统功底深厚", "语言生动"],
-                "signature_style": "传统相声的现代演绎",
-            },
-            "zhaobenshang": {
-                "name": "赵本山",
-                "era": "当代",
-                "style": "小品演员",
-                "output_format": "小品/幽默故事",
-                "characteristics": ["东北特色", "幽默诙谐", "贴近生活", "语言风趣"],
-                "signature_style": "东北特色的幽默表达",
+            "elder": {
+                "name": "长者",
+                "traits": ["人生阅历", "智慧深厚", "慈祥温和", "循循善诱"],
+                "style": "娓娓道来，充满智慧",
+                "expression": "用故事和经验分享人生感悟",
             },
         }
 
-        # 确定最终使用的角色
-        if role_character == "custom" and custom_character:
-            character_name = custom_character
-            character_info = {
-                "name": custom_character,
-                "era": "不详",
-                "style": f"{custom_character}的独特风格",
-                "output_format": "符合其特色的作品",
-                "characteristics": ["独特个性", "鲜明风格"],
-                "signature_style": f"{custom_character}的标志性表达方式",
+    def get_workflow_config(self, config: RolePlayConfig) -> WorkflowConfig:
+        """获取角色扮演工作流配置"""
+
+        # 获取角色信息
+        if config.role_character == "custom" and config.custom_character:
+            role_info = {
+                "name": config.custom_character,
+                "traits": ["个性化特征"],
+                "style": "符合角色特点",
+                "expression": "体现角色个性",
             }
         else:
-            character_info = character_profiles.get(role_character, character_profiles["libai"])
-            character_name = character_info["name"]
+            role_info = self.role_characters.get(
+                config.role_character,
+                {
+                    "name": config.role_character,
+                    "traits": ["角色特征"],
+                    "style": "符合角色",
+                    "expression": "角色化表达",
+                },
+            )
 
-        # 创建角色智能体 - 移除搜索工具
-        character_agent = AgentConfig(
-            role=f"{character_name}模仿专家",
-            name="character_agent",
-            goal=f"完美模仿{character_name}的写作风格和表达方式",
-            backstory=f"""你是{character_info['era']}{character_name}，{character_info['style']}，具有以下特点：
+        agents = [
+            AgentConfig(
+                role=f"{role_info['name']}角色",
+                name="role_player",
+                goal=f"以{role_info['name']}的身份和视角重新表达内容",
+                backstory=f"""你是{role_info['name']}，具有以下特点：
 
-            创作特色：{character_info['signature_style']}
-            主要特征：{', '.join(character_info['characteristics'])}
-            擅长形式：{character_info['output_format']}
+个性特征：{', '.join(role_info['traits'])}
+表达风格：{role_info['style']}
+表达方式：{role_info['expression']}
 
-            请严格按照{character_name}的风格特点进行创作，体现其独特的语言风格、思维方式和艺术特色。""",
-            # 移除 tools=["AIForgeSearchTool"] - 避免搜索干扰
-        )
-
-        agents = [character_agent]
+你需要完全融入这个角色，用{role_info['name']}的思维方式、语言习惯和价值观来重新阐释内容。""",
+            ),
+        ]
 
         tasks = [
             TaskConfig(
-                name="character_creation",
-                description=f"""请以{character_name}的身份和风格，针对话题'{{topic}}'进行创作。
+                name="role_play_rewrite",
+                description=f"""以{role_info['name']}的身份重写内容。
 
-                创作要求：
-                1. 严格遵循{character_name}的{character_info['style']}特色
-                2. 创作形式为{character_info['output_format']}
-                3. 体现{character_info['signature_style']}
-                4. 融入{', '.join(character_info['characteristics'])}等特点
-                5. 保持{character_info['era']}的时代特色和语言风格
-                6. 基于原始内容'{{original_content}}'进行角色化改写，保持核心信息完整
+角色设定：
+- 角色：{role_info['name']}
+- 特征：{', '.join(role_info['traits'])}
+- 风格：{role_info['style']}
+- 表达：{role_info['expression']}
 
-                请直接输出最终的创作作品，无需额外说明。""",
-                agent_name="character_agent",
-                expected_output=f"以{character_name}风格创作的{character_info['output_format']}",
-            )
+角色扮演要求：
+1. 完全融入{role_info['name']}的角色
+2. 用该角色的视角重新解读原文'{{original_content}}'
+3. 采用符合角色特点的语言风格
+4. 体现角色的思维方式和价值观
+5. 保持内容的核心信息不变
+
+请以{role_info['name']}的身份创作内容。""",
+                agent_name="role_player",
+                expected_output=f"以{role_info['name']}身份创作的角色化内容",
+            ),
         ]
 
         return WorkflowConfig(
-            name=f"{character_name}_role_play",
-            description=f"以{character_name}风格进行内容创作",
+            name=f"role_play_{config.role_character}",
+            description=f"角色扮演 - {role_info['name']}",
             workflow_type=WorkflowType.SEQUENTIAL,
             content_type=ContentType.ARTICLE,
             agents=agents,
@@ -457,18 +853,14 @@ class RolePlayModule(CreativeModule):
     def transform(
         self,
         base_content: ContentResult,
-        engine_factory=None,
-        role_character: str = "celebrity",
-        **kwargs,
+        engine_factory: Callable[[WorkflowConfig], Any],
+        config: RolePlayConfig,
     ) -> ContentResult:
-        """应用角色扮演变换"""
-        if engine_factory is None:
-            raise ValueError("engine_factory is required")
+        """应用角色扮演转换"""
 
-        config = self.get_workflow_config(role_character=role_character, **kwargs)
-        engine = engine_factory(config)
+        workflow_config = self.get_workflow_config(config)
+        engine = engine_factory(workflow_config)
 
-        # 清理标题中的平台前缀
         clean_topic = base_content.title
         if "|" in clean_topic:
             clean_topic = clean_topic.split("|", 1)[1].strip()
@@ -476,7 +868,8 @@ class RolePlayModule(CreativeModule):
         input_data = {
             "topic": clean_topic,
             "original_content": base_content.content,
-            "role_character": role_character,
+            "role_character": config.role_character,
+            "custom_character": config.custom_character,
         }
 
         transformed_content = engine.execute_workflow(input_data)
@@ -484,7 +877,8 @@ class RolePlayModule(CreativeModule):
             {
                 "original_title": base_content.title,
                 "transformation_type": "role_play",
-                "role_character": role_character,
+                "role_character": config.role_character,
+                "custom_character": config.custom_character,
                 "base_content_id": id(base_content),
             }
         )

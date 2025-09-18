@@ -32,6 +32,16 @@ class IndentedDumper(yaml.SafeDumper):
 
 
 class Config:
+    """
+    配置管理类 - 统一版本管理策略
+
+    版本管理最佳实践:
+    1. 配置版本号统一跟随软件版本，不再单独维护
+    2. 使用智能合并策略处理配置兼容性，替代复杂的版本迁移逻辑
+    3. 总是以最新默认配置为基准，保留用户有效配置值
+    4. 版本号主要用于用户界面显示，不影响核心功能
+    """
+
     _instance = None
     _lock = threading.Lock()
     # _lock = threading.RLock()  # 可重入锁
@@ -46,6 +56,7 @@ class Config:
         self.config_path = self.__get_config_path()
         self.config_aiforge_path = self.__get_config_path("aiforge.toml")
         self.default_config = {
+            "config_version": "2.2.1",  # 统一使用软件版本号
             "platforms": [
                 {"name": "微博", "weight": 0.3},
                 {"name": "抖音", "weight": 0.20},
@@ -241,7 +252,102 @@ class Config:
                     ],
                     "custom_character": "",
                 },
+                # 新增的创意模式配置
+                "multi_dimensional": {
+                    "enabled": False,
+                    "target_audience": "",  # 目标受众
+                    "creativity_level": "balanced",  # 创意程度：conservative, balanced, experimental
+                    "available_creativity_levels": ["conservative", "balanced", "experimental"],
+                    "auto_select_dimensions": True,  # 自动选择创意维度
+                },
+                "cultural_fusion": {
+                    "enabled": False,
+                    "cultural_perspective": "eastern_philosophy",
+                    "available_perspectives": [
+                        "eastern_philosophy",
+                        "western_logic",
+                        "japanese_mono",
+                        "french_romance",
+                        "american_freedom",
+                    ],
+                },
+                "dynamic_transform": {
+                    "enabled": False,
+                    "scenario": "elevator_pitch",
+                    "available_scenarios": [
+                        "elevator_pitch",
+                        "bedtime_story",
+                        "debate_argument",
+                        "poetry_version",
+                        "comic_script",
+                        "podcast_script",
+                        "social_media",
+                    ],
+                },
+                "genre_fusion": {
+                    "enabled": False,
+                    "genre_combination": ["scifi", "wuxia"],
+                    "available_genres": [
+                        "scifi",
+                        "wuxia",
+                        "detective",
+                        "romance",
+                        "history",
+                        "fantasy",
+                        "thriller",
+                        "comedy",
+                    ],
+                    "max_genres": 3,  # 最多融合的体裁数量
+                },
+                "ai_persona": {
+                    "enabled": False,
+                    "persona_type": "auto",  # auto表示自动选择
+                    "available_personas": [
+                        "auto",
+                        "dreamer_poet",
+                        "data_philosopher",
+                        "time_traveler",
+                        "emotion_healer",
+                        "mystery_detective",
+                        "culture_explorer",
+                        "tech_visionary",
+                        "life_observer",
+                    ],
+                    "persona_descriptions": {
+                        "dreamer_poet": "梦境诗人 - 善于将现实与梦境交织",
+                        "data_philosopher": "数据哲学家 - 用数据思维解读人文",
+                        "time_traveler": "时空旅者 - 穿梭时代的独特视角",
+                        "emotion_healer": "情感治愈师 - 温暖人心的文字治愈",
+                        "mystery_detective": "悬疑侦探 - 逻辑推理揭秘真相",
+                        "culture_explorer": "文化探索者 - 深入挖掘文化内涵",
+                        "tech_visionary": "科技预言家 - 洞察科技趋势",
+                        "life_observer": "生活观察家 - 从平凡中发现不平凡",
+                    },
+                },
                 "combination_mode": False,
+                # 新增：创意模式优先级和互斥规则
+                "mode_priority": [
+                    "ai_persona",
+                    "multi_dimensional",
+                    "cultural_fusion",
+                    "genre_fusion",
+                    "dynamic_transform",
+                    "style_transform",
+                    "time_travel",
+                    "role_play",
+                ],
+                "mode_conflicts": {
+                    # 定义互斥的创意模式组合
+                    "ai_persona": ["role_play"],  # AI人格与角色扮演互斥
+                    "multi_dimensional": ["style_transform"],  # 多维度创意与单一风格转换互斥
+                },
+                # 创意模式智能推荐配置
+                "smart_recommendation": {
+                    "enabled": True,
+                    "topic_based": True,  # 基于话题推荐
+                    "audience_based": True,  # 基于受众推荐
+                    "platform_based": True,  # 基于平台推荐
+                },
             },
         }
         self.default_aiforge_config = {
@@ -310,9 +416,6 @@ class Config:
             },
         }
 
-        # 全局变量
-        self._ui_mode = False
-
         # 自定义话题和文章参考链接，根据是否为空判断是否自定义
         self.custom_topic = ""  # 自定义话题（字符串）
         self.urls = []  # 参考链接（列表）
@@ -321,24 +424,12 @@ class Config:
         self.custom_template = ""  # 自定义话题时，模板
         self.current_preview_cover = ""  # 当前设置的封面
 
-        self._process_log_queue = None
-
     @classmethod
     def get_instance(cls):
         with cls._lock:
             if cls._instance is None:
                 cls._instance = cls()
             return cls._instance
-
-    @property
-    def ui_mode(self):  # Getter
-        return self._ui_mode
-
-    @ui_mode.setter
-    def ui_mode(self, value):  # Setter with validation
-        if not isinstance(value, bool):
-            raise ValueError("ui_mode must be a boolean")
-        self._ui_mode = value
 
     @property
     def platforms(self):
@@ -504,6 +595,94 @@ class Config:
             if not self.config:
                 raise ValueError("配置未加载")
             return self.config["creative_mode"]
+
+    @property
+    def creative_config(self):
+        """获取创意配置"""
+        with self._lock:
+            if not self.config:
+                raise ValueError("配置未加载")
+            return self.config.get("creative_config", {})
+
+    @property
+    def config_version(self):
+        """获取配置版本号（跟随软件版本）"""
+        with self._lock:
+            if not self.config:
+                raise ValueError("配置未加载")
+            return self.config.get("config_version", "2.2.1")
+
+    def set_config_version(self, version: str):
+        """设置配置版本号（保持API兼容性）"""
+        with self._lock:
+            if not self.config:
+                raise ValueError("配置未加载")
+            self.config["config_version"] = version
+
+    def is_legacy_config(self) -> bool:
+        """
+        检查是否为旧版本配置（简化版）
+        注：由于使用智能合并策略，版本检查不再关键，保留仅为兼容性
+        """
+        with self._lock:
+            current_version = self.config_version
+            # 简化版本检查：只要不是空版本就认为是新版本
+            return current_version in ["1.0.0", "", None]
+
+    # 新增的创意模式配置属性
+    @property
+    def multi_dimensional_config(self):
+        """多维度创意配置"""
+        with self._lock:
+            return self.creative_config.get("multi_dimensional", {})
+
+    @property
+    def cultural_fusion_config(self):
+        """文化融合配置"""
+        with self._lock:
+            return self.creative_config.get("cultural_fusion", {})
+
+    @property
+    def dynamic_transform_config(self):
+        """动态变形配置"""
+        with self._lock:
+            return self.creative_config.get("dynamic_transform", {})
+
+    @property
+    def genre_fusion_config(self):
+        """体裁融合配置"""
+        with self._lock:
+            return self.creative_config.get("genre_fusion", {})
+
+    @property
+    def ai_persona_config(self):
+        """AI人格配置"""
+        with self._lock:
+            return self.creative_config.get("ai_persona", {})
+
+    @property
+    def smart_recommendation_config(self):
+        """智能推荐配置"""
+        with self._lock:
+            return self.creative_config.get("smart_recommendation", {})
+
+    def get_enabled_creative_modes(self):
+        """获取已启用的创意模式列表"""
+        with self._lock:
+            enabled_modes = []
+            creative_config = self.creative_config
+
+            for mode_name, mode_config in creative_config.items():
+                if isinstance(mode_config, dict) and mode_config.get("enabled", False):
+                    enabled_modes.append(mode_name)
+
+            return enabled_modes
+
+    def is_creative_mode_enabled(self, mode_name: str) -> bool:
+        """检查指定创意模式是否启用"""
+        with self._lock:
+            mode_config = self.creative_config.get(mode_name, {})
+            return mode_config.get("enabled", False)
 
     @property
     def api_list(self):
@@ -709,3 +888,163 @@ class Config:
                     ret = False
 
             return ret
+
+    def get_config_version(self):
+        """获取当前配置版本号（统一使用软件版本）"""
+        with self._lock:
+            if not self.config:
+                return "2.2.1"  # 默认返回最新版本
+            return self.config.get("config_version", "2.2.1")
+
+    def reload_config(self):
+        """重新加载配置文件"""
+        with self._lock:
+            log.print_log("重新加载配置文件...", "info")
+            return self.load_config()
+
+    def merge_with_user_config(self, user_config: dict) -> dict:
+        """
+        智能合并用户配置：以默认配置为基础，保留用户已配置的有效值
+        这是配置处理的核心逻辑，替代复杂的版本迁移
+        """
+        import copy
+
+        # 以默认配置为基础
+        merged_config = copy.deepcopy(self.default_config)
+
+        if not user_config:
+            return merged_config
+
+        preserved_count = 0
+
+        # 递归合并函数
+        def merge_dict(default_dict: dict, user_dict: dict, path: str = "") -> int:
+            nonlocal preserved_count
+            count = 0
+
+            for key, user_value in user_dict.items():
+                current_path = f"{path}.{key}" if path else key
+
+                # 版本号由系统统一管理，始终使用最新版本
+                if key == "config_version":
+                    continue
+
+                # 如果默认配置中不存在该键，跳过（废弃的配置）
+                if key not in default_dict:
+                    continue
+
+                default_value = default_dict[key]
+
+                # 对于字典类型，递归合并
+                if isinstance(default_value, dict) and isinstance(user_value, dict):
+                    count += merge_dict(default_value, user_value, current_path)
+
+                # 对于非空的有意义值，保留用户配置
+                elif self._is_meaningful_value(user_value, default_value):
+                    default_dict[key] = user_value
+                    count += 1
+
+            return count
+
+        preserved_count = merge_dict(merged_config, user_config)
+
+        return merged_config
+
+    def _is_meaningful_value(self, user_value, default_value) -> bool:
+        """判断用户值是否有意义（值得保留）"""
+        # 对于字符串，不保留空字符串
+        if isinstance(user_value, str):
+            return user_value.strip() != ""
+
+        # 对于列表，不保留空列表或只有空字符串的列表
+        if isinstance(user_value, list):
+            if not user_value:
+                return False
+            # 检查是否所有元素都是空字符串
+            if all(isinstance(item, str) and item.strip() == "" for item in user_value):
+                return False
+            return True
+
+        # 对于布尔值，只有与默认值不同时才保留
+        if isinstance(user_value, bool):
+            return user_value != default_value
+
+        # 对于数字，只有与默认值不同时才保留
+        if isinstance(user_value, (int, float)):
+            return user_value != default_value
+
+        # 其他类型，默认保留
+        return True
+
+    def smart_update_config(self):
+        """
+        智能更新配置：替代复杂的版本迁移逻辑
+        使用最新默认配置 + 保留用户配置值的方式
+        版本号统一使用软件版本，不再单独维护
+        """
+        with self._lock:
+            try:
+                user_config = None
+
+                # 读取用户配置（如果存在）
+                if os.path.exists(self.config_path):
+                    try:
+                        with open(self.config_path, "r", encoding="utf-8") as f:
+                            user_config = yaml.safe_load(f)
+                    except Exception as e:
+                        log.print_log(f"读取用户配置失败: {e}", "warning")
+                        user_config = None
+
+                # 合并配置（版本号自动更新为最新）
+                merged_config = self.merge_with_user_config(user_config or {})
+
+                # 保存合并后的配置
+                with open(self.config_path, "w", encoding="utf-8") as f:
+                    yaml.dump(
+                        merged_config,
+                        f,
+                        Dumper=IndentedDumper,
+                        allow_unicode=True,
+                        sort_keys=False,
+                        default_flow_style=False,
+                        indent=2,
+                    )
+
+                # 更新内存中的配置
+                self.config = merged_config
+
+                log.print_log("配置数据加载成功", "success")
+                return True
+
+            except Exception as e:
+                log.print_log(f"配置数据加载失败: {e}", "error")
+                return False
+
+    def migrate_config_if_needed(self):
+        """
+        智能配置更新：替代复杂的版本迁移逻辑
+        总是使用最新默认配置 + 保留用户配置值
+        版本号统一使用软件版本，不再单独维护
+        """
+        try:
+            return self.smart_update_config()
+        except Exception:
+            # 失败时使用默认配置
+            try:
+                # 直接使用默认配置重写（版本号已是最新）
+                config_path = str(PathManager.get_config_path("config.yaml"))
+                with open(config_path, "w", encoding="utf-8") as f:
+                    yaml.dump(
+                        self.default_config,
+                        f,
+                        allow_unicode=True,
+                        sort_keys=False,
+                        default_flow_style=False,
+                        indent=2,
+                    )
+
+                self.config = self.default_config.copy()
+                return True
+
+            except Exception:
+                return False

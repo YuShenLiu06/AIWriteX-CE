@@ -80,9 +80,16 @@ def is_admin():
 
 
 def run():
-    import src.ai_write_x.gui.MainGUI as MainGUI
+    """启动GUI应用程序"""
+    try:
+        import src.ai_write_x.gui.MainGUI as MainGUI
 
-    MainGUI.gui_start()
+        MainGUI.gui_start()
+    except KeyboardInterrupt:
+        # 捕获Ctrl+C，优雅退出
+        pass
+    except Exception:
+        pass
 
 
 def admin_run():
