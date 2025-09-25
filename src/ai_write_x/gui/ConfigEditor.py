@@ -566,7 +566,7 @@ class ConfigEditor:
             [
                 sg.Text("文章格式：", size=(15, 1), tooltip=tips["article_format"]),
                 sg.Combo(
-                    ["html", "markdown", "txt"],
+                    ["html", "plaintext", "txt"],
                     default_value=self.config.article_format,
                     key="-ARTICLE_FORMAT-",
                     size=(11, 1),
@@ -747,21 +747,10 @@ class ConfigEditor:
                     expand_x=True,
                 )
             ],
-            [sg.VPush()],  # 垂直填充，将按钮和版本信息推到底部
             # 按钮行
             [
                 sg.Button("保存配置", key="-SAVE_BASE-"),
                 sg.Button("恢复默认", key="-RESET_BASE-"),
-            ],
-            # 软件版本信息固定在底部
-            [
-                sg.Push(),  # 将版本信息推到右侧
-                sg.Text(
-                    f"软件版本: {self.config.get_config_version()}",
-                    key="-CONFIG_VERSION-",
-                    font=("Arial", 8),
-                    text_color="gray",
-                ),
             ],
         ]
 
@@ -995,513 +984,201 @@ class ConfigEditor:
         config = self.config.get_config()
         creative_config = config.get("creative_config", {})
 
-        # 风格转换配置
-        style_config = creative_config.get("style_transform", {})
-        style_layout = [
-            [sg.VPush()],  # 顶部填充
-            [
-                sg.Checkbox(
-                    "",
-                    default=style_config.get("enabled", False),
-                    key="-STYLE_TRANSFORM_ENABLED-",
-                    enable_events=True,
-                    tooltip="启用风格转换",
-                    size=(1, 1),
-                    pad=((3, 0), (0, 0)),
-                ),
-                sg.Text("风格类型:", size=(8, 1), pad=((0, 5), (0, 0))),
-                sg.Combo(
+        # 维度化创意配置
+        dimensional_config = creative_config.get("dimensional_creative", {})
+
+        # 获取维度选项配置
+        dimension_options = dimensional_config.get("dimension_options", {})
+
+        # 创建维度选择控件
+        dimension_controls = []
+
+        # 为每个维度创建选择控件（使用勾选框+下拉选项框的设计）
+        for dimension_key, dimension_data in dimension_options.items():
+            dimension_name = dimension_data.get("name", dimension_key)
+            preset_options = dimension_data.get("preset_options", [])
+
+            # 创建选项列表，格式为 "显示名称 (描述)"
+            option_list = ["自动选择"]
+            for option in preset_options:
+                display_text = f"{option['value']} ({option['description']})"
+                option_list.append(display_text)
+
+            # 添加自定义选项
+            option_list.append("自定义")
+
+            # 获取当前选中的选项
+            selected_option = dimension_data.get("selected_option", "")
+            selected_display = "自动选择"
+
+            # 查找匹配的选项显示文本
+            if selected_option:
+                # 检查是否为自定义选项
+                if selected_option == "custom":
+                    selected_display = "自定义"
+                else:
+                    for option in preset_options:
+                        if option["name"] == selected_option:
+                            selected_display = f"{option['value']} ({option['description']})"
+                            break
+
+            # 获取自定义输入值
+            custom_input = dimension_data.get("custom_input", "")
+
+            # 检查该维度是否启用（需要从配置中获取，如果没有则默认启用）
+            enabled_dimensions = dimensional_config.get("enabled_dimensions", {})
+            dimension_enabled = enabled_dimensions.get(dimension_key, True)
+
+            # 创建该维度的控件行
+            dimension_controls.extend(
+                [
                     [
-                        "莎士比亚戏剧",
-                        "侦探小说",
-                        "科幻小说",
-                        "古典诗词",
-                        "现代诗歌",
-                        "学术论文",
-                        "新闻报道",
-                    ],
-                    default_value=self._get_style_display_name(
-                        style_config.get("style_target", "shakespeare")
-                    ),
-                    key="-STYLE_TARGET-",
-                    size=(15, 1),
-                    readonly=True,
-                    disabled=not style_config.get("enabled", False),
-                    tooltip="选择文体转换风格",
-                    pad=((0, 3), (0, 0)),
-                ),
-            ],
-            [sg.VPush()],  # 底部填充
-        ]
+                        sg.Checkbox(
+                            "",
+                            default=dimension_enabled,
+                            key=f"-DIMENSION_ENABLED_{dimension_key.upper()}-",
+                            enable_events=True,
+                            tooltip=f"启用{dimension_name}维度",
+                            size=(1, 1),
+                            pad=((0, 0), (0, 0)),
+                        ),
+                        sg.Text(f"{dimension_name}:", size=(8, 1), pad=((0, 0), (0, 0))),
+                        sg.Combo(
+                            option_list,
+                            default_value=selected_display,
+                            key=f"-DIMENSION_{dimension_key.upper()}-",
+                            size=(25, 1),
+                            readonly=True,
+                            tooltip=f"选择{dimension_name}",
+                            disabled=(
+                                not dimensional_config.get("enabled", True)
+                                or dimensional_config.get("auto_dimension_selection", False)
+                            ),
+                            enable_events=True,  # 启用事件处理
+                        ),
+                        sg.InputText(
+                            custom_input,
+                            key=f"-DIMENSION_{dimension_key.upper()}_CUSTOM-",
+                            size=(20, 1),
+                            tooltip=f"自定义{dimension_name}输入",
+                            disabled=(
+                                not dimensional_config.get("enabled", True)
+                                or not dimension_enabled
+                                or selected_display != "自定义"
+                            ),
+                        ),
+                    ]
+                ]
+            )
 
-        # 时空穿越配置
-        time_config = creative_config.get("time_travel", {})
-        time_layout = [
+        # 创建维度化创意配置布局
+        dimensional_layout = [
             [sg.VPush()],  # 顶部填充
             [
                 sg.Checkbox(
                     "",
-                    default=time_config.get("enabled", False),
-                    key="-TIME_TRAVEL_ENABLED-",
+                    default=dimensional_config.get("enabled", True),
+                    key="-DIMENSIONAL_CREATIVE_ENABLED-",
                     enable_events=True,
-                    tooltip="启用时空穿越",
+                    tooltip="启用维度化创意",
                     size=(1, 1),
                     pad=((3, 0), (0, 0)),
                 ),
-                sg.Text("时空视角:", size=(8, 1), pad=((0, 5), (0, 0))),
-                sg.Combo(
-                    ["古代视角", "现代视角", "未来视角"],
-                    default_value=self._get_time_display_name(
-                        time_config.get("time_perspective", "ancient")
-                    ),
-                    key="-TIME_PERSPECTIVE-",
-                    size=(17, 1),
-                    readonly=True,
-                    disabled=not time_config.get("enabled", False),
-                    tooltip="选择时空视角",
-                    pad=((0, 3), (0, 0)),
-                ),
-            ],
-            [sg.VPush()],  # 底部填充
-        ]
-
-        # 角色扮演配置
-        role_config = creative_config.get("role_play", {})
-        current_role = role_config.get("role_character", "libai")
-        custom_character = role_config.get("custom_character", "")
-
-        role_layout = [
-            [sg.VPush()],  # 顶部填充
-            [
-                sg.Checkbox(
-                    "",
-                    default=role_config.get("enabled", False),
-                    key="-ROLE_PLAY_ENABLED-",
-                    enable_events=True,
-                    tooltip="启用角色扮演",
-                    size=(1, 1),
-                    pad=((3, 0), (0, 0)),
-                ),
-                sg.Text("角色类型:", size=(8, 1), pad=((0, 5), (0, 0))),
-                sg.Combo(
-                    self._get_all_role_display_names(),
-                    default_value=self._get_role_display_name(current_role),
-                    key="-ROLE_CHARACTER-",
-                    size=(20, 1),
-                    readonly=True,
-                    disabled=not role_config.get("enabled", False),
-                    enable_events=True,
-                    tooltip="选择角色身份或自定义人物",
+                sg.Text("创意强度:", size=(8, 1), pad=((0, 5), (0, 0))),
+                sg.Slider(
+                    range=(0.7, 1.5),
+                    default_value=dimensional_config.get("creative_intensity", 1.0),
+                    resolution=0.1,
+                    orientation="h",
+                    key="-CREATIVE_INTENSITY-",
+                    size=(15, 15),
+                    disabled=not dimensional_config.get("enabled", True),
+                    tooltip="创意强度（0.7-1.5）",
                     pad=((0, 8), (0, 0)),
-                ),
-                sg.Text("自定义:", size=(6, 1), pad=((0, 5), (0, 0))),
-                sg.Input(
-                    default_text=custom_character,
-                    key="-CUSTOM_CHARACTER-",
-                    size=(15, 1),
-                    disabled=current_role != "custom" or not role_config.get("enabled", False),
-                    tooltip="先选择自定义，输入要模仿的人物名称，如：张三、李四、王五等",
-                    pad=((0, 3), (0, 0)),
-                ),
-            ],
-            [sg.VPush()],  # 底部填充
-        ]
-
-        # 多维度创意配置
-        multi_config = creative_config.get("multi_dimensional", {})
-        multi_layout = [
-            [sg.VPush()],  # 顶部填充
-            [
-                sg.Checkbox(
-                    "",
-                    default=multi_config.get("enabled", False),
-                    key="-MULTI_DIMENSIONAL_ENABLED-",
-                    enable_events=True,
-                    tooltip="启用多维度创意",
-                    size=(1, 1),
-                    pad=((3, 0), (0, 0)),
-                ),
-                sg.Text("目标受众:", size=(8, 1), pad=((0, 5), (0, 0))),
-                sg.Combo(
-                    [
-                        "通用受众",
-                        "Z世代",
-                        "职场精英",
-                        "学生党",
-                        "宝妈群体",
-                        "退休人员",
-                        "创业者",
-                        "技术人员",
-                        "文艺青年",
-                        "商务人士",
-                        "教育工作者",
-                        "医护人员",
-                        "自由职业者",
-                        "投资者",
-                        "运动爱好者",
-                    ],
-                    default_value=(
-                        multi_config.get("target_audience", "通用受众")
-                        if multi_config.get("target_audience")
-                        else "通用受众"
-                    ),
-                    key="-TARGET_AUDIENCE-",
-                    size=(15, 1),
-                    readonly=False,  # 允许用户输入自定义受众
-                    disabled=not multi_config.get("enabled", False),
-                    tooltip="选择目标受众群体或输入自定义受众",
-                    pad=((0, 8), (0, 0)),
-                ),
-                sg.Text("创意程度:", size=(8, 1), pad=((0, 5), (0, 0))),
-                sg.Combo(
-                    ["保守型", "平衡型", "实验型"],
-                    default_value=self._get_creativity_display_name(
-                        multi_config.get("creativity_level", "balanced")
-                    ),
-                    key="-CREATIVITY_LEVEL-",
-                    size=(12, 1),
-                    readonly=True,
-                    disabled=not multi_config.get("enabled", False),
-                    tooltip="保守型：稳妅可靠；平衡型：创意与实用并重；实验型：大胆创新",
-                    pad=((0, 3), (0, 0)),
-                ),
-            ],
-            [sg.VPush()],  # 底部填充
-        ]
-
-        # 文化融合配置
-        cultural_config = creative_config.get("cultural_fusion", {})
-        cultural_layout = [
-            [sg.VPush()],  # 顶部填充
-            [
-                sg.Checkbox(
-                    "",
-                    default=cultural_config.get("enabled", False),
-                    key="-CULTURAL_FUSION_ENABLED-",
-                    enable_events=True,
-                    tooltip="启用文化融合",
-                    size=(1, 1),
-                    pad=((3, 0), (0, 0)),
-                ),
-                sg.Text("文化视角:", size=(8, 1), pad=((0, 5), (0, 0))),
-                sg.Combo(
-                    ["东方哲学", "西方思辨", "日式物哀", "法式浪漫", "美式自由"],
-                    default_value=self._get_cultural_display_name(
-                        cultural_config.get("cultural_perspective", "eastern_philosophy")
-                    ),
-                    key="-CULTURAL_PERSPECTIVE-",
-                    size=(15, 1),
-                    readonly=True,
-                    disabled=not cultural_config.get("enabled", False),
-                    tooltip="选择文化视角进行内容重新诠释",
-                    pad=((0, 3), (0, 0)),
-                ),
-            ],
-            [sg.VPush()],  # 底部填充
-        ]
-
-        # 动态变形配置
-        dynamic_config = creative_config.get("dynamic_transform", {})
-        dynamic_layout = [
-            [sg.VPush()],  # 顶部填充
-            [
-                sg.Checkbox(
-                    "",
-                    default=dynamic_config.get("enabled", False),
-                    key="-DYNAMIC_TRANSFORM_ENABLED-",
-                    enable_events=True,
-                    tooltip="启用动态变形",
-                    size=(1, 1),
-                    pad=((3, 0), (0, 0)),
-                ),
-                sg.Text("变形场景:", size=(8, 1), pad=((0, 5), (0, 0))),
-                sg.Combo(
-                    [
-                        "电梯演讲版",
-                        "睡前故事版",
-                        "辩论赛版",
-                        "诗歌版",
-                        "漫画脚本版",
-                        "播客脚本版",
-                        "社交媒体版",
-                    ],
-                    default_value=self._get_scenario_display_name(
-                        dynamic_config.get("scenario", "elevator_pitch")
-                    ),
-                    key="-SCENARIO-",
-                    size=(15, 1),
-                    readonly=True,
-                    disabled=not dynamic_config.get("enabled", False),
-                    tooltip="选择内容变形的目标场景",
-                    pad=((0, 3), (0, 0)),
-                ),
-            ],
-            [sg.VPush()],  # 底部填充
-        ]
-
-        # 体裁融合配置
-        genre_config = creative_config.get("genre_fusion", {})
-        genre_combination = genre_config.get("genre_combination", ["scifi", "wuxia"])
-
-        genre_layout = [
-            [sg.VPush()],  # 顶部填充
-            [
-                sg.Checkbox(
-                    "",
-                    default=genre_config.get("enabled", False),
-                    key="-GENRE_FUSION_ENABLED-",
-                    enable_events=True,
-                    tooltip="启用体裁融合",
-                    size=(1, 1),
-                    pad=((0, 0), (0, 0)),
-                ),
-                sg.Text("体裁组合:", size=(8, 1), pad=((0, 5), (0, 0))),
-                sg.Checkbox(
-                    "科幻",
-                    default="scifi" in genre_combination,
-                    key="-GENRE_SCIFI-",
-                    size=(5, 1),
-                    disabled=not genre_config.get("enabled", False),
-                    pad=((0, 0), (0, 0)),
-                ),
-                sg.Checkbox(
-                    "武侠",
-                    default="wuxia" in genre_combination,
-                    key="-GENRE_WUXIA-",
-                    size=(5, 1),
-                    disabled=not genre_config.get("enabled", False),
-                    pad=((0, 0), (0, 0)),
-                ),
-            ],
-            [
-                sg.Text("", size=(9, 1)),  # 空白占位符，与上一行对齐
-                sg.Checkbox(
-                    "推理",
-                    default="mystery" in genre_combination,
-                    key="-GENRE_MYSTERY-",
-                    size=(5, 1),
-                    disabled=not genre_config.get("enabled", False),
-                    pad=((0, 0), (0, 0)),
-                ),
-                sg.Checkbox(
-                    "爱情",
-                    default="romance" in genre_combination,
-                    key="-GENRE_ROMANCE-",
-                    size=(5, 1),
-                    disabled=not genre_config.get("enabled", False),
-                    pad=((0, 0), (0, 0)),
-                ),
-            ],
-            [sg.VPush()],  # 底部填充
-        ]
-
-        # AI人格配置
-        ai_persona_config = creative_config.get("ai_persona", {})
-        ai_persona_layout = [
-            [sg.VPush()],  # 顶部填充
-            [
-                sg.Checkbox(
-                    "",
-                    default=ai_persona_config.get("enabled", False),
-                    key="-AI_PERSONA_ENABLED-",
-                    enable_events=True,
-                    tooltip="启用AI人格",
-                    size=(1, 1),
-                    pad=((3, 0), (0, 0)),
-                ),
-                sg.Text("人格类型:", size=(8, 1), pad=((0, 5), (0, 0))),
-                sg.Combo(
-                    [
-                        "自动选择",
-                        "梦境诗人",
-                        "数据哲学家",
-                        "时空旅者",
-                        "情感治愈师",
-                        "悬疑侦探",
-                        "文化探索者",
-                        "科技预言家",
-                        "生活观察家",
-                    ],
-                    default_value=self._get_persona_display_name(
-                        ai_persona_config.get("persona_type", "auto")
-                    ),
-                    key="-PERSONA_TYPE-",
-                    size=(10, 1),
-                    readonly=True,
-                    disabled=not ai_persona_config.get("enabled", False),
-                    tooltip="选择AI人格类型，或让系统自动根据话题选择最合适的人格",
-                    pad=((0, 3), (0, 0)),
-                ),
-            ],
-            [sg.VPush()],  # 底部填充
-        ]
-
-        # 组合模式配置
-        combination_layout = [
-            [sg.VPush()],  # 顶部填充
-            [
-                sg.Checkbox(
-                    "",
-                    default=creative_config.get("combination_mode", False),
-                    key="-COMBINATION_MODE-",
-                    tooltip="允许组合使用",
-                    size=(1, 1),
-                    pad=((3, 0), (0, 0)),
                 ),
                 sg.Text(
-                    "启用后可同时使用多个创意模块，按顺序应用变换效果",
-                    size=(50, 1),
-                    text_color="gray",
+                    f"{dimensional_config.get('creative_intensity', 1.0):.1f}",
+                    key="-INTENSITY_DISPLAY-",
+                    size=(4, 1),
                     pad=((0, 3), (0, 0)),
                 ),
             ],
-            [sg.VPush()],  # 底部填充
-        ]
-
-        # 智能推荐配置
-        smart_config = creative_config.get("smart_recommendation", {})
-        smart_layout = [
-            [sg.VPush()],  # 顶部填充
             [
+                sg.Text("", size=(2, 1)),  # 空白占位符
                 sg.Checkbox(
-                    "",
-                    default=smart_config.get("enabled", True),
-                    key="-SMART_RECOMMENDATION-",
-                    tooltip="启用智能推荐",
-                    size=(1, 1),
-                    pad=((3, 0), (0, 0)),
-                    enable_events=True,
-                ),
-                sg.Text("推荐类型:", size=(8, 1), pad=((0, 5), (0, 0))),
-                sg.Checkbox(
-                    "基于话题",
-                    default=smart_config.get("topic_based", True),
-                    key="-TOPIC_BASED-",
-                    size=(8, 1),
-                    pad=((0, 5), (0, 0)),
-                    disabled=not smart_config.get("enabled", True),
+                    "保持核心信息",
+                    default=dimensional_config.get("preserve_core_info", True),
+                    key="-PRESERVE_CORE_INFO-",
+                    disabled=not dimensional_config.get("enabled", True),
+                    tooltip="在创意变换中保持文章核心信息不变",
+                    pad=((0, 10), (0, 0)),
                 ),
                 sg.Checkbox(
-                    "基于受众",
-                    default=smart_config.get("audience_based", True),
-                    key="-AUDIENCE_BASED-",
-                    size=(8, 1),
-                    pad=((0, 5), (0, 0)),
-                    disabled=not smart_config.get("enabled", True),
-                ),
-                sg.Checkbox(
-                    "基于平台",
-                    default=smart_config.get("platform_based", True),
-                    key="-PLATFORM_BASED-",
-                    size=(8, 1),
+                    "允许实验性组合",
+                    default=dimensional_config.get("allow_experimental", False),
+                    key="-ALLOW_EXPERIMENTAL-",
+                    disabled=not dimensional_config.get("enabled", True),
+                    tooltip="允许使用实验性的维度组合",
                     pad=((0, 3), (0, 0)),
-                    disabled=not smart_config.get("enabled", True),
                 ),
             ],
+            [
+                sg.Text("", size=(2, 1)),  # 空白占位符
+                sg.Checkbox(
+                    "自动选择维度",
+                    default=dimensional_config.get("auto_dimension_selection", False),
+                    key="-AUTO_DIMENSION_SELECTION-",
+                    enable_events=True,
+                    disabled=not dimensional_config.get("enabled", True),
+                    tooltip="自动选择最适合的维度组合",
+                    pad=((0, 3), (0, 0)),
+                ),
+            ],
+            [
+                sg.Text("", size=(2, 1)),  # 空白占位符
+                sg.Text("最大维度数:", size=(10, 1), pad=((0, 5), (0, 0))),
+                sg.Spin(
+                    values=list(range(0, 11)),
+                    initial_value=dimensional_config.get("max_dimensions", 0),
+                    key="-MAX_DIMENSIONS-",
+                    size=(5, 1),
+                    disabled=not dimensional_config.get("enabled", True)
+                    or not dimensional_config.get("auto_dimension_selection", False),
+                    tooltip="同时应用的维度最大数量",
+                    pad=((0, 10), (0, 0)),
+                ),
+                sg.Text("兼容性阈值:", size=(10, 1), pad=((0, 5), (0, 0))),
+                sg.Slider(
+                    range=(0.0, 1.0),
+                    default_value=dimensional_config.get("compatibility_threshold", 0.6),
+                    resolution=0.1,
+                    orientation="h",
+                    key="-COMPATIBILITY_THRESHOLD-",
+                    size=(10, 15),
+                    disabled=not dimensional_config.get("enabled", True)
+                    or not dimensional_config.get("auto_dimension_selection", False),
+                    tooltip="维度组合兼容性阈值（0.0-1.0）",
+                    pad=((0, 3), (0, 0)),
+                ),
+                sg.Text(
+                    f"{dimensional_config.get('compatibility_threshold', 0.6):.1f}",
+                    key="-THRESHOLD_DISPLAY-",
+                    size=(4, 1),
+                    pad=((0, 3), (0, 0)),
+                ),
+            ],
+            # 添加维度选择控件
+            *dimension_controls,
             [sg.VPush()],  # 底部填充
         ]
 
         # 主布局，使用Frame分组，采用与基础配置界面相同的风格
         content_layout = [
-            # 创意模式 - 两个一行，各占一半宽度
+            # 维度化创意配置
             [
                 sg.Frame(
-                    "风格转换",
-                    style_layout,
-                    font=("Arial", 10, "bold"),
-                    relief=sg.RELIEF_GROOVE,
-                    border_width=2,
-                    pad=(5, 5),
-                    expand_x=True,
-                ),
-                sg.Frame(
-                    "时空穿越",
-                    time_layout,
-                    font=("Arial", 10, "bold"),
-                    relief=sg.RELIEF_GROOVE,
-                    border_width=2,
-                    pad=(5, 5),
-                    expand_x=True,
-                ),
-            ],
-            [
-                sg.Frame(
-                    "角色扮演",
-                    role_layout,
-                    font=("Arial", 10, "bold"),
-                    relief=sg.RELIEF_GROOVE,
-                    border_width=2,
-                    pad=(5, 5),
-                    expand_x=True,
-                )
-            ],
-            [
-                sg.Frame(
-                    "多维度创意",
-                    multi_layout,
-                    font=("Arial", 10, "bold"),
-                    relief=sg.RELIEF_GROOVE,
-                    border_width=2,
-                    pad=(5, 5),
-                    expand_x=True,
-                )
-            ],
-            [
-                sg.Frame(
-                    "文化融合",
-                    cultural_layout,
-                    font=("Arial", 10, "bold"),
-                    relief=sg.RELIEF_GROOVE,
-                    border_width=2,
-                    pad=(5, 5),
-                    expand_x=True,
-                ),
-                sg.Frame(
-                    "动态变形",
-                    dynamic_layout,
-                    font=("Arial", 10, "bold"),
-                    relief=sg.RELIEF_GROOVE,
-                    border_width=2,
-                    pad=(5, 5),
-                    expand_x=True,
-                ),
-            ],
-            [
-                sg.Frame(
-                    "体裁融合",
-                    genre_layout,
-                    font=("Arial", 10, "bold"),
-                    relief=sg.RELIEF_GROOVE,
-                    border_width=2,
-                    pad=(5, 5),
-                    expand_x=True,
-                ),
-                sg.Frame(
-                    "AI人格团队",
-                    ai_persona_layout,
-                    font=("Arial", 10, "bold"),
-                    relief=sg.RELIEF_GROOVE,
-                    border_width=2,
-                    pad=(5, 5),
-                    expand_x=True,
-                ),
-            ],
-            # 组合和智能推荐配置
-            [
-                sg.Frame(
-                    "组合模式",
-                    combination_layout,
-                    font=("Arial", 10, "bold"),
-                    relief=sg.RELIEF_GROOVE,
-                    border_width=2,
-                    pad=(5, 5),
-                    expand_x=True,
-                )
-            ],
-            [
-                sg.Frame(
-                    "智能推荐",
-                    smart_layout,
+                    "维度化创意",
+                    dimensional_layout,
                     font=("Arial", 10, "bold"),
                     relief=sg.RELIEF_GROOVE,
                     border_width=2,
@@ -1519,7 +1196,7 @@ class ConfigEditor:
         # 使用Frame包装内容，避免滚动问题
         content_frame = sg.Frame("", content_layout, border_width=0, pad=(0, 0))
 
-        # 外层Column充满高度，不启用滚动
+        # 启用滚动
         return [
             [
                 sg.Column(
@@ -1527,6 +1204,8 @@ class ConfigEditor:
                     expand_x=True,
                     expand_y=True,
                     pad=(0, 0),
+                    scrollable=True,
+                    vertical_scroll_only=True,
                 )
             ]
         ]
@@ -1845,6 +1524,45 @@ class ConfigEditor:
             "喜剧": "comedy",
         }
         return mapping.get(display_name, "scifi")
+
+    def _collect_selected_dimensions(self, values, dimension_options):
+        """
+        收集用户选择的维度
+
+        Args:
+            values: GUI中的值字典
+            dimension_options: 维度选项配置
+
+        Returns:
+            选中的维度列表
+        """
+        selected_dimensions = []
+
+        # 获取启用的维度
+        enabled_dimensions = {}
+        for dimension_key in dimension_options.keys():
+            enabled_state = values.get(f"-DIMENSION_ENABLED_{dimension_key.upper()}-", False)
+            enabled_dimensions[dimension_key] = enabled_state
+
+        # 收集每个启用维度的选择
+        for dimension_key, dimension_data in dimension_options.items():
+            # 检查维度是否启用
+            if enabled_dimensions.get(dimension_key, False):
+                # 获取选中的选项显示文本
+                selected_display = values.get(f"-DIMENSION_{dimension_key.upper()}-", "自动选择")
+
+                # 如果不是"自动选择"，则添加到选中维度列表
+                if selected_display != "自动选择":
+                    # 从显示文本中提取选项名称
+                    for option in dimension_data.get("preset_options", []):
+                        display_text = f"{option['value']} ({option['description']})"
+                        if display_text == selected_display:
+                            selected_dimensions.append(
+                                {"category": dimension_key, "option": option["name"]}
+                            )
+                            break
+
+        return selected_dimensions
 
     def _get_persona_display_name(self, key):
         """将AI人格键转换为显示名称"""
@@ -2736,6 +2454,11 @@ class ConfigEditor:
                 "-DYNAMIC_TRANSFORM_ENABLED-",
                 "-GENRE_FUSION_ENABLED-",
                 "-AI_PERSONA_ENABLED-",
+                # 维度化创意事件
+                "-DIMENSIONAL_CREATIVE_ENABLED-",
+                "-AUTO_DIMENSION_SELECTION-",
+                "-CREATIVE_INTENSITY-",
+                "-COMPATIBILITY_THRESHOLD-",
             ]:
                 # 动态启用/禁用相关控件
                 if event == "-STYLE_TRANSFORM_ENABLED-":
@@ -2772,7 +2495,176 @@ class ConfigEditor:
                 elif event == "-AI_PERSONA_ENABLED-":
                     enabled = values["-AI_PERSONA_ENABLED-"]
                     self.window["-PERSONA_TYPE-"].update(disabled=not enabled)
+                # 维度化创意的控件启用/禁用处理
+                elif event == "-DIMENSIONAL_CREATIVE_ENABLED-":
+                    enabled = values["-DIMENSIONAL_CREATIVE_ENABLED-"]
+                    # 启用/禁用所有相关控件
+                    self.window["-CREATIVE_INTENSITY-"].update(disabled=not enabled)
+                    self.window["-PRESERVE_CORE_INFO-"].update(disabled=not enabled)
+                    self.window["-ALLOW_EXPERIMENTAL-"].update(disabled=not enabled)
+                    self.window["-AUTO_DIMENSION_SELECTION-"].update(disabled=not enabled)
+                    auto_selection = values["-AUTO_DIMENSION_SELECTION-"]
+                    self.window["-MAX_DIMENSIONS-"].update(
+                        disabled=not enabled or not auto_selection
+                    )
+                    # 兼容性阈值也只在自动选择模式下可用
+                    self.window["-COMPATIBILITY_THRESHOLD-"].update(
+                        disabled=not enabled or not auto_selection
+                    )
 
+                    # 更新维度选择控件的启用状态
+                    config = self.config.get_config()
+                    creative_config = config.get("creative_config", {})
+                    dimensional_config = creative_config.get("dimensional_creative", {})
+                    dimension_options = dimensional_config.get("dimension_options", {})
+
+                    for dimension_key in dimension_options.keys():
+                        # 禁用/启用维度下拉框
+                        self.window[f"-DIMENSION_{dimension_key.upper()}-"].update(
+                            disabled=not enabled or auto_selection
+                        )
+                        # 禁用/启用维度勾选框
+                        self.window[f"-DIMENSION_ENABLED_{dimension_key.upper()}-"].update(
+                            disabled=not enabled or auto_selection
+                        )
+
+                    intensity_text = f"{values['-CREATIVE_INTENSITY-']:.1f}"
+                    threshold_text = f"{values['-COMPATIBILITY_THRESHOLD-']:.1f}"
+                    self.window["-INTENSITY_DISPLAY-"].update(value=intensity_text)
+                    self.window["-THRESHOLD_DISPLAY-"].update(value=threshold_text)
+                # 维度化创意的控件启用/禁用处理
+                elif event == "-DIMENSIONAL_CREATIVE_ENABLED-":
+                    enabled = values["-DIMENSIONAL_CREATIVE_ENABLED-"]
+                    # 启用/禁用所有相关控件
+                    self.window["-CREATIVE_INTENSITY-"].update(disabled=not enabled)
+                    self.window["-PRESERVE_CORE_INFO-"].update(disabled=not enabled)
+                    self.window["-ALLOW_EXPERIMENTAL-"].update(disabled=not enabled)
+                    self.window["-AUTO_DIMENSION_SELECTION-"].update(disabled=not enabled)
+                    # 修复逻辑：当启用维度化创意且自动选择维度时，最大维度数才可用
+                    auto_selection = values["-AUTO_DIMENSION_SELECTION-"]
+                    self.window["-MAX_DIMENSIONS-"].update(
+                        disabled=not enabled or not auto_selection
+                    )
+                    self.window["-COMPATIBILITY_THRESHOLD-"].update(disabled=not enabled)
+
+                    # 更新维度选择控件的启用状态
+                    config = self.config.get_config()
+                    creative_config = config.get("creative_config", {})
+                    dimensional_config = creative_config.get("dimensional_creative", {})
+                    dimension_options = dimensional_config.get("dimension_options", {})
+
+                    for dimension_key in dimension_options.keys():
+                        # 禁用/启用维度下拉框
+                        self.window[f"-DIMENSION_{dimension_key.upper()}-"].update(
+                            disabled=not enabled or auto_selection
+                        )
+                        # 禁用/启用维度勾选框
+                        self.window[f"-DIMENSION_ENABLED_{dimension_key.upper()}-"].update(
+                            disabled=not enabled or auto_selection
+                        )
+
+                    intensity_text = f"{values['-CREATIVE_INTENSITY-']:.1f}"
+                    threshold_text = f"{values['-COMPATIBILITY_THRESHOLD-']:.1f}"
+                    self.window["-INTENSITY_DISPLAY-"].update(value=intensity_text)
+                    self.window["-THRESHOLD_DISPLAY-"].update(value=threshold_text)
+                elif event == "-AUTO_DIMENSION_SELECTION-":
+                    enabled = values["-DIMENSIONAL_CREATIVE_ENABLED-"]
+                    auto_selection = values["-AUTO_DIMENSION_SELECTION-"]
+                    # 根据自动选择开关启用/禁用最大维度数和维度选择控件
+                    # 修复逻辑：当启用维度化创意且自动选择维度时，最大维度数才可用
+                    max_dimensions_disabled = not enabled or not auto_selection
+                    self.window["-MAX_DIMENSIONS-"].update(disabled=max_dimensions_disabled)
+                    # 兼容性阈值也只在自动选择模式下可用
+                    compatibility_threshold_disabled = not enabled or not auto_selection
+                    self.window["-COMPATIBILITY_THRESHOLD-"].update(
+                        disabled=compatibility_threshold_disabled
+                    )
+
+                    # 更新维度选择控件的启用状态
+                    config = self.config.get_config()
+                    creative_config = config.get("creative_config", {})
+                    dimensional_config = creative_config.get("dimensional_creative", {})
+                    dimension_options = dimensional_config.get("dimension_options", {})
+
+                    for dimension_key in dimension_options.keys():
+                        # 禁用/启用维度下拉框
+                        self.window[f"-DIMENSION_{dimension_key.upper()}-"].update(
+                            disabled=not enabled or auto_selection
+                        )
+                        # 禁用/启用维度勾选框
+                        self.window[f"-DIMENSION_ENABLED_{dimension_key.upper()}-"].update(
+                            disabled=not enabled or auto_selection
+                        )
+                elif event == "-CREATIVE_INTENSITY-":
+                    # 更新创意强度显示
+                    intensity_text = f"{values['-CREATIVE_INTENSITY-']:.1f}"
+                    self.window["-INTENSITY_DISPLAY-"].update(value=intensity_text)
+                elif event == "-COMPATIBILITY_THRESHOLD-":
+                    # 更新兼容性阈值显示
+                    threshold_text = f"{values['-COMPATIBILITY_THRESHOLD-']:.1f}"
+                    self.window["-THRESHOLD_DISPLAY-"].update(value=threshold_text)
+            elif event.startswith("-DIMENSION_") and event.endswith("-"):
+                # 处理维度选项选择事件
+                # 当用户选择"自定义"选项时，启用相应的输入框；否则禁用
+                try:
+                    selected_option = values.get(event, "自动选择")
+                    # 构造对应的自定义输入框键名
+                    # 从事件名中提取维度键名，例如：-DIMENSION_STYLE- -> STYLE
+                    if "-DIMENSION_" in event and event.endswith("-"):
+                        # 查找"-DIMENSION_"和最后一个"-"的位置
+                        start_idx = event.find("-DIMENSION_") + len("-DIMENSION_")
+                        end_idx = event.rfind("-")
+                        if start_idx < end_idx:
+                            dimension_key = event[start_idx:end_idx]
+                            custom_input_key = f"-DIMENSION_{dimension_key}_CUSTOM-"
+
+                            # 直接根据选项值设置输入框的disabled状态
+                            if custom_input_key in self.window.AllKeysDict:
+                                if selected_option == "自定义":
+                                    self.window[custom_input_key].update(disabled=False)
+                                else:
+                                    self.window[custom_input_key].update(disabled=True, value="")
+
+                    self.window.refresh()
+                except Exception:
+                    # 忽略可能的错误，避免程序崩溃
+                    pass
+
+            elif event.startswith("-DIMENSION_ENABLED_") and event.endswith("-"):
+                # 处理维度启用/禁用事件
+                try:
+                    # 安全地提取维度键名
+                    prefix = "-DIMENSION_ENABLED_"
+                    suffix = "-"
+                    if len(event) > len(prefix) + len(suffix):
+                        dimension_key = event[len(prefix) : -len(suffix)].lower()  # noqa 501
+                        enabled = values.get(event, False)
+
+                        # 构造对应的维度选择下拉框键名
+                        combo_key = f"-DIMENSION_{dimension_key.upper()}-"
+                        dimensional_enabled = values.get("-DIMENSIONAL_CREATIVE_ENABLED-", True)
+
+                        # 使用更安全的方式访问窗口元素
+                        # 检查键是否在AllKeysDict中（PySimpleGUI内部维护的所有键）
+                        if combo_key in self.window.AllKeysDict:
+                            # 通过AllKeysDict获取元素引用
+                            element = self.window.AllKeysDict[combo_key]
+                            # 检查元素是否有update方法且可调用
+                            has_update = hasattr(element, "update")
+                            is_callable = callable(getattr(element, "update", None))
+                            if has_update and is_callable:
+                                # 获取自动选择状态
+                                auto_selection = values.get("-AUTO_DIMENSION_SELECTION-", False)
+                                self.window[combo_key].update(
+                                    disabled=(
+                                        not dimensional_enabled or not enabled or auto_selection
+                                    )
+                                )
+                        # 如果键不在AllKeysDict中，可以添加一些调试信息
+                        # 但为了避免影响用户体验，这里只是静默处理
+                except Exception:
+                    # 忽略可能的错误，避免程序崩溃
+                    pass
             elif event == "-SMART_RECOMMENDATION-":
                 # 智能推荐主开关事件
                 enabled = values["-SMART_RECOMMENDATION-"]
@@ -2795,244 +2687,103 @@ class ConfigEditor:
             elif event == "-SAVE_CREATIVE_CONFIG-":
                 config = self.config.get_config().copy()
 
-                # 构建创意配置
-                selected_role = self._get_role_key(values["-ROLE_CHARACTER-"])
-                custom_character = values["-CUSTOM_CHARACTER-"] if selected_role == "custom" else ""
+                # 获取现有的维度化创意配置
+                creative_config = config.get("creative_config", {})
+                dimensional_creative_config = creative_config.get("dimensional_creative", {}).copy()
 
-                creative_config = {
-                    # 原有的创意模式配置
-                    "style_transform": {
-                        "enabled": values["-STYLE_TRANSFORM_ENABLED-"],
-                        "style_target": self._get_style_key(values["-STYLE_TARGET-"]),
-                        "available_styles": [
-                            "shakespeare",
-                            "detective",
-                            "scifi",
-                            "classical_poetry",
-                            "modern_poetry",
-                            "academic",
-                            "news",
+                # 更新基础配置项
+                dimensional_creative_config.update(
+                    {
+                        "enabled": values["-DIMENSIONAL_CREATIVE_ENABLED-"],
+                        "creative_intensity": values["-CREATIVE_INTENSITY-"],
+                        "preserve_core_info": values["-PRESERVE_CORE_INFO-"],
+                        "allow_experimental": values["-ALLOW_EXPERIMENTAL-"],
+                        "auto_dimension_selection": values["-AUTO_DIMENSION_SELECTION-"],
+                        "selected_dimensions": self._collect_selected_dimensions(
+                            values, dimensional_creative_config.get("dimension_options", {})
+                        ),  # 用户选择的具体维度（手动模式时使用）
+                        "priority_categories": ["emotion", "audience", "style", "theme"],
+                        "max_dimensions": int(values["-MAX_DIMENSIONS-"]),
+                        "compatibility_threshold": values["-COMPATIBILITY_THRESHOLD-"],
+                        "available_categories": [
+                            "style",  # 文体风格
+                            "culture",  # 文化视角
+                            "time",  # 时空背景
+                            "personality",  # 人格角色
+                            "emotion",  # 情感调性
+                            "format",  # 表达格式
+                            "scene",  # 场景环境
+                            "audience",  # 目标受众
+                            "theme",  # 主题内容
+                            "technique",  # 表现技法
+                            "language",  # 语言风格
+                            "tone",  # 语调语气
+                            "perspective",  # 叙述视角
+                            "structure",  # 文章结构
+                            "rhythm",  # 节奏韵律
                         ],
-                    },
-                    "time_travel": {
-                        "enabled": values["-TIME_TRAVEL_ENABLED-"],
-                        "time_perspective": self._get_time_key(values["-TIME_PERSPECTIVE-"]),
-                        "available_perspectives": ["ancient", "modern", "future"],
-                    },
-                    "role_play": {
-                        "enabled": values["-ROLE_PLAY_ENABLED-"],
-                        "role_character": selected_role,
-                        "custom_character": custom_character,
-                        "available_roles": [
-                            # 古典诗词
-                            "libai",
-                            "dufu",
-                            "sushi",
-                            "liqingzhao",
-                            # 古典小说
-                            "caoxueqin",
-                            "shinaian",
-                            "wuchengen",
-                            "pusonglin",
-                            # 现代文学
-                            "luxun",
-                            "laoshe",
-                            "bajin",
-                            "qianjunru",
-                            # 武侠小说
-                            "jinyong",
-                            "gulongxia",
-                            # 新闻主播/评论员
-                            "baiyansong",
-                            "cuiyongyuan",
-                            "yanglan",
-                            "luyu",
-                            # 音乐人
-                            "zhoujielun",
-                            "denglijun",
-                            "lironghao",
-                            # 相声曲艺
-                            "guodegang",
-                            "zhaobenshang",
-                            # 自定义
-                            "custom",
-                        ],
-                    },
-                    # 新增的创意模式配置
-                    "multi_dimensional": {
-                        "enabled": values["-MULTI_DIMENSIONAL_ENABLED-"],
-                        "target_audience": values["-TARGET_AUDIENCE-"],
-                        "creativity_level": self._get_creativity_key(values["-CREATIVITY_LEVEL-"]),
-                        "available_creativity_levels": ["conservative", "balanced", "experimental"],
-                        "auto_select_dimensions": True,
-                    },
-                    "cultural_fusion": {
-                        "enabled": values["-CULTURAL_FUSION_ENABLED-"],
-                        "cultural_perspective": self._get_cultural_key(
-                            values["-CULTURAL_PERSPECTIVE-"]
-                        ),
-                        "available_perspectives": [
-                            "eastern_philosophy",
-                            "western_logic",
-                            "japanese_mono",
-                            "french_romance",
-                            "american_freedom",
-                        ],
-                    },
-                    "dynamic_transform": {
-                        "enabled": values["-DYNAMIC_TRANSFORM_ENABLED-"],
-                        "scenario": self._get_scenario_key(values["-SCENARIO-"]),
-                        "available_scenarios": [
-                            "elevator_pitch",
-                            "bedtime_story",
-                            "debate_argument",
-                            "poetry_version",
-                            "comic_script",
-                            "podcast_script",
-                            "social_media",
-                        ],
-                    },
-                    "genre_fusion": {
-                        "enabled": values["-GENRE_FUSION_ENABLED-"],
-                        "genre_combination": [
-                            genre
-                            for genre, checked in [
-                                ("scifi", values["-GENRE_SCIFI-"]),
-                                ("wuxia", values["-GENRE_WUXIA-"]),
-                                ("mystery", values["-GENRE_MYSTERY-"]),
-                                ("romance", values["-GENRE_ROMANCE-"]),
-                            ]
-                            if checked
-                        ],
-                        "available_genres": [
-                            "scifi",
-                            "wuxia",
-                            "detective",
-                            "romance",
-                            "history",
-                            "fantasy",
-                            "thriller",
-                            "comedy",
-                        ],
-                        "max_genres": 3,
-                    },
-                    "ai_persona": {
-                        "enabled": values["-AI_PERSONA_ENABLED-"],
-                        "persona_type": self._get_persona_key(values["-PERSONA_TYPE-"]),
-                        "available_personas": [
-                            "auto",
-                            "dreamer_poet",
-                            "data_philosopher",
-                            "time_traveler",
-                            "emotion_healer",
-                            "mystery_detective",
-                            "culture_explorer",
-                            "tech_visionary",
-                            "life_observer",
-                        ],
-                        "persona_descriptions": {
-                            "dreamer_poet": "梦境诗人 - 善于将现实与梦境交织",
-                            "data_philosopher": "数据哲学家 - 用数据思维解读人文",
-                            "time_traveler": "时空旅者 - 穿梭时代的独特视角",
-                            "emotion_healer": "情感治愈师 - 温暖人心的文字治愈",
-                            "mystery_detective": "悬疑侦探 - 逻辑推理揭秘真相",
-                            "culture_explorer": "文化探索者 - 深入挖掘文化内涵",
-                            "tech_visionary": "科技预言家 - 洞察科技趋势",
-                            "life_observer": "生活观察家 - 从平凡中发现不平凡",
-                        },
-                    },
-                    "combination_mode": values["-COMBINATION_MODE-"],
-                    # 智能推荐配置
-                    "smart_recommendation": {
-                        "enabled": values["-SMART_RECOMMENDATION-"],
-                        "topic_based": values["-TOPIC_BASED-"],
-                        "audience_based": values["-AUDIENCE_BASED-"],
-                        "platform_based": values["-PLATFORM_BASED-"],
-                    },
-                    # 添加模式优先级和冲突规则
-                    "mode_priority": [
-                        "ai_persona",
-                        "multi_dimensional",
-                        "cultural_fusion",
-                        "genre_fusion",
-                        "dynamic_transform",
-                        "style_transform",
-                        "time_travel",
-                        "role_play",
-                    ],
-                    "mode_conflicts": {
-                        "ai_persona": ["role_play"],
-                        "multi_dimensional": ["style_transform"],
-                    },
-                }
+                    }
+                )
 
-                # 确定主创意模式 - 包含新增模式
-                enabled_modes = []
-                if creative_config["style_transform"]["enabled"]:
-                    enabled_modes.append("style_transform")
-                if creative_config["time_travel"]["enabled"]:
-                    enabled_modes.append("time_travel")
-                if creative_config["role_play"]["enabled"]:
-                    enabled_modes.append("role_play")
-                # 新增模式
-                if creative_config["multi_dimensional"]["enabled"]:
-                    enabled_modes.append("multi_dimensional")
-                if creative_config["cultural_fusion"]["enabled"]:
-                    enabled_modes.append("cultural_fusion")
-                if creative_config["dynamic_transform"]["enabled"]:
-                    enabled_modes.append("dynamic_transform")
-                if creative_config["genre_fusion"]["enabled"]:
-                    enabled_modes.append("genre_fusion")
-                if creative_config["ai_persona"]["enabled"]:
-                    enabled_modes.append("ai_persona")
+                # 获取维度选项配置并更新选中选项
+                dimension_options = dimensional_creative_config.get("dimension_options", {})
 
-                # 检查模式冲突
-                conflict_detected = False
-                conflicts = creative_config["mode_conflicts"]
-                for mode in enabled_modes:
-                    conflicting_modes = conflicts.get(mode, [])
-                    for conflict_mode in conflicting_modes:
-                        if conflict_mode in enabled_modes:
-                            conflict_detected = True
-                            sg.popup_error(
-                                f"检测到模式冲突：{mode} 与 {conflict_mode} 不能同时启用\n"
-                                f"系统将自动禁用冲突的模式",
-                                title="模式冲突警告",
-                                icon=utils.get_gui_icon(),
-                                keep_on_top=True,
-                            )
-                            # 移除冲突的模式（保留优先级高的）
-                            priority = creative_config["mode_priority"]
-                            if priority.index(mode) < priority.index(conflict_mode):
-                                enabled_modes.remove(conflict_mode)
-                            else:
-                                enabled_modes.remove(mode)
+                # 创建启用维度的配置
+                enabled_dimensions = {}
 
-                # 设置 creative_mode
-                if len(enabled_modes) == 0:
-                    config["creative_mode"] = ""
-                elif len(enabled_modes) == 1:
-                    config["creative_mode"] = enabled_modes[0]
-                elif creative_config["combination_mode"]:
-                    config["creative_mode"] = ",".join(enabled_modes)  # 组合模式
-                else:
-                    # 不允许组合时，只取第一个
-                    config["creative_mode"] = enabled_modes[0]
-                    sg.popup_error(
-                        "不允许组合模式时，只会使用第一个启用的创意模块",
-                        title="系统提示",
-                        icon=utils.get_gui_icon(),
-                        keep_on_top=True,
+                # 更新每个维度的选中选项和启用状态
+                for dimension_key, dimension_data in dimension_options.items():
+                    # 获取选中的选项显示文本
+                    selected_display = values.get(
+                        f"-DIMENSION_{dimension_key.upper()}-", "自动选择"
                     )
 
+                    # 如果是"自动选择"，则selected_option为空
+                    if selected_display == "自动选择":
+                        dimension_options[dimension_key]["selected_option"] = ""
+                    # 如果是"自定义"，则selected_option为"custom"
+                    elif selected_display == "自定义":
+                        dimension_options[dimension_key]["selected_option"] = "custom"
+                        # 获取自定义输入值
+                        custom_input = values.get(f"-DIMENSION_{dimension_key.upper()}_CUSTOM-", "")
+                        dimension_options[dimension_key]["custom_input"] = custom_input
+                    else:
+                        # 从显示文本中提取选项名称
+                        # 通过遍历预设选项找到匹配的选项
+                        for option in dimension_data.get("preset_options", []):
+                            display_text = f"{option['value']} ({option['description']})"
+                            if display_text == selected_display:
+                                dimension_options[dimension_key]["selected_option"] = option["name"]
+                                # 清除自定义输入
+                                dimension_options[dimension_key]["custom_input"] = ""
+                                break
+
+                    # 获取维度启用状态
+                    enabled_state = values.get(f"-DIMENSION_ENABLED_{dimension_key.upper()}-", True)
+                    enabled_dimensions[dimension_key] = enabled_state
+
+                # 将更新后的维度选项配置添加到维度化创意配置中
+                dimensional_creative_config["dimension_options"] = dimension_options
+                dimensional_creative_config["enabled_dimensions"] = enabled_dimensions
+
+                creative_config["dimensional_creative"] = dimensional_creative_config
+
+                # 设置 creative_mode 为维度化创意
+                if dimensional_creative_config["enabled"]:
+                    config["creative_mode"] = "dimensional_creative"
+                else:
+                    config["creative_mode"] = ""
                 config["creative_config"] = creative_config
 
                 if self.config.save_config(config):
-                    success_msg = "创意配置已保存"
-                    if conflict_detected:
-                        success_msg += "\n注意：已自动解决模式冲突"
+                    # 更新显示值
+                    intensity_text = f"{values['-CREATIVE_INTENSITY-']:.1f}"
+                    threshold_text = f"{values['-COMPATIBILITY_THRESHOLD-']:.1f}"
+                    self.window["-INTENSITY_DISPLAY-"].update(value=intensity_text)
+                    self.window["-THRESHOLD_DISPLAY-"].update(value=threshold_text)
+
                     sg.popup(
-                        success_msg,
+                        "维度化创意配置已保存",
                         title="系统提示",
                         icon=utils.get_gui_icon(),
                         keep_on_top=True,
@@ -3048,14 +2799,14 @@ class ConfigEditor:
             elif event == "-RESET_CREATIVE_CONFIG-":
                 # 重置为默认配置
                 config = self.config.get_config().copy()
-                config["creative_mode"] = ""
+                config["creative_mode"] = "dimensional_creative"
                 config["creative_config"] = self.config.default_config["creative_config"]
 
                 if self.config.save_config(config):
                     # 更新界面
                     self.update_tab("-TAB_CREATIVE-", self.create_creative_tab())
                     sg.popup(
-                        "创意配置已重置",
+                        "维度化创意配置已重置",
                         title="系统提示",
                         icon=utils.get_gui_icon(),
                         keep_on_top=True,

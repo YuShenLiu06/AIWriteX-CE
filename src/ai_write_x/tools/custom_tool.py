@@ -197,13 +197,28 @@ class AIForgeSearchTool(BaseTool):
                     formatted = f"关于'{topic}'的{source_type}结果：\n\n"
 
                 for i, result in enumerate(filtered_results, 1):
+                    # 限制标题长度
+                    title = result.get("title", "无标题")
+                    if len(title) > 100:
+                        title = title[:100] + "..."
+
+                    # 限制摘要长度
+                    abstract = result.get("abstract", "无摘要")
+                    if len(abstract) > 300:
+                        abstract = abstract[:300] + "..."
+
                     formatted += f"## 结果 {i}\n"
-                    formatted += f"**标题**: {result.get('title', '无标题')}\n"
+                    formatted += f"**标题**: {title}\n"
                     formatted += f"**发布时间**: {result.get('pub_time', '未知时间')}\n"
-                    formatted += f"**摘要**: {result.get('abstract', '无摘要')}\n"
+                    formatted += f"**摘要**: {abstract}\n"
+
                     # 如果是URL提取，添加更多内容信息
                     if len(urls) > 0 and "content" in result:
-                        formatted += f"**内容**: {result.get('content', '')}...\n"
+                        content = result.get("content", "")
+                        # 限制内容长度
+                        if len(content) > 500:
+                            content = content[:500] + "..."
+                        formatted += f"**内容**: {content}...\n"
                     formatted += "\n"
                 return formatted
             else:

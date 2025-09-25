@@ -273,9 +273,9 @@ audio_info = (
 
             # 其他媒体类型的生成逻辑...
 
-        except Exception as e:
+        except Exception:
             # 多媒体资源生成失败 - 使用内置警告处理
-            print(f"警告：多媒体资源生成失败: {e}")
+            pass
 
         return assets
 
@@ -292,9 +292,7 @@ audio_info = (
             # else:
             assets.append(self._generate_placeholder_image(style))
 
-        except Exception as e:
-            # 图像生成失败 - 使用内置警告处理
-            print(f"警告：图像生成失败: {e}")
+        except Exception:
             # 回退到占位图
             assets.append(self._generate_placeholder_image(style))
 

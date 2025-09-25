@@ -14,9 +14,6 @@ from src.ai_write_x.core.creative_modules import (
     CulturalFusionConfig,
     MultiDimensionalConfig,
 )
-from src.ai_write_x.core.creative_dimensions_engine import (
-    get_creative_dimensions_engine,
-)
 from src.ai_write_x.core.ai_persona_team import (
     get_ai_persona_team,
 )
@@ -27,6 +24,7 @@ from src.ai_write_x.core.base_framework import (
     WorkflowType,
     ContentType,
     ContentResult,
+    CreativeDimension,  # 导入CreativeDimension类
 )
 from src.ai_write_x.adapters.platform_adapters import (
     WeChatAdapter,
@@ -44,6 +42,9 @@ from src.ai_write_x.utils.path_manager import PathManager
 from src.ai_write_x.utils import utils
 from src.ai_write_x.adapters.platform_adapters import PlatformType
 from src.ai_write_x.utils import log
+
+# 导入维度化创意引擎
+from src.ai_write_x.creative.dimensional_engine import DimensionalCreativeEngine
 
 
 class UnifiedContentWorkflow:
@@ -67,9 +68,12 @@ class UnifiedContentWorkflow:
             PlatformType.DOUBAN.value: DoubanAdapter(),
         }
         self.monitor = WorkflowMonitor.get_instance()
-        # 初始化创意引擎和AI人格团队
-        self.creative_engine = get_creative_dimensions_engine()
+        # 初始化AI人格团队
         self.ai_persona_team = get_ai_persona_team()
+        # 初始化维度化创意引擎
+        config = Config.get_instance()
+        dimensional_config = config.dimensional_creative_config
+        self.creative_engine = DimensionalCreativeEngine(dimensional_config)
 
     def get_base_content_config(self, **kwargs) -> WorkflowConfig:
         """动态生成基础内容配置，根据平台和需求定制"""
@@ -298,7 +302,7 @@ class UnifiedContentWorkflow:
                         workflow_config = module.get_workflow_config(config_obj)
                     elif mode == "style_transform":
                         style_target = extra_params.get(
-                            "style_target", mode_config.get("style_target", "shakespeare")
+                            "style_target", mode_config.get("style_target", "poetry")
                         )
                         config_obj = StyleTransformConfig(style_target=style_target)
                         workflow_config = module.get_workflow_config(config_obj)
@@ -343,22 +347,38 @@ class UnifiedContentWorkflow:
             # 处理新的创意模式
             if mode == "multi_dimensional":
                 if mode_config.get("enabled", False):
-                    # 获取创意维度组合
+                    # 使用维度化创意引擎选择维度组合
                     topic = base_content.title
                     if "|" in topic:
                         topic = topic.split("|", 1)[1].strip()
 
-                    # 生成智能创意组合
-                    combinations = self.creative_engine.generate_smart_combinations(
-                        topic=topic,
-                        target_audience=mode_config.get("target_audience", ""),
-                        num_combinations=1,
+                    # 重新初始化维度化创意引擎以获取最新的配置
+                    dimensional_config = config.dimensional_creative_config
+                    self.creative_engine = DimensionalCreativeEngine(dimensional_config)
+
+                    # 选择维度组合
+                    auto_selection = dimensional_config.get("auto_dimension_selection", False)
+                    max_dimensions = dimensional_config.get("max_dimensions", 5)
+                    selected_dimensions = self.creative_engine.select_dimensions(
+                        auto_selection, max_dimensions
                     )
 
-                    if combinations:
-                        dimensions = combinations[0].dimensions
+                    if selected_dimensions:
                         module = self.creative_modules.get("multi_dimensional")
                         if module:
+                            # 将选中的维度转换为CreativeDimension对象
+                            dimensions = []
+                            for category, option in selected_dimensions:
+                                # 这里需要根据实际的CreativeDimension类结构创建对象
+                                # 假设CreativeDimension类接受name, value, weight, description参数
+                                dimension = CreativeDimension(
+                                    name=option.get("name", ""),
+                                    value=option.get("value", ""),
+                                    weight=option.get("weight", 1.0),
+                                    description=option.get("description", ""),
+                                )
+                                dimensions.append(dimension)
+
                             multi_config = mode_config.copy()
                             multi_config["dimensions"] = dimensions
                             engine = get_or_create_engine(
@@ -447,7 +467,7 @@ class UnifiedContentWorkflow:
                 module = self.creative_modules.get(mode)
                 if module:
                     if mode == "style_transform":
-                        style_target = mode_config.get("style_target", "shakespeare")
+                        style_target = mode_config.get("style_target", "poetry")
                         engine = get_or_create_engine(
                             "style_transform", mode_config, style_target=style_target
                         )
