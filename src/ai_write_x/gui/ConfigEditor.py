@@ -982,10 +982,9 @@ class ConfigEditor:
     def create_creative_tab(self):
         """创建创意模式配置标签页"""
         config = self.config.get_config()
-        creative_config = config.get("creative_config", {})
 
         # 维度化创意配置
-        dimensional_config = creative_config.get("dimensional_creative", {})
+        dimensional_config = config.get("dimensional_creative", {})
 
         # 获取维度选项配置
         dimension_options = dimensional_config.get("dimension_options", {})
@@ -1041,6 +1040,10 @@ class ConfigEditor:
                             tooltip=f"启用{dimension_name}维度",
                             size=(1, 1),
                             pad=((0, 0), (0, 0)),
+                            disabled=(  # 添加禁用逻辑
+                                not dimensional_config.get("enabled", True)
+                                or dimensional_config.get("auto_dimension_selection", False)
+                            ),
                         ),
                         sg.Text(f"{dimension_name}:", size=(8, 1), pad=((0, 0), (0, 0))),
                         sg.Combo(
@@ -1288,131 +1291,6 @@ class ConfigEditor:
 
         return mac_clipboard_events
 
-    def _get_style_display_name(self, style_key):
-        """获取风格的显示名称"""
-        style_mapping = {
-            "shakespeare": "莎士比亚戏剧",
-            "detective": "侦探小说",
-            "scifi": "科幻小说",
-            "classical_poetry": "古典诗词",
-            "modern_poetry": "现代诗歌",
-            "academic": "学术论文",
-            "news": "新闻报道",
-        }
-        return style_mapping.get(style_key, "莎士比亚戏剧")
-
-    def _get_style_key(self, display_name):
-        """获取风格的配置键"""
-        display_mapping = {
-            "莎士比亚戏剧": "shakespeare",
-            "侦探小说": "detective",
-            "科幻小说": "scifi",
-            "古典诗词": "classical_poetry",
-            "现代诗歌": "modern_poetry",
-            "学术论文": "academic",
-            "新闻报道": "news",
-        }
-        return display_mapping.get(display_name, "shakespeare")
-
-    def _get_time_display_name(self, time_key):
-        """获取时空视角的显示名称"""
-        time_mapping = {"ancient": "古代视角", "modern": "现代视角", "future": "未来视角"}
-        return time_mapping.get(time_key, "古代视角")
-
-    def _get_time_key(self, display_name):
-        """获取时空视角的配置键"""
-        display_mapping = {"古代视角": "ancient", "现代视角": "modern", "未来视角": "future"}
-        return display_mapping.get(display_name, "ancient")
-
-    def _get_all_role_display_names(self):
-        """获取所有角色的显示名称列表"""
-        return [
-            "李白（浪漫主义诗人）",
-            "杜甫（现实主义诗人）",
-            "苏轼（豪放派词人）",
-            "李清照（婉约派词人）",
-            "曹雪芹（红楼梦作者）",
-            "施耐庵（水浒传作者）",
-            "吴承恩（西游记作者）",
-            "蒲松龄（聊斋志异作者）",
-            "鲁迅（现代文学奠基人）",
-            "老舍（人民艺术家）",
-            "巴金（现代作家）",
-            "钱钟书（学者作家）",
-            "金庸（武侠小说大师）",
-            "古龙（新派武侠代表）",
-            "白岩松（央视主持人）",
-            "崔永元（知名主持人）",
-            "杨澜（媒体人）",
-            "鲁豫（访谈节目主持人）",
-            "周杰伦（流行音乐天王）",
-            "邓丽君（华语歌坛传奇）",
-            "李荣浩（创作型歌手）",
-            "郭德纲（相声演员）",
-            "赵本山（小品演员）",
-            "自定义人物",
-        ]
-
-    def _get_role_display_name(self, role_key):
-        """获取角色的显示名称"""
-        role_mapping = {
-            "libai": "李白（浪漫主义诗人）",
-            "dufu": "杜甫（现实主义诗人）",
-            "sushi": "苏轼（豪放派词人）",
-            "liqingzhao": "李清照（婉约派词人）",
-            "caoxueqin": "曹雪芹（红楼梦作者）",
-            "shinaian": "施耐庵（水浒传作者）",
-            "wuchengen": "吴承恩（西游记作者）",
-            "pusonglin": "蒲松龄（聊斋志异作者）",
-            "luxun": "鲁迅（现代文学奠基人）",
-            "laoshe": "老舍（人民艺术家）",
-            "bajin": "巴金（现代作家）",
-            "qianjunru": "钱钟书（学者作家）",
-            "jinyong": "金庸（武侠小说大师）",
-            "gulongxia": "古龙（新派武侠代表）",
-            "baiyansong": "白岩松（央视主持人）",
-            "cuiyongyuan": "崔永元（知名主持人）",
-            "yanglan": "杨澜（媒体人）",
-            "luyu": "鲁豫（访谈节目主持人）",
-            "zhoujielun": "周杰伦（流行音乐天王）",
-            "denglijun": "邓丽君（华语歌坛传奇）",
-            "lironghao": "李荣浩（创作型歌手）",
-            "guodegang": "郭德纲（相声演员）",
-            "zhaobenshang": "赵本山（小品演员）",
-            "custom": "自定义人物",
-        }
-        return role_mapping.get(role_key, "李白（浪漫主义诗人）")
-
-    def _get_role_key(self, display_name):
-        """获取角色的配置键"""
-        display_mapping = {
-            "李白（浪漫主义诗人）": "libai",
-            "杜甫（现实主义诗人）": "dufu",
-            "苏轼（豪放派词人）": "sushi",
-            "李清照（婉约派词人）": "liqingzhao",
-            "曹雪芹（红楼梦作者）": "caoxueqin",
-            "施耐庵（水浒传作者）": "shinaian",
-            "吴承恩（西游记作者）": "wuchengen",
-            "蒲松龄（聊斋志异作者）": "pusonglin",
-            "鲁迅（现代文学奠基人）": "luxun",
-            "老舍（人民艺术家）": "laoshe",
-            "巴金（现代作家）": "bajin",
-            "钱钟书（学者作家）": "qianjunru",
-            "金庸（武侠小说大师）": "jinyong",
-            "古龙（新派武侠代表）": "gulongxia",
-            "白岩松（央视主持人）": "baiyansong",
-            "崔永元（知名主持人）": "cuiyongyuan",
-            "杨澜（媒体人）": "yanglan",
-            "鲁豫（访谈节目主持人）": "luyu",
-            "周杰伦（流行音乐天王）": "zhoujielun",
-            "邓丽君（华语歌坛传奇）": "denglijun",
-            "李荣浩（创作型歌手）": "lironghao",
-            "郭德纲（相声演员）": "guodegang",
-            "赵本山（小品演员）": "zhaobenshang",
-            "自定义人物": "custom",
-        }
-        return display_mapping.get(display_name, "libai")
-
     def _get_platform_display_name(self, platform_key):
         """获取平台的显示名称"""
         platform_mapping = {
@@ -1438,92 +1316,6 @@ class ConfigEditor:
             "豆瓣": "douban",
         }
         return display_mapping.get(display_name, "wechat")
-
-    def _get_creativity_display_name(self, key):
-        """将创意程度键转换为显示名称"""
-        mapping = {"conservative": "保守型", "balanced": "平衡型", "experimental": "实验型"}
-        return mapping.get(key, "平衡型")
-
-    def _get_creativity_key(self, display_name):
-        """将创意程度显示名称转换为键"""
-        mapping = {"保守型": "conservative", "平衡型": "balanced", "实验型": "experimental"}
-        return mapping.get(display_name, "balanced")
-
-    def _get_cultural_display_name(self, key):
-        """将文化视角键转换为显示名称"""
-        mapping = {
-            "eastern_philosophy": "东方哲学",
-            "western_logic": "西方思辨",
-            "japanese_mono": "日式物哀",
-            "french_romance": "法式浪漫",
-            "american_freedom": "美式自由",
-        }
-        return mapping.get(key, "东方哲学")
-
-    def _get_cultural_key(self, display_name):
-        """将文化视角显示名称转换为键"""
-        mapping = {
-            "东方哲学": "eastern_philosophy",
-            "西方思辨": "western_logic",
-            "日式物哀": "japanese_mono",
-            "法式浪漫": "french_romance",
-            "美式自由": "american_freedom",
-        }
-        return mapping.get(display_name, "eastern_philosophy")
-
-    def _get_scenario_display_name(self, key):
-        """将变形场景键转换为显示名称"""
-        mapping = {
-            "elevator_pitch": "电梯演讲版",
-            "bedtime_story": "睡前故事版",
-            "debate_argument": "辩论赛版",
-            "poetry_version": "诗歌版",
-            "comic_script": "漫画脚本版",
-            "podcast_script": "播客脚本版",
-            "social_media": "社交媒体版",
-        }
-        return mapping.get(key, "电梯演讲版")
-
-    def _get_scenario_key(self, display_name):
-        """将变形场景显示名称转换为键"""
-        mapping = {
-            "电梯演讲版": "elevator_pitch",
-            "睡前故事版": "bedtime_story",
-            "辩论赛版": "debate_argument",
-            "诗歌版": "poetry_version",
-            "漫画脚本版": "comic_script",
-            "播客脚本版": "podcast_script",
-            "社交媒体版": "social_media",
-        }
-        return mapping.get(display_name, "elevator_pitch")
-
-    def _get_genre_display_name(self, key):
-        """将体裁键转换为显示名称"""
-        mapping = {
-            "scifi": "科幻",
-            "wuxia": "武侠",
-            "detective": "推理",
-            "romance": "爱情",
-            "history": "历史",
-            "fantasy": "奇幻",
-            "thriller": "惊悚",
-            "comedy": "喜剧",
-        }
-        return mapping.get(key, "科幻")
-
-    def _get_genre_key(self, display_name):
-        """将体裁显示名称转换为键"""
-        mapping = {
-            "科幻": "scifi",
-            "武侠": "wuxia",
-            "推理": "detective",
-            "爱情": "romance",
-            "历史": "history",
-            "奇幻": "fantasy",
-            "惊悚": "thriller",
-            "喜剧": "comedy",
-        }
-        return mapping.get(display_name, "scifi")
 
     def _collect_selected_dimensions(self, values, dimension_options):
         """
@@ -1563,36 +1355,6 @@ class ConfigEditor:
                             break
 
         return selected_dimensions
-
-    def _get_persona_display_name(self, key):
-        """将AI人格键转换为显示名称"""
-        mapping = {
-            "auto": "自动选择",
-            "dreamer_poet": "梦境诗人",
-            "data_philosopher": "数据哲学家",
-            "time_traveler": "时空旅者",
-            "emotion_healer": "情感治愈师",
-            "mystery_detective": "悬疑侦探",
-            "culture_explorer": "文化探索者",
-            "tech_visionary": "科技预言家",
-            "life_observer": "生活观察家",
-        }
-        return mapping.get(key, "自动选择")
-
-    def _get_persona_key(self, display_name):
-        """将AI人格显示名称转换为键"""
-        mapping = {
-            "自动选择": "auto",
-            "梦境诗人": "dreamer_poet",
-            "数据哲学家": "data_philosopher",
-            "时空旅者": "time_traveler",
-            "情感治愈师": "emotion_healer",
-            "悬疑侦探": "mystery_detective",
-            "文化探索者": "culture_explorer",
-            "科技预言家": "tech_visionary",
-            "生活观察家": "life_observer",
-        }
-        return mapping.get(display_name, "auto")
 
     def run(self):
         while True:
@@ -2445,58 +2207,13 @@ class ConfigEditor:
 
             # 创意模式相关事件
             elif event in [
-                "-STYLE_TRANSFORM_ENABLED-",
-                "-TIME_TRAVEL_ENABLED-",
-                "-ROLE_PLAY_ENABLED-",
-                # 新增的创意模式事件
-                "-MULTI_DIMENSIONAL_ENABLED-",
-                "-CULTURAL_FUSION_ENABLED-",
-                "-DYNAMIC_TRANSFORM_ENABLED-",
-                "-GENRE_FUSION_ENABLED-",
-                "-AI_PERSONA_ENABLED-",
-                # 维度化创意事件
                 "-DIMENSIONAL_CREATIVE_ENABLED-",
                 "-AUTO_DIMENSION_SELECTION-",
                 "-CREATIVE_INTENSITY-",
                 "-COMPATIBILITY_THRESHOLD-",
             ]:
                 # 动态启用/禁用相关控件
-                if event == "-STYLE_TRANSFORM_ENABLED-":
-                    enabled = values["-STYLE_TRANSFORM_ENABLED-"]
-                    self.window["-STYLE_TARGET-"].update(disabled=not enabled)
-                elif event == "-TIME_TRAVEL_ENABLED-":
-                    enabled = values["-TIME_TRAVEL_ENABLED-"]
-                    self.window["-TIME_PERSPECTIVE-"].update(disabled=not enabled)
-                elif event == "-ROLE_PLAY_ENABLED-":
-                    enabled = values["-ROLE_PLAY_ENABLED-"]
-                    self.window["-ROLE_CHARACTER-"].update(disabled=not enabled)
-                    # 根据当前选择决定是否启用自定义输入框
-                    current_role = self._get_role_key(values["-ROLE_CHARACTER-"])
-                    self.window["-CUSTOM_CHARACTER-"].update(
-                        disabled=not enabled or current_role != "custom"
-                    )
-                # 新增创意模式的控件启用/禁用处理
-                elif event == "-MULTI_DIMENSIONAL_ENABLED-":
-                    enabled = values["-MULTI_DIMENSIONAL_ENABLED-"]
-                    self.window["-TARGET_AUDIENCE-"].update(disabled=not enabled)
-                    self.window["-CREATIVITY_LEVEL-"].update(disabled=not enabled)
-                elif event == "-CULTURAL_FUSION_ENABLED-":
-                    enabled = values["-CULTURAL_FUSION_ENABLED-"]
-                    self.window["-CULTURAL_PERSPECTIVE-"].update(disabled=not enabled)
-                elif event == "-DYNAMIC_TRANSFORM_ENABLED-":
-                    enabled = values["-DYNAMIC_TRANSFORM_ENABLED-"]
-                    self.window["-SCENARIO-"].update(disabled=not enabled)
-                elif event == "-GENRE_FUSION_ENABLED-":
-                    enabled = values["-GENRE_FUSION_ENABLED-"]
-                    self.window["-GENRE_SCIFI-"].update(disabled=not enabled)
-                    self.window["-GENRE_WUXIA-"].update(disabled=not enabled)
-                    self.window["-GENRE_MYSTERY-"].update(disabled=not enabled)
-                    self.window["-GENRE_ROMANCE-"].update(disabled=not enabled)
-                elif event == "-AI_PERSONA_ENABLED-":
-                    enabled = values["-AI_PERSONA_ENABLED-"]
-                    self.window["-PERSONA_TYPE-"].update(disabled=not enabled)
-                # 维度化创意的控件启用/禁用处理
-                elif event == "-DIMENSIONAL_CREATIVE_ENABLED-":
+                if event == "-DIMENSIONAL_CREATIVE_ENABLED-":
                     enabled = values["-DIMENSIONAL_CREATIVE_ENABLED-"]
                     # 启用/禁用所有相关控件
                     self.window["-CREATIVE_INTENSITY-"].update(disabled=not enabled)
@@ -2507,15 +2224,13 @@ class ConfigEditor:
                     self.window["-MAX_DIMENSIONS-"].update(
                         disabled=not enabled or not auto_selection
                     )
-                    # 兼容性阈值也只在自动选择模式下可用
                     self.window["-COMPATIBILITY_THRESHOLD-"].update(
                         disabled=not enabled or not auto_selection
                     )
 
-                    # 更新维度选择控件的启用状态
+                    # 更新维度选择控件的启用状态 - 修正配置获取路径
                     config = self.config.get_config()
-                    creative_config = config.get("creative_config", {})
-                    dimensional_config = creative_config.get("dimensional_creative", {})
+                    dimensional_config = config.get("dimensional_creative", {})  # 直接获取
                     dimension_options = dimensional_config.get("dimension_options", {})
 
                     for dimension_key in dimension_options.keys():
@@ -2532,75 +2247,35 @@ class ConfigEditor:
                     threshold_text = f"{values['-COMPATIBILITY_THRESHOLD-']:.1f}"
                     self.window["-INTENSITY_DISPLAY-"].update(value=intensity_text)
                     self.window["-THRESHOLD_DISPLAY-"].update(value=threshold_text)
-                # 维度化创意的控件启用/禁用处理
-                elif event == "-DIMENSIONAL_CREATIVE_ENABLED-":
-                    enabled = values["-DIMENSIONAL_CREATIVE_ENABLED-"]
-                    # 启用/禁用所有相关控件
-                    self.window["-CREATIVE_INTENSITY-"].update(disabled=not enabled)
-                    self.window["-PRESERVE_CORE_INFO-"].update(disabled=not enabled)
-                    self.window["-ALLOW_EXPERIMENTAL-"].update(disabled=not enabled)
-                    self.window["-AUTO_DIMENSION_SELECTION-"].update(disabled=not enabled)
-                    # 修复逻辑：当启用维度化创意且自动选择维度时，最大维度数才可用
-                    auto_selection = values["-AUTO_DIMENSION_SELECTION-"]
-                    self.window["-MAX_DIMENSIONS-"].update(
-                        disabled=not enabled or not auto_selection
-                    )
-                    self.window["-COMPATIBILITY_THRESHOLD-"].update(disabled=not enabled)
 
-                    # 更新维度选择控件的启用状态
-                    config = self.config.get_config()
-                    creative_config = config.get("creative_config", {})
-                    dimensional_config = creative_config.get("dimensional_creative", {})
-                    dimension_options = dimensional_config.get("dimension_options", {})
-
-                    for dimension_key in dimension_options.keys():
-                        # 禁用/启用维度下拉框
-                        self.window[f"-DIMENSION_{dimension_key.upper()}-"].update(
-                            disabled=not enabled or auto_selection
-                        )
-                        # 禁用/启用维度勾选框
-                        self.window[f"-DIMENSION_ENABLED_{dimension_key.upper()}-"].update(
-                            disabled=not enabled or auto_selection
-                        )
-
-                    intensity_text = f"{values['-CREATIVE_INTENSITY-']:.1f}"
-                    threshold_text = f"{values['-COMPATIBILITY_THRESHOLD-']:.1f}"
-                    self.window["-INTENSITY_DISPLAY-"].update(value=intensity_text)
-                    self.window["-THRESHOLD_DISPLAY-"].update(value=threshold_text)
                 elif event == "-AUTO_DIMENSION_SELECTION-":
                     enabled = values["-DIMENSIONAL_CREATIVE_ENABLED-"]
                     auto_selection = values["-AUTO_DIMENSION_SELECTION-"]
-                    # 根据自动选择开关启用/禁用最大维度数和维度选择控件
-                    # 修复逻辑：当启用维度化创意且自动选择维度时，最大维度数才可用
                     max_dimensions_disabled = not enabled or not auto_selection
                     self.window["-MAX_DIMENSIONS-"].update(disabled=max_dimensions_disabled)
-                    # 兼容性阈值也只在自动选择模式下可用
                     compatibility_threshold_disabled = not enabled or not auto_selection
                     self.window["-COMPATIBILITY_THRESHOLD-"].update(
                         disabled=compatibility_threshold_disabled
                     )
 
-                    # 更新维度选择控件的启用状态
+                    # 更新维度选择控件的启用状态 - 修正配置获取路径
                     config = self.config.get_config()
-                    creative_config = config.get("creative_config", {})
-                    dimensional_config = creative_config.get("dimensional_creative", {})
+                    dimensional_config = config.get("dimensional_creative", {})  # 直接获取
                     dimension_options = dimensional_config.get("dimension_options", {})
 
                     for dimension_key in dimension_options.keys():
-                        # 禁用/启用维度下拉框
                         self.window[f"-DIMENSION_{dimension_key.upper()}-"].update(
                             disabled=not enabled or auto_selection
                         )
-                        # 禁用/启用维度勾选框
                         self.window[f"-DIMENSION_ENABLED_{dimension_key.upper()}-"].update(
                             disabled=not enabled or auto_selection
                         )
+
                 elif event == "-CREATIVE_INTENSITY-":
-                    # 更新创意强度显示
                     intensity_text = f"{values['-CREATIVE_INTENSITY-']:.1f}"
                     self.window["-INTENSITY_DISPLAY-"].update(value=intensity_text)
+
                 elif event == "-COMPATIBILITY_THRESHOLD-":
-                    # 更新兼容性阈值显示
                     threshold_text = f"{values['-COMPATIBILITY_THRESHOLD-']:.1f}"
                     self.window["-THRESHOLD_DISPLAY-"].update(value=threshold_text)
             elif event.startswith("-DIMENSION_") and event.endswith("-"):
@@ -2672,24 +2347,11 @@ class ConfigEditor:
                 self.window["-AUDIENCE_BASED-"].update(disabled=not enabled)
                 self.window["-PLATFORM_BASED-"].update(disabled=not enabled)
 
-            elif event == "-ROLE_CHARACTER-":
-                selected_role = self._get_role_key(values["-ROLE_CHARACTER-"])
-                enabled = values["-ROLE_PLAY_ENABLED-"]
-
-                # 当选择"自定义"时启用输入框，否则禁用
-                if selected_role == "custom":
-                    self.window["-CUSTOM_CHARACTER-"].update(disabled=not enabled)
-                else:
-                    self.window["-CUSTOM_CHARACTER-"].update(disabled=True, value="")
-
-                self.window.refresh()
-
             elif event == "-SAVE_CREATIVE_CONFIG-":
                 config = self.config.get_config().copy()
 
                 # 获取现有的维度化创意配置
-                creative_config = config.get("creative_config", {})
-                dimensional_creative_config = creative_config.get("dimensional_creative", {}).copy()
+                dimensional_creative_config = config.get("dimensional_creative", {}).copy()
 
                 # 更新基础配置项
                 dimensional_creative_config.update(
@@ -2701,7 +2363,7 @@ class ConfigEditor:
                         "auto_dimension_selection": values["-AUTO_DIMENSION_SELECTION-"],
                         "selected_dimensions": self._collect_selected_dimensions(
                             values, dimensional_creative_config.get("dimension_options", {})
-                        ),  # 用户选择的具体维度（手动模式时使用）
+                        ),
                         "priority_categories": ["emotion", "audience", "style", "theme"],
                         "max_dimensions": int(values["-MAX_DIMENSIONS-"]),
                         "compatibility_threshold": values["-COMPATIBILITY_THRESHOLD-"],
@@ -2766,14 +2428,7 @@ class ConfigEditor:
                 dimensional_creative_config["dimension_options"] = dimension_options
                 dimensional_creative_config["enabled_dimensions"] = enabled_dimensions
 
-                creative_config["dimensional_creative"] = dimensional_creative_config
-
-                # 设置 creative_mode 为维度化创意
-                if dimensional_creative_config["enabled"]:
-                    config["creative_mode"] = "dimensional_creative"
-                else:
-                    config["creative_mode"] = ""
-                config["creative_config"] = creative_config
+                config["dimensional_creative"] = dimensional_creative_config
 
                 if self.config.save_config(config):
                     # 更新显示值
@@ -2799,8 +2454,7 @@ class ConfigEditor:
             elif event == "-RESET_CREATIVE_CONFIG-":
                 # 重置为默认配置
                 config = self.config.get_config().copy()
-                config["creative_mode"] = "dimensional_creative"
-                config["creative_config"] = self.config.default_config["creative_config"]
+                config["dimensional_creative"] = self.config.default_config["dimensional_creative"]
 
                 if self.config.save_config(config):
                     # 更新界面

@@ -2,15 +2,7 @@ from src.ai_write_x.core.tool_registry import GlobalToolRegistry
 from src.ai_write_x.tools.custom_tool import AIForgeSearchTool
 from src.ai_write_x.tools.custom_tool import ReadTemplateTool
 from src.ai_write_x.core.unified_workflow import UnifiedContentWorkflow
-from src.ai_write_x.core.creative_modules import (
-    MultiDimensionalCreativeModule,
-    CulturalFusionModule,
-    StyleTransformModule,
-    DynamicTransformModule,
-    GenreFusionModule,
-    TimeTravelModule,
-    RolePlayModule,
-)
+
 from src.ai_write_x.adapters.platform_adapters import (
     WeChatAdapter,
     XiaohongshuAdapter,
@@ -51,16 +43,7 @@ def setup_aiwritex():
     # 2. 创建统一工作流
     workflow = UnifiedContentWorkflow()
 
-    # 3. 注册所有创意模块
-    workflow.register_creative_module("multi_dimensional", MultiDimensionalCreativeModule())
-    workflow.register_creative_module("cultural_fusion", CulturalFusionModule())
-    workflow.register_creative_module("style_transform", StyleTransformModule())
-    workflow.register_creative_module("dynamic_transform", DynamicTransformModule())
-    workflow.register_creative_module("genre_fusion", GenreFusionModule())
-    workflow.register_creative_module("time_travel", TimeTravelModule())
-    workflow.register_creative_module("role_play", RolePlayModule())
-
-    # 4. 注册所有平台适配器
+    # 3. 注册所有平台适配器
     workflow.register_platform_adapter(PlatformType.WECHAT.value, WeChatAdapter())
     workflow.register_platform_adapter(PlatformType.XIAOHONGSHU.value, XiaohongshuAdapter())
     workflow.register_platform_adapter(PlatformType.DOUYIN.value, DouyinAdapter())

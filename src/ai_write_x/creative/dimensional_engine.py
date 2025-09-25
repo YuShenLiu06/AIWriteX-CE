@@ -6,8 +6,14 @@
 
 import random
 from typing import Dict, List, Any, Tuple
-
-# 移除了从 dimensional_config.py 导入的代码
+from src.ai_write_x.core.content_generation import ContentGenerationEngine
+from src.ai_write_x.core.base_framework import (
+    WorkflowConfig,
+    AgentConfig,
+    TaskConfig,
+    WorkflowType,
+    ContentType,
+)
 
 
 class DimensionalCreativeEngine:
@@ -24,7 +30,7 @@ class DimensionalCreativeEngine:
             config: 维度化创意配置
         """
         self.config = config
-        # 从配置中获取维度选项配置，而不是从硬编码的代码中获取
+        # 从配置中获取维度选项配置
         self.dimension_config = config.get("dimension_options", {})
 
     def get_available_dimensions(self) -> List[str]:
@@ -77,29 +83,6 @@ class DimensionalCreativeEngine:
                 options.append(custom_option)
             return options
         return []
-
-    def get_custom_dimensions(self) -> List[str]:
-        """
-        获取用户自定义维度
-
-        Returns:
-            用户自定义维度列表
-        """
-        # 根据新设计，不再支持用户自定义维度库
-        return []
-
-    def parse_custom_dimension(self, custom_dim_str: str) -> Dict[str, str]:
-        """
-        解析自定义维度字符串
-
-        Args:
-            custom_dim_str: 自定义维度字符串，格式为"维度分类:维度名称:描述"
-
-        Returns:
-            解析后的维度字典
-        """
-        # 根据新设计，不再支持用户自定义维度库
-        return {}
 
     def get_all_dimension_options(self, dimension: str) -> List[Dict[str, Any]]:
         """
@@ -217,10 +200,8 @@ class DimensionalCreativeEngine:
                 compatibility_score = self.validate_dimension_compatibility(temp_dimensions)
 
                 # 如果兼容性分数满足阈值要求，则添加到选中列表
-                # 注意：这里使用 > 而不是 >=，确保不兼容的组合被过滤掉
                 if compatibility_score > compatibility_threshold:
                     selected_dimensions.append((category, option))
-                # 如果不满足兼容性要求，则跳过该维度（不添加到选中列表）
 
         return selected_dimensions
 
@@ -289,7 +270,7 @@ class DimensionalCreativeEngine:
         else:
             return "非常激进"
 
-    def apply_dimensional_creative(self, content: str) -> str:
+    def apply_dimensional_creative(self, content: str, title: str = "") -> str:
         """
         应用维度化创意到内容
 
@@ -299,7 +280,6 @@ class DimensionalCreativeEngine:
         Returns:
             应用维度化创意后的内容
         """
-        # 检查是否启用维度化创意
         if not self.config.get("enabled", False):
             return content
 
@@ -308,12 +288,117 @@ class DimensionalCreativeEngine:
         max_dimensions = self.config.get("max_dimensions", 5)
         selected_dimensions = self.select_dimensions(auto_selection, max_dimensions)
 
+        if not selected_dimensions:
+            return content
+
+        # 从title中提取topic（与旧模块保持一致的处理方式）
+        clean_topic = title
+        if "|" in clean_topic:
+            clean_topic = clean_topic.split("|", 1)[1].strip()
+
         # 生成创意提示
         creative_prompt = self.generate_creative_prompt(content, selected_dimensions)
 
-        # 这里应该调用AI模型来生成创意内容
-        # 为了演示，我们返回创意提示
-        return creative_prompt
+        # 创建维度化创意工作流
+        workflow_config = self._create_dimensional_workflow_config(selected_dimensions)
+        engine = ContentGenerationEngine(workflow_config)
+
+        # 执行创意变换 - 添加topic参数
+        input_data = {
+            "topic": clean_topic,
+            "content": content,
+            "creative_prompt": creative_prompt,
+            "dimensions": selected_dimensions,
+        }
+
+        try:
+            result = engine.execute_workflow(input_data)
+            return result.content
+        except Exception:
+            # 如果AI处理失败，返回原内容
+            return content
+
+    def _create_dimensional_workflow_config(
+        self, selected_dimensions: List[Tuple[str, Dict[str, Any]]]
+    ) -> WorkflowConfig:
+        """
+        创建维度化创意工作流配置
+
+        Args:
+            selected_dimensions: 选中的维度组合
+
+        Returns:
+            工作流配置
+        """
+        # 构建维度描述
+        dimension_descriptions = []
+        for category, option in selected_dimensions:
+            category_name = self.dimension_config.get(category, {}).get("name", category)
+            if option.get("name") == "custom":
+                dimension_descriptions.append(f"{category_name}: {option['value']} (用户自定义)")
+            else:
+                dimension_descriptions.append(
+                    f"{category_name}: {option['value']} ({option['description']})"
+                )
+
+        dimensions_text = "\n".join([f"- {desc}" for desc in dimension_descriptions])
+
+        # 创建智能体配置
+        agents = [
+            AgentConfig(
+                role="维度化创意专家",
+                name="dimensional_creative_agent",
+                goal="根据指定的创意维度对内容进行创意变换",
+                backstory=f"""你是一位擅长多维度创意变换的专家，能够根据不同的创意维度对内容进行深度改造。
+
+当前应用的创意维度：
+{dimensions_text}
+
+你需要将这些维度的特点融合到内容中，创造出独特而富有创意的作品。
+保持内容的核心信息不变，但要在表达方式、风格、视角等方面体现出这些维度的特色。""",
+                tools=[],
+            )
+        ]
+
+        # 创建任务配置
+        creative_intensity = self.config.get("creative_intensity", 1.0)
+        intensity_desc = self._get_intensity_description(creative_intensity)
+
+        task_description = f"""对以下内容进行维度化创意变换：
+
+原始内容：
+{{content}}
+
+创意要求：
+{{creative_prompt}}
+
+创意强度：{intensity_desc} ({creative_intensity})
+
+请根据指定的创意维度对内容进行变换，确保：
+1. 保持原内容的核心信息和主要观点
+2. 融入各个维度的特色和风格
+3. 创造出独特而富有创意的表达方式
+4. 保持内容的逻辑性和可读性
+
+输出格式：直接输出变换后的内容，不要包含任何解释或说明。"""
+
+        tasks = [
+            TaskConfig(
+                name="dimensional_creative_transformation",
+                description=task_description,
+                agent_name="dimensional_creative_agent",
+                expected_output="经过维度化创意变换的内容",
+            )
+        ]
+
+        return WorkflowConfig(
+            name="dimensional_creative_workflow",
+            description="维度化创意变换工作流",
+            workflow_type=WorkflowType.SEQUENTIAL,
+            content_type=ContentType.ARTICLE,
+            agents=agents,
+            tasks=tasks,
+        )
 
     def validate_dimension_compatibility(
         self, dimensions: List[Tuple[str, Dict[str, Any]]]
@@ -327,16 +412,18 @@ class DimensionalCreativeEngine:
         Returns:
             兼容性分数 (0-1)
         """
-        # 简单的兼容性检查实现
-        # 在实际应用中，这里可以实现更复杂的兼容性逻辑
+        if not dimensions:
+            return 1.0
 
         # 检查是否有冲突的维度组合
         categories = [dim[0] for dim in dimensions]
 
-        # 某些维度组合可能不兼容
+        # 定义不兼容的维度组合对
         incompatible_pairs = [
             ("style", "format"),  # 文体风格和表达格式可能冲突
             ("time", "scene"),  # 时空背景和场景环境可能冲突
+            ("personality", "tone"),  # 人格角色和语调语气可能冲突
+            ("structure", "rhythm"),  # 文章结构和节奏韵律可能冲突
         ]
 
         conflicts = 0
@@ -344,8 +431,17 @@ class DimensionalCreativeEngine:
             if cat1 in categories and cat2 in categories:
                 conflicts += 1
 
+        # 检查维度数量是否过多
+        max_dimensions = self.config.get("max_dimensions", 5)
+        if len(dimensions) > max_dimensions:
+            # 超出最大维度数量会降低兼容性
+            excess_penalty = (len(dimensions) - max_dimensions) * 0.1
+            conflicts += excess_penalty
+
         # 计算兼容性分数
         if conflicts == 0:
             return 1.0
         else:
-            return max(0.0, 1.0 - conflicts * 0.5)  # 每个冲突降低0.5分，使不兼容组合更容易被过滤
+            # 每个冲突降低0.3分，确保不兼容组合被过滤
+            compatibility_score = max(0.0, 1.0 - conflicts * 0.3)
+            return compatibility_score
