@@ -195,10 +195,10 @@ uv pip install -r requirements.txt
 
 | 网盘类型                     | 下载链接                                                                                              | 提取码  | 版本    |是否最新     |
 |-----------------------------|-------------------------------------------------------------------------------------------------------|--------|---------|------------|
-| **百度网盘**                 |[Win](https://pan.baidu.com/s/1tALycrUn36j5DdlFvH7c4A?pwd=iy1q) / [Mac](https://pan.baidu.com/s/1o-MJUDEJCMx4UeTqbbQBkQ?pwd=cau5) |iy1q / cau5   |V2.2.1    |✅ |
-| **移动云盘**                 |[Win](https://yun.139.com/shareweb/#/w/i/2pU918rU9Ln0e) / [Mac](https://caiyun.139.com/w/i/2pU918rUkwoi1)                         |6mdn / nnoq   |V2.2.1    |✅ |
+| **百度网盘**                 |[Win](https://pan.baidu.com/s/1tALycrUn36j5DdlFvH7c4A?pwd=iy1q) / [Mac](https://pan.baidu.com/s/1R7IJXdqLVL23yDHPOVyYiw?pwd=v32x) |iy1q / v32x   |V2.2.1    |✅ |
+| **移动云盘**                 |[Win](https://yun.139.com/shareweb/#/w/i/2pU918rU9Ln0e) / [Mac](https://yun.139.com/shareweb/#/w/i/2pU91bs7oT780)                         |6mdn / 0dy3   |V2.2.1    |✅ |
 | **Google Drive**            |[Win](https://drive.google.com/file/d/1rXohuAa0ZA9rUqqySIWm5OEPpbzxXREr/view?usp=sharing)              |/      |V2.2.1    |✅         |
-| **Microsoft OneDrive**      |[Win](https://1drv.ms/u/c/c831e3cc9be11110/ESCb5aORxalMnHTQGIPPmDUBIE8BXyjzUigaet9CcjEmGA?e=xXCAoc)    |/      |V2.1.9    |❌         |
+| **Microsoft OneDrive**      |[Win](https://1drv.ms/u/c/c831e3cc9be11110/EVlmFdF8zWJPi7F0PS8i7JEBxXTZa1ett7YaKzgdhmHSFg?e=i4Vuzi)    |/      |V2.2.1    |✅         |
 
 2. 打开软件，进行必须要配置（*微信公众号AppID/AppSecret、大模型提供商的API KEY*）
 3. 点击`开始执行`
