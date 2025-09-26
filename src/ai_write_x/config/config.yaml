@@ -43,7 +43,7 @@ wechat:
       sendall: true
       tag_id: 0
 api:
-  api_type: Deepseek
+  api_type: OpenRouter
   Grok:
     key: XAI_API_KEY
     key_index: 0

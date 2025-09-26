@@ -104,7 +104,7 @@ class Config:
                 ]
             },
             "api": {
-                "api_type": "Deepseek",
+                "api_type": "OpenRouter",
                 "Grok": {
                     "key": "XAI_API_KEY",
                     "key_index": 0,
@@ -203,7 +203,7 @@ class Config:
                 "creative_intensity": 1.0,
                 "preserve_core_info": True,
                 "allow_experimental": False,
-                "auto_dimension_selection": False,
+                "auto_dimension_selection": True,
                 "selected_dimensions": [],
                 "priority_categories": ["emotion", "audience", "style", "theme"],
                 "max_dimensions": 5,

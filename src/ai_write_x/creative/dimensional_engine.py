@@ -33,9 +33,12 @@ class DimensionalCreativeEngine:
         # 从配置中获取维度选项配置
         self.dimension_config = config.get("dimension_options", {})
 
-    def get_available_dimensions(self) -> List[str]:
+    def get_available_dimensions(self, ignore_enabled_filter: bool = False) -> List[str]:
         """
         获取可用的维度分类列表
+
+        Args:
+            ignore_enabled_filter: 是否忽略enabled_dimensions过滤（用于自动选择模式）
 
         Returns:
             可用维度分类列表
@@ -43,30 +46,35 @@ class DimensionalCreativeEngine:
         # 获取所有可用维度
         all_dimensions = self.config.get("available_categories", [])
 
-        # 获取启用的维度
-        enabled_dimensions = self.config.get("enabled_dimensions", {})
+        if ignore_enabled_filter:
+            # 自动选择模式：返回所有可用维度
+            return all_dimensions
+        else:
+            # 手动选择模式：根据enabled_dimensions过滤
+            enabled_dimensions = self.config.get("enabled_dimensions", {})
+            available_dimensions = [
+                dim for dim in all_dimensions if enabled_dimensions.get(dim, True)
+            ]
+            return available_dimensions
 
-        # 过滤出启用的维度
-        available_dimensions = [
-            dim for dim in all_dimensions if enabled_dimensions.get(dim, True)  # 默认启用
-        ]
-
-        return available_dimensions
-
-    def get_dimension_options(self, dimension: str) -> List[Dict[str, Any]]:
+    def get_dimension_options(
+        self, dimension: str, ignore_enabled_filter: bool = False
+    ) -> List[Dict[str, Any]]:
         """
         获取指定维度的选项列表
 
         Args:
             dimension: 维度分类
+            ignore_enabled_filter: 是否忽略enabled_dimensions过滤（用于自动选择模式）
 
         Returns:
             该维度的选项列表
         """
-        # 检查维度是否启用
-        enabled_dimensions = self.config.get("enabled_dimensions", {})
-        if not enabled_dimensions.get(dimension, True):
-            return []  # 如果维度未启用，返回空列表
+        if not ignore_enabled_filter:
+            # 检查维度是否启用（仅在非自动选择模式下）
+            enabled_dimensions = self.config.get("enabled_dimensions", {})
+            if not enabled_dimensions.get(dimension, True):
+                return []  # 如果维度未启用，返回空列表
 
         if dimension in self.dimension_config:
             options = self.dimension_config[dimension].get("preset_options", []).copy()
@@ -84,20 +92,6 @@ class DimensionalCreativeEngine:
             return options
         return []
 
-    def get_all_dimension_options(self, dimension: str) -> List[Dict[str, Any]]:
-        """
-        获取指定维度的所有选项（包括预设选项和自定义选项）
-
-        Args:
-            dimension: 维度分类
-
-        Returns:
-            该维度的所有选项列表
-        """
-        # 获取预设选项
-        preset_options = self.get_dimension_options(dimension)
-        return preset_options
-
     def select_dimensions(
         self, auto_selection: bool = True, max_dimensions: int = 5
     ) -> List[Tuple[str, Dict[str, Any]]]:
@@ -112,10 +106,11 @@ class DimensionalCreativeEngine:
             选中的维度组合列表，每个元素为(维度分类, 选项)
         """
         selected_dimensions = []
-        available_categories = self.get_available_dimensions()
 
         if auto_selection:
-            # 自动选择维度
+            # 自动选择维度：忽略enabled_dimensions限制
+            available_categories = self.get_available_dimensions(ignore_enabled_filter=True)
+
             # 根据优先级选择维度
             priority_categories = self.config.get("priority_categories", [])
 
@@ -125,7 +120,7 @@ class DimensionalCreativeEngine:
             # 首先从优先维度中选择
             for category in priority_categories:
                 if category in available_categories:
-                    options = self.get_all_dimension_options(category)
+                    options = self.get_dimension_options(category, ignore_enabled_filter=True)
                     if options:
                         for option in options:
                             candidate_dimensions.append((category, option))
@@ -136,7 +131,7 @@ class DimensionalCreativeEngine:
             ]
 
             for category in remaining_categories:
-                options = self.get_all_dimension_options(category)
+                options = self.get_dimension_options(category, ignore_enabled_filter=True)
                 if options:
                     for option in options:
                         candidate_dimensions.append((category, option))
@@ -160,7 +155,7 @@ class DimensionalCreativeEngine:
                     if selected_count >= max_dimensions:
                         break
         else:
-            # 手动选择维度（从配置中获取用户选择的维度）
+            # 手动选择维度（从配置中获取用户选择的维度）：受enabled_dimensions限制
             selected_dims = self.config.get("selected_dimensions", [])
             compatibility_threshold = self.config.get("compatibility_threshold", 0.6)
 
@@ -169,7 +164,7 @@ class DimensionalCreativeEngine:
             for dim_info in selected_dims:
                 category = dim_info.get("category")
                 option_name = dim_info.get("option")
-                # 检查维度是否启用
+                # 检查维度是否启用（手动选择模式下需要检查）
                 enabled_dimensions = self.config.get("enabled_dimensions", {})
                 if category and option_name and enabled_dimensions.get(category, True):
                     # 特殊处理自定义选项
@@ -186,7 +181,7 @@ class DimensionalCreativeEngine:
                             }
                             candidate_dimensions.append((category, custom_option))
                     else:
-                        options = self.get_all_dimension_options(category)
+                        options = self.get_dimension_options(category, ignore_enabled_filter=False)
                         for option in options:
                             if option.get("name") == option_name:
                                 candidate_dimensions.append((category, option))
@@ -273,25 +268,21 @@ class DimensionalCreativeEngine:
     def apply_dimensional_creative(self, content: str, title: str = "") -> str:
         """
         应用维度化创意到内容
-
-        Args:
-            content: 原始内容
-
-        Returns:
-            应用维度化创意后的内容
         """
+
         if not self.config.get("enabled", False):
             return content
 
         # 选择维度组合
         auto_selection = self.config.get("auto_dimension_selection", True)
         max_dimensions = self.config.get("max_dimensions", 5)
+
         selected_dimensions = self.select_dimensions(auto_selection, max_dimensions)
 
         if not selected_dimensions:
             return content
 
-        # 从title中提取topic（与旧模块保持一致的处理方式）
+        # 从title中提取topic
         clean_topic = title
         if "|" in clean_topic:
             clean_topic = clean_topic.split("|", 1)[1].strip()
@@ -303,19 +294,22 @@ class DimensionalCreativeEngine:
         workflow_config = self._create_dimensional_workflow_config(selected_dimensions)
         engine = ContentGenerationEngine(workflow_config)
 
-        # 执行创意变换 - 添加topic参数
+        # 执行创意变换
+        dimensions_list = []
+        for category, option in selected_dimensions:
+            dimensions_list.append({"category": category, "option": option})
+
         input_data = {
             "topic": clean_topic,
             "content": content,
             "creative_prompt": creative_prompt,
-            "dimensions": selected_dimensions,
+            "dimensions": dimensions_list,  # 使用转换后的格式
         }
 
         try:
             result = engine.execute_workflow(input_data)
             return result.content
         except Exception:
-            # 如果AI处理失败，返回原内容
             return content
 
     def _create_dimensional_workflow_config(
