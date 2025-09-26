@@ -85,7 +85,7 @@ class ReadTemplateTool(BaseTool):
             config.use_compress,
         )
 
-        log.print_log("模板填充适配处理相当耗时，请耐心等待...")
+        log.print_log("模板填充适配处理比较耗时，请耐心等待...")
         return f"""
         【HTML模板 - 必须作为最终输出的基础】
         {template_content}

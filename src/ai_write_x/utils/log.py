@@ -404,7 +404,7 @@ def print_log(msg, msg_type="status"):
                 process_log_queue.put({"type": msg_type, "message": msg, "timestamp": time.time()})
             except Exception:
                 # 队列已关闭或其他错误，回退到控制台输出
-                print(f"[{time.strftime('%H:%M:%S')}] [{msg_type.upper()}]: {msg}")
+                print(utils.format_log_message(msg, msg_type))
                 return
         else:
             # 主进程模式：发送到线程队列
@@ -412,20 +412,20 @@ def print_log(msg, msg_type="status"):
                 comm.send_update(msg_type, msg)
             except Exception:
                 # comm 模块不可用，回退到控制台输出
-                print(f"[{time.strftime('%H:%M:%S')}] [{msg_type.upper()}]: {msg}")
+                print(utils.format_log_message(msg, msg_type))
                 return
 
         # 在开发模式下同时输出到终端
         if not utils.get_is_release_ver():
             try:
-                terminal_msg = f"[{time.strftime('%H:%M:%S')}] [{msg_type.upper()}]: {msg}"
+                terminal_msg = utils.format_log_message(msg, msg_type)
                 sys.__stdout__.write(terminal_msg + "\n")  # type: ignore
                 sys.__stdout__.flush()  # type: ignore
             except Exception:
                 pass
     else:
         # 命令行模式：直接打印
-        print(f"[{time.strftime('%H:%M:%S')}] [{msg_type.upper()}]: {msg}")
+        print(utils.format_log_message(msg, msg_type))
 
 
 def print_traceback(what, e):

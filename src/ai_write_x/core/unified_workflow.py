@@ -158,7 +158,7 @@ class UnifiedContentWorkflow:
             # 4. 保存（非AI参与）
             save_result = self._save_content(transform_content, title)
             if save_result.get("success", False):
-                log.print_log(f"文章“{title}”保存成功")
+                log.print_log(f"文章《{title}》保存成功！")
 
             # 5. 可选发布（非AI参与，开关控制）
             publish_result = None

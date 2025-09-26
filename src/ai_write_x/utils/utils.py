@@ -536,3 +536,33 @@ def get_file_extension(article_format: str) -> str:
     format_map = {"HTML": "html", "MARKDOWN": "md", "TXT": "txt", "MD": "md"}
 
     return format_map.get(article_format.upper(), "txt")
+
+
+def format_log_message(msg: str, msg_type: str = "info") -> str:
+    """
+    统一日志格式化接口，检测并避免重复格式化
+
+    Args:
+        msg: 原始消息
+        msg_type: 消息类型
+
+    Returns:
+        格式化后的消息
+    """
+    # 检测是否已经包含时间戳格式 [HH:MM:SS]
+    timestamp_pattern = r"^\[\d{2}:\d{2}:\d{2}\]"
+    if re.match(timestamp_pattern, msg.strip()):
+        return msg  # 已经格式化，直接返回
+
+    # 检测是否已经包含消息类型格式 [TYPE]:
+    type_pattern = r"\[([A-Z]+)\]:"
+    if re.search(type_pattern, msg):
+        # 如果只有类型没有时间戳，添加时间戳
+        if not re.match(timestamp_pattern, msg.strip()):
+            timestamp = time.strftime("%H:%M:%S")
+            return f"[{timestamp}] {msg}"
+        return msg
+
+    # 完全未格式化，添加完整格式
+    timestamp = time.strftime("%H:%M:%S")
+    return f"[{timestamp}] [{msg_type.upper()}]: {msg}"

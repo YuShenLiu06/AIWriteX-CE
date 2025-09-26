@@ -622,8 +622,7 @@ class MainGUI(object):
     def _display_log(self, message, msg_type="info"):
         """显示日志到界面并保存到文件，统一格式化"""
         # 统一格式化日志条目
-        timestamp = time.strftime("%H:%M:%S")
-        formatted_log_entry = f"[{timestamp}][{msg_type.upper()}]: {message}"
+        formatted_log_entry = utils.format_log_message(message, msg_type)
 
         # 添加到缓冲区
         self._log_buffer.append(formatted_log_entry)
