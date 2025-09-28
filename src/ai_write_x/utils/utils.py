@@ -504,7 +504,7 @@ def fix_mac_clipboard(value):
 
 
 def get_gui_icon():
-    """获取GUI窗口图标，支持跨平台"""
+    """获取GUI窗口图标，支持跨平台和多种用途"""
     import sys
     import os
     import base64
@@ -512,23 +512,44 @@ def get_gui_icon():
 
     gui_dir = Path(__file__).parent.parent / "gui"
 
-    if sys.platform == "darwin":  # macOS
-        # 优先尝试PNG格式的Base64编码
-        png_path = get_res_path(os.path.join("UI", "icon.png"), str(gui_dir))
-        if os.path.exists(png_path):
-            try:
-                with open(png_path, "rb") as f:
-                    return base64.b64encode(f.read())
-            except Exception:
-                pass
+    # 创建图标资源管理器
+    class IconManager:
+        def __init__(self):
+            self.gui_dir = gui_dir
 
-        # 回退到icns
-        icns_path = get_res_path(os.path.join("UI", "icon.icns"), str(gui_dir))
-        if os.path.exists(icns_path):
-            return icns_path
+        def get_icon_path(self, format_type="ico"):
+            """获取指定格式的图标路径"""
+            icon_files = {"ico": "icon.ico", "png": "icon.png", "icns": "icon.icns"}
+            return get_res_path(
+                os.path.join("UI", icon_files.get(format_type, "icon.ico")), str(self.gui_dir)
+            )
 
-    # 回退到原来的逻辑（Windows/Linux）
-    return get_res_path(os.path.join("UI", "icon.ico"), str(gui_dir))
+        def get_platform_icon(self):
+            """根据平台返回最适合的图标"""
+            if sys.platform == "darwin":  # macOS
+                # 优先PNG的Base64编码，回退到icns
+                png_path = self.get_icon_path("png")
+                if os.path.exists(png_path):
+                    try:
+                        with open(png_path, "rb") as f:
+                            return base64.b64encode(f.read())
+                    except Exception:
+                        pass
+
+                icns_path = self.get_icon_path("icns")
+                if os.path.exists(icns_path):
+                    return icns_path
+
+            elif sys.platform == "linux":  # Linux
+                png_path = self.get_icon_path("png")
+                if os.path.exists(png_path):
+                    return png_path
+
+            # Windows 或回退方案
+            return self.get_icon_path("ico")
+
+    icon_manager = IconManager()
+    return icon_manager.get_platform_icon()
 
 
 def get_file_extension(article_format: str) -> str:

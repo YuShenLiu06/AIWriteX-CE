@@ -82,14 +82,25 @@ def is_admin():
 def run():
     """启动GUI应用程序"""
     try:
+        # 导入新的WebView GUI
+        from src.ai_write_x.web.webview_gui import gui_start
+
+        gui_start()
+    except KeyboardInterrupt:
+        # 捕获Ctrl+C，优雅退出
+        sys.exit(0)
+    except Exception as e:
+        print(f"启动失败: {str(e)}")
+
+
+def run_old():
+    """启动GUI应用程序"""
+    try:
         import src.ai_write_x.gui.MainGUI as MainGUI
 
         MainGUI.gui_start()
-    except KeyboardInterrupt:
-        # 捕获Ctrl+C，优雅退出
-        pass
-    except Exception:
-        pass
+    except Exception as fallback_error:
+        print(f"启动失败: {str(fallback_error)}")
 
 
 def admin_run():
@@ -114,7 +125,10 @@ if __name__ == "__main__":
         sys.exit(0)
     else:
         # 正常启动逻辑
-        if len(sys.argv) > 1 and sys.argv[1] == "-d":
-            run()
+        if len(sys.argv) > 1:
+            if sys.argv[1] == "-d":
+                run_old()
+            elif sys.argv[1] == "-dn":
+                run()
         else:
             admin_run()
