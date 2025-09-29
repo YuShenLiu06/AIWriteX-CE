@@ -5,7 +5,6 @@ class AIWriteXApp {
         this.ws = null;  
         this.currentView = 'creative-workshop';  
         this.isGenerating = false;  
-        this.config = {};  
           
         this.init();  
     }  
@@ -13,8 +12,33 @@ class AIWriteXApp {
     init() {  
         this.setupEventListeners();  
         this.connectWebSocket();  
-        this.loadConfig();  
         this.showView(this.currentView);  
+          
+        // 等待配置管理器初始化完成后再加载配置  
+        this.waitForConfigManager();  
+    }  
+      
+    waitForConfigManager() {  
+        if (window.configManager) {  
+            this.loadInitialData();  
+        } else {  
+            setTimeout(() => this.waitForConfigManager(), 100);  
+        }  
+    }  
+      
+    loadInitialData() {  
+        // 根据当前视图加载相应数据  
+        switch (this.currentView) {  
+            case 'creative-workshop':  
+                this.loadDimensionalConfig();  
+                break;  
+            case 'article-manager':  
+                this.loadArticles();  
+                break;  
+            case 'config-manager':  
+                // 配置已由 configManager 自动加载  
+                break;  
+        }  
     }  
       
     setupEventListeners() {  
@@ -39,7 +63,7 @@ class AIWriteXApp {
             stopBtn.addEventListener('click', () => this.stopGeneration());  
         }  
           
-        // 配置保存事件  
+        // 配置保存事件 - 使用统一配置管理器  
         const saveConfigBtn = document.getElementById('save-config-btn');  
         if (saveConfigBtn) {  
             saveConfigBtn.addEventListener('click', () => this.saveConfig());  
@@ -60,7 +84,6 @@ class AIWriteXApp {
         this.ws = new WebSocket(wsUrl);  
           
         this.ws.onopen = () => {  
-            console.log('WebSocket连接已建立');  
             this.updateConnectionStatus(true);  
         };  
           
@@ -70,14 +93,12 @@ class AIWriteXApp {
         };  
           
         this.ws.onclose = () => {  
-            console.log('WebSocket连接已断开');  
             this.updateConnectionStatus(false);  
             // 3秒后重连  
             setTimeout(() => this.connectWebSocket(), 3000);  
         };  
           
         this.ws.onerror = (error) => {  
-            console.error('WebSocket错误:', error);  
             this.updateConnectionStatus(false);  
         };  
           
@@ -156,7 +177,7 @@ class AIWriteXApp {
                 this.loadArticles();  
                 break;  
             case 'config-manager':  
-                this.loadConfig();  
+                // 配置已由 configManager 自动加载和填充  
                 break;  
         }  
     }  
@@ -164,68 +185,66 @@ class AIWriteXApp {
     async startGeneration() {  
         if (this.isGenerating) return;  
           
-        const topic = document.getElementById('topic-input')?.value || '';  
-        const platform = document.getElementById('platform-select')?.value || '';  
+        const topic = document.getElementById('topic-input')?.value;  
+        if (!topic || !topic.trim()) {  
+            this.showNotification('请输入创作主题', 'warning');  
+            return;  
+        }  
           
-        const requestData = {  
-            topic: topic,  
-            platform: platform,  
-            urls: [],  
-            reference_ratio: 0.0,  
-            custom_template_category: '',  
-            custom_template: ''  
-        };  
+        this.isGenerating = true;  
+        this.updateGenerationUI(true);  
           
         try {  
-            this.setGeneratingState(true);  
-              
-            const response = await fetch('/api/content/generate', {  
+            const response = await fetch('/api/generate', {  
                 method: 'POST',  
                 headers: {  
                     'Content-Type': 'application/json',  
                 },  
-                body: JSON.stringify(requestData)  
+                body: JSON.stringify({  
+                    topic: topic.trim(),  
+                    config: window.configManager ? window.configManager.getConfig() : {}  
+                })  
             });  
               
-            if (!response.ok) {  
-                throw new Error(`HTTP error! status: ${response.status}`);  
+            if (response.ok) {  
+                const result = await response.json();  
+                this.showNotification('内容生成已开始', 'success');  
+            } else {  
+                throw new Error('生成请求失败');  
             }  
-              
-            const result = await response.json();  
-            this.showNotification('任务启动成功', 'success');  
-              
         } catch (error) {  
-            console.error('启动生成任务失败:', error);  
-            this.showNotification(`启动失败: ${error.message}`, 'error');  
-            this.setGeneratingState(false);  
+            console.error('生成失败:', error);  
+            this.showNotification('生成失败，请重试', 'error');  
+        } finally {  
+            this.isGenerating = false;  
+            this.updateGenerationUI(false);  
         }  
     }  
       
     async stopGeneration() {  
         try {  
-            const response = await fetch('/api/content/stop', {  
+            const response = await fetch('/api/generate/stop', {  
                 method: 'POST'  
             });  
               
             if (response.ok) {  
-                this.setGeneratingState(false);  
-                this.showNotification('任务已停止', 'info');  
+                this.showNotification('已停止生成', 'info');  
             }  
         } catch (error) {  
-            console.error('停止任务失败:', error);  
-            this.showNotification(`停止失败: ${error.message}`, 'error');  
+            console.error('停止生成失败:', error);  
         }  
+          
+        this.isGenerating = false;  
+        this.updateGenerationUI(false);  
     }  
       
-    setGeneratingState(isGenerating) {  
-        this.isGenerating = isGenerating;  
-          
+    updateGenerationUI(isGenerating) {  
         const generateBtn = document.getElementById('generate-btn');  
         const stopBtn = document.getElementById('stop-btn');  
           
         if (generateBtn) {  
             generateBtn.disabled = isGenerating;  
-            generateBtn.textContent = isGenerating ? '生成中...' : '开始创作';  
+            generateBtn.textContent = isGenerating ? '生成中...' : '开始生成';  
         }  
           
         if (stopBtn) {  
@@ -233,33 +252,21 @@ class AIWriteXApp {
         }  
     }  
       
-    async loadConfig() {  
-        try {  
-            const response = await fetch('/api/config/');  
-            if (response.ok) {  
-                const result = await response.json();  
-                this.config = result.data;  
-                this.updateConfigUI();  
-            }  
-        } catch (error) {  
-            console.error('加载配置失败:', error);  
-            this.showNotification('加载配置失败', 'error');  
-        }  
-    }  
-      
+    // 使用统一配置管理器保存配置  
     async saveConfig() {  
+        if (!window.configManager) {  
+            this.showNotification('配置管理器未初始化', 'error');  
+            return;  
+        }  
+          
         try {  
-            const response = await fetch('/api/config/', {  
-                method: 'POST',  
-                headers: {  
-                    'Content-Type': 'application/json',  
-                },  
-                body: JSON.stringify({  
-                    config_data: this.config  
-                })  
-            });  
+            // 收集当前界面的配置数据  
+            const configData = this.collectConfigData();  
               
-            if (response.ok) {  
+            // 使用统一配置管理器保存  
+            const success = await window.configManager.saveConfig(configData);  
+              
+            if (success) {  
                 this.showNotification('配置保存成功', 'success');  
             } else {  
                 throw new Error('保存失败');  
@@ -270,12 +277,60 @@ class AIWriteXApp {
         }  
     }  
       
+    collectConfigData() {  
+        const configData = {};  
+          
+        // 收集API配置  
+        const apiTypeSelect = document.getElementById('api-type-select');  
+        if (apiTypeSelect) {  
+            configData.api = {  
+                api_type: apiTypeSelect.value  
+            };  
+        }  
+          
+        // 收集微信配置  
+        const wechatAppId = document.getElementById('wechat-appid');  
+        const wechatAppSecret = document.getElementById('wechat-appsecret');  
+        if (wechatAppId || wechatAppSecret) {  
+            configData.wechat = {  
+                credentials: [{  
+                    appid: wechatAppId?.value || '',  
+                    appsecret: wechatAppSecret?.value || ''  
+                }]  
+            };  
+        }  
+          
+        // 收集模板配置  
+        const useTemplate = document.getElementById('use-template');  
+        if (useTemplate) {  
+            configData.template = {  
+                use_template: useTemplate.checked  
+            };  
+        }  
+          
+        // 收集维度配置  
+        const dimensionalConfig = {};  
+        document.querySelectorAll('.dimension-slider').forEach(slider => {  
+            const dimensionName = slider.dataset.dimension;  
+            if (dimensionName) {  
+                dimensionalConfig[dimensionName] = parseFloat(slider.value);  
+            }  
+        });  
+          
+        if (Object.keys(dimensionalConfig).length > 0) {  
+            configData.dimensional_creative = dimensionalConfig;  
+        }  
+          
+        return configData;  
+    }  
+      
     async loadDimensionalConfig() {  
+        if (!window.configManager) return;  
+          
         try {  
-            const response = await fetch('/api/config/dimensional_creative');  
-            if (response.ok) {  
-                const result = await response.json();  
-                this.updateDimensionalUI(result.data);  
+            const config = window.configManager.getConfig();  
+            if (config.dimensional_creative) {  
+                this.updateDimensionalUI(config.dimensional_creative);  
             }  
         } catch (error) {  
             console.error('加载维度配置失败:', error);  
@@ -289,30 +344,14 @@ class AIWriteXApp {
             valueDisplay.textContent = value;  
         }  
           
-        // 实时更新配置  
+        // 实时更新配置到统一配置管理器  
         const dimensionName = slider.dataset.dimension;  
-        if (dimensionName && this.config.dimensional_creative) {  
-            this.config.dimensional_creative[dimensionName] = parseFloat(value);  
-        }  
-    }  
-      
-    updateConfigUI() {  
-        // 更新API配置  
-        const apiTypeSelect = document.getElementById('api-type-select');  
-        if (apiTypeSelect && this.config.api) {  
-            apiTypeSelect.value = this.config.api.api_type || '';  
-        }  
-          
-        // 更新微信配置  
-        const wechatAppId = document.getElementById('wechat-appid');  
-        if (wechatAppId && this.config.wechat && this.config.wechat.credentials[0]) {  
-            wechatAppId.value = this.config.wechat.credentials[0].appid || '';  
-        }  
-          
-        // 更新模板配置  
-        const useTemplate = document.getElementById('use-template');  
-        if (useTemplate && this.config.template) {  
-            useTemplate.checked = this.config.template.use_template || false;  
+        if (dimensionName && window.configManager) {  
+            const config = window.configManager.getConfig();  
+            if (!config.dimensional_creative) {  
+                config.dimensional_creative = {};  
+            }  
+            config.dimensional_creative[dimensionName] = parseFloat(value);  
         }  
     }  
       
@@ -355,24 +394,58 @@ class AIWriteXApp {
     createArticleCard(article) {  
         const card = document.createElement('div');  
         card.className = 'article-card';  
+          
         card.innerHTML = `  
-            <div class="article-thumbnail">  
-                <span>📄</span>  
+            <div class="article-header">  
+                <h3 class="article-title">${this.escapeHtml(article.title || '未命名文章')}</h3>  
+                <span class="article-date">${new Date(article.created_at).toLocaleDateString()}</span>  
             </div>  
             <div class="article-content">  
-                <h3 class="article-title">${article.title}</h3>  
-                <div class="article-meta">  
-                    <span>${article.date}</span>  
-                    <span>${article.platform}</span>  
-                </div>  
-                <div class="article-actions">  
-                    <button class="action-btn primary" onclick="app.previewArticle('${article.id}')">预览</button>  
-                    <button class="action-btn" onclick="app.editArticle('${article.id}')">编辑</button>  
-                    <button class="action-btn" onclick="app.deleteArticle('${article.id}')">删除</button>  
-                </div>  
+                <p class="article-excerpt">${this.escapeHtml(article.excerpt || '暂无摘要')}</p>  
+            </div>  
+            <div class="article-actions">  
+                <button class="btn btn-sm" onclick="app.editArticle('${article.id}')">编辑</button>  
+                <button class="btn btn-sm btn-secondary" onclick="app.deleteArticle('${article.id}')">删除</button>  
             </div>  
         `;  
+          
         return card;  
+    }  
+      
+    editArticle(articleId) {  
+        // 编辑文章逻辑  
+        console.log('编辑文章:', articleId);  
+    }
+    async deleteArticle(articleId) {  
+        if (!confirm('确定要删除这篇文章吗？')) return;  
+          
+        try {  
+            const response = await fetch(`/api/articles/${articleId}`, {  
+                method: 'DELETE'  
+            });  
+              
+            if (response.ok) {  
+                this.showNotification('文章删除成功', 'success');  
+                this.loadArticles(); // 重新加载文章列表  
+            } else {  
+                throw new Error('删除失败');  
+            }
+        } catch (error) {  
+            console.error('删除文章失败:', error);  
+            this.showNotification('删除文章失败', 'error');  
+        }  
+    }  
+      
+    previewArticle(articleId) {  
+        // 预览文章逻辑  
+        console.log('预览文章:', articleId);  
+        // 这里可以打开预览窗口或跳转到预览页面  
+    }  
+      
+    editArticle(articleId) {  
+        // 编辑文章逻辑  
+        console.log('编辑文章:', articleId);  
+        // 这里可以跳转到编辑页面  
     }  
       
     showNotification(message, type = 'info') {  
@@ -393,23 +466,6 @@ class AIWriteXApp {
                 notification.remove();  
             }  
         }, 3000);  
-    }  
-      
-    previewArticle(articleId) {  
-        // 预览文章  
-        console.log('预览文章:', articleId);  
-    }  
-      
-    editArticle(articleId) {  
-        // 编辑文章  
-        console.log('编辑文章:', articleId);  
-    }  
-      
-    deleteArticle(articleId) {  
-        // 删除文章  
-        if (confirm('确定要删除这篇文章吗？')) {  
-            console.log('删除文章:', articleId);  
-        }  
     }  
 }  
   

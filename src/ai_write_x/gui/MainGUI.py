@@ -37,7 +37,7 @@ __author__ = "iniwaper@gmail.com"
 __copyright__ = "Copyright (C) 2025 iniwap"
 # __date__ = "2025/04/17"
 
-__version___ = "v2.2.1"
+__version___ = "v2.3.0"
 
 
 class MainGUI(object):

@@ -56,12 +56,10 @@ async def update_config(request: ConfigUpdateRequest):
         config = Config.get_instance()
 
         # 更新配置数据
-        for key, value in request.config_data.items():
-            if hasattr(config, key):
-                setattr(config, key, value)
+        config_data = request.config_data.get("config_data", request.config_data)
 
-        # 保存配置
-        if config.save_config():
+        # 使用 Config 类的 save_config 方法
+        if config.save_config(config_data):
             return {"status": "success", "message": "配置更新成功"}
         else:
             raise HTTPException(status_code=500, detail="配置保存失败")
