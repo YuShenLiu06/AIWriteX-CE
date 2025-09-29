@@ -35,8 +35,6 @@ async def lifespan(app: FastAPI):
         app_state.config = Config.get_instance()
         if not app_state.config.load_config():
             log.print_log("配置加载失败，使用默认配置", "warning")
-
-        log.print_log("AIWriteX Web服务启动成功", "info")
     except Exception as e:
         log.print_log(f"Web服务启动失败: {str(e)}", "error")
 

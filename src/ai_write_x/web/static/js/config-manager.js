@@ -3,7 +3,11 @@ class AIWriteXConfigManager {
         this.apiEndpoint = '/api/config';  
         this.config = {};  
         this.uiConfig = this.loadUIConfig();  
-        this.init();  
+        
+        this.currentPanel = 'base';  
+        this.bindConfigNavigation();  
+
+        this.init(); 
     }  
       
     async init() {  
@@ -14,7 +18,40 @@ class AIWriteXConfigManager {
             console.error('配置管理器初始化失败:', error);  
         }  
     }  
+
+    bindConfigNavigation() {  
+        document.querySelectorAll('.config-nav-link').forEach(link => {  
+            link.addEventListener('click', (e) => {  
+                e.preventDefault();  
+                const configType = link.dataset.config;  
+                this.showConfigPanel(configType);  
+            });  
+        });  
+    }  
       
+    showConfigPanel(panelType) {  
+        // 隐藏所有配置面板  
+        document.querySelectorAll('.config-panel').forEach(panel => {  
+            panel.classList.remove('active');  
+        });  
+          
+        // 显示目标面板  
+        const targetPanel = document.getElementById(`config-${panelType}`);  
+        if (targetPanel) {  
+            targetPanel.classList.add('active');  
+        }  
+          
+        // 更新导航状态  
+        document.querySelectorAll('.config-nav-item').forEach(item => {  
+            item.classList.remove('active');  
+        });  
+          
+        const activeNavItem = document.querySelector(`[data-config="${panelType}"]`).parentElement;  
+        activeNavItem.classList.add('active');  
+          
+        this.currentPanel = panelType;  
+    }  
+
     // UI配置管理（localStorage）  
     loadUIConfig() {  
         try {  
@@ -159,4 +196,17 @@ let configManager;
 document.addEventListener('DOMContentLoaded', async () => {  
     configManager = new AIWriteXConfigManager();  
     window.configManager = configManager;  
+});
+
+// 模板使用状态切换  
+document.getElementById('use-template').addEventListener('change', (e) => {  
+    const isEnabled = e.target.checked;  
+    document.getElementById('template-category').disabled = !isEnabled;  
+    document.getElementById('template').disabled = !isEnabled;  
+});  
+  
+// 文章格式变化处理  
+document.getElementById('article-format').addEventListener('change', (e) => {  
+    const formatPublishCheckbox = document.getElementById('format-publish');  
+    formatPublishCheckbox.disabled = e.target.value === 'html';  
 });

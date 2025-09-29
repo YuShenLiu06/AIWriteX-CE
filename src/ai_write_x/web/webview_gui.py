@@ -248,7 +248,6 @@ class WebViewGUI:
             def delayed_tray_creation():
                 time.sleep(2.0)  # 等待窗口完全显示
                 if self.tray_manager.create_tray_icon():
-                    log.print_log("系统托盘图标创建成功", "info")
                     self.tray_thread = threading.Thread(
                         target=self.tray_manager.tray.run, daemon=True
                     )
@@ -256,8 +255,6 @@ class WebViewGUI:
 
                     # 设置初始状态
                     self.tray_manager.update_tooltip("运行中")
-                else:
-                    log.print_log("系统托盘图标创建失败", "warning")
 
             # 启动延迟托盘创建线程
             threading.Thread(target=delayed_tray_creation, daemon=True).start()

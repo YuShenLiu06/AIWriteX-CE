@@ -1,0 +1,140 @@
+/* 模板管理视图样式 */  
+.template-manager {  
+    display: flex;  
+    height: 100%;  
+    gap: 20px;  
+}  
+  
+.template-tree {  
+    flex: 0 0 300px;  
+    background: var(--surface-color);  
+    border: 1px solid var(--border-color);  
+    border-radius: 8px;  
+    overflow-y: auto;  
+}  
+  
+.template-tree-header {  
+    padding: 16px;  
+    border-bottom: 1px solid var(--border-color);  
+    background: var(--background-color);  
+}  
+  
+.template-tree-title {  
+    font-size: 16px;  
+    font-weight: 600;  
+    color: var(--text-primary);  
+}  
+  
+.template-category {  
+    padding: 8px 16px;  
+    cursor: pointer;  
+    border-bottom: 1px solid var(--border-color);  
+    transition: background-color 0.2s ease;  
+}  
+  
+.template-category:hover {  
+    background: var(--background-color);  
+}  
+  
+.template-category.active {  
+    background: rgba(var(--primary-color-rgb), 0.1);  
+    color: var(--primary-color);  
+}  
+  
+.template-category-name {  
+    font-weight: 500;  
+    margin-bottom: 4px;  
+}  
+  
+.template-list {  
+    padding-left: 20px;  
+}  
+  
+.template-item {  
+    padding: 6px 12px;  
+    cursor: pointer;  
+    font-size: 14px;  
+    color: var(--text-secondary);  
+    transition: all 0.2s ease;  
+}  
+  
+.template-item:hover {  
+    background: var(--background-color);  
+    color: var(--text-primary);  
+}  
+  
+.template-item.selected {  
+    background: var(--primary-color);  
+    color: white;  
+}  
+  
+.template-details {  
+    flex: 1;  
+    background: var(--surface-color);  
+    border: 1px solid var(--border-color);  
+    border-radius: 8px;  
+    display: flex;  
+    flex-direction: column;  
+}  
+  
+.template-details-header {  
+    padding: 16px;  
+    border-bottom: 1px solid var(--border-color);  
+    display: flex;  
+    justify-content: space-between;  
+    align-items: center;  
+}  
+  
+.template-details-title {  
+    font-size: 18px;  
+    font-weight: 600;  
+    color: var(--text-primary);  
+}  
+  
+.template-actions {  
+    display: flex;  
+    gap: 8px;  
+}  
+  
+.template-content {  
+    flex: 1;  
+    padding: 16px;  
+    overflow-y: auto;  
+}  
+  
+.template-preview {  
+    background: var(--background-color);  
+    border: 1px solid var(--border-color);  
+    border-radius: 6px;  
+    padding: 16px;  
+    font-family: monospace;  
+    font-size: 14px;  
+    line-height: 1.5;  
+    white-space: pre-wrap;  
+    overflow-x: auto;  
+}  
+  
+.template-meta {  
+    display: grid;  
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));  
+    gap: 16px;  
+    margin-bottom: 20px;  
+}  
+  
+.template-meta-item {  
+    display: flex;  
+    flex-direction: column;  
+    gap: 4px;  
+}  
+  
+.template-meta-label {  
+    font-size: 12px;  
+    color: var(--text-secondary);  
+    text-transform: uppercase;  
+    font-weight: 500;  
+}  
+  
+.template-meta-value {  
+    font-size: 14px;  
+    color: var(--text-primary);  
+}

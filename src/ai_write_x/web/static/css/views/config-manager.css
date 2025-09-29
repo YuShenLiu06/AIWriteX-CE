@@ -1,0 +1,249 @@
+/* 配置管理视图样式 */  
+.config-layout {  
+    display: flex;  
+    height: 100%;  
+    gap: 20px;  
+}  
+  
+.config-content {  
+    flex: 1;  
+    overflow-y: auto;  
+    padding: 0 20px; /* 添加左右内边距 */  
+}  
+  
+.config-panel {  
+    display: none;  
+    height: 100%;  
+    overflow-y: auto;  
+    padding: 20px;  
+    max-width: 100%;  
+}  
+  
+.config-panel.active {  
+    display: block;  
+}  
+  
+/* 确保滚动条可见且美观 */  
+.config-panel::-webkit-scrollbar {  
+    width: 8px;  
+}  
+  
+.config-panel::-webkit-scrollbar-track {  
+    background: var(--background-color);  
+    border-radius: 4px;  
+}  
+  
+.config-panel::-webkit-scrollbar-thumb {  
+    background: var(--border-color);  
+    border-radius: 4px;  
+}  
+  
+.config-panel::-webkit-scrollbar-thumb:hover {  
+    background: var(--secondary-color);  
+}  
+  
+.config-header {  
+    margin-bottom: 20px;  /* 从30px减少到20px */  
+    padding-bottom: 16px; /* 从20px减少到16px */  
+    border-bottom: 1px solid var(--border-color);  
+}  
+  
+.config-header h2 {  
+    font-size: 24px;  
+    font-weight: 700;  
+    color: var(--text-primary);  
+    margin-bottom: 8px;  
+}  
+  
+.config-description {  
+    color: var(--text-secondary);  
+    font-size: 14px;  
+}  
+  
+.config-form {  
+    max-width: 1400px;  
+    margin: 0 auto;  
+    display: flex;  
+    flex-direction: column;  
+    gap: 24px;  
+}  
+  
+.config-section {  
+    background: var(--surface-color);  
+    border: 1px solid var(--border-color);  
+    border-radius: 8px;  
+    padding: 20px;  
+    margin-bottom: 20px;  
+}  
+  
+/* 标准模式下更紧凑 */  
+.window-mode-standard .config-section {  
+    padding: 16px;  
+}  
+  
+/* 最大化模式下更宽松 */  
+.window-mode-maximized .config-section {  
+    padding: 24px;  
+}  
+  
+.section-title {  
+    display: flex;  
+    align-items: center;  
+    gap: 12px;  
+    font-size: 18px;  
+    font-weight: 600;  
+    color: var(--text-primary);  
+    margin-bottom: 20px;  
+}  
+  
+/* 改进的表单网格布局 */  
+.form-grid {  
+    display: grid;  
+    gap: 16px;  
+    margin-bottom: 16px;  
+}  
+  
+/* 标准模式：根据内容自适应 */  
+.window-mode-standard .form-grid {  
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));  
+    max-width: 100%;  
+}  
+  
+/* 最大化模式：更好地利用空间 */  
+.window-mode-maximized .form-grid {  
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));  
+    max-width: 1200px; /* 限制最大宽度避免过度拉伸 */  
+}  
+  
+.form-group {  
+    display: flex;  
+    flex-direction: column;  
+    gap: 8px;  
+    margin-bottom: 12px;  
+}  
+  
+.form-group label {  
+    font-weight: 500;  
+    color: var(--text-primary);  
+    font-size: 14px;  
+}  
+  
+.form-control {  
+    padding: 12px;  
+    border: 1px solid var(--border-color);  
+    border-radius: 6px;  
+    font-size: 14px;  
+    background: var(--surface-color);  
+    color: var(--text-primary);  
+    transition: border-color 0.2s ease;  
+}  
+  
+.form-control:focus {  
+    outline: none;  
+    border-color: var(--primary-color);  
+    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.1);  
+}  
+  
+.checkbox-label {  
+    display: flex;  
+    align-items: center;  
+    gap: 8px;  
+    cursor: pointer;  
+    font-size: 14px;  
+    white-space: nowrap; /* 防止文字不当换行 */  
+    min-width: fit-content;  
+}  
+  
+.checkbox-custom {  
+    width: 16px;  
+    height: 16px;  
+    border: 2px solid var(--border-color);  
+    border-radius: 3px;  
+    position: relative;  
+    transition: all 0.2s ease;  
+}  
+  
+.checkbox-label input[type="checkbox"]:checked + .checkbox-custom {  
+    background: var(--primary-color);  
+    border-color: var(--primary-color);  
+}  
+  
+.checkbox-label input[type="checkbox"]:checked + .checkbox-custom::after {  
+    content: '✓';  
+    position: absolute;  
+    top: -2px;  
+    left: 2px;  
+    color: white;  
+    font-size: 12px;  
+    font-weight: bold;  
+}  
+  
+.config-actions {  
+    display: flex;  
+    gap: 12px;  
+    justify-content: flex-end;  
+    padding-top: 20px;  
+    border-top: 1px solid var(--border-color);  
+    margin-top: 30px;  
+}  
+  
+.required {  
+    color: var(--error-color);  
+}  
+  
+/* 改进的行布局 */  
+.form-row {  
+    display: flex;  
+    gap: 12px;  
+    margin-bottom: 16px;  
+    flex-wrap: wrap; /* 允许换行 */  
+}  
+  
+.form-group-half {  
+    flex: 1;  
+    min-width: 200px; /* 确保最小宽度 */  
+    margin-bottom: 0;  
+}  
+  
+.form-group-quarter {  
+    flex: 1;  
+    min-width: 150px;  
+    margin-bottom: 0;  
+}  
+  
+.form-group-full {  
+    width: 100%;  
+}  
+  
+/* 更精确的响应式断点 */  
+@media (max-width: 1200px) {  
+    .form-grid {  
+        grid-template-columns: 1fr;  
+    }  
+      
+    .form-row {  
+        flex-direction: column;  
+        gap: 12px;  
+    }  
+      
+    .form-group-half,  
+    .form-group-quarter {  
+        min-width: auto;  
+    }  
+}  
+  
+@media (min-width: 1600px) {  
+    .window-mode-maximized .config-form {  
+        max-width: 1600px;  
+    }  
+      
+    .window-mode-maximized .form-grid {  
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));  
+    }  
+}  
+  
+.form-help {  
+    font-size: 12px;  
+    color: var(--text-secondary);  
+    margin: 0;  
+}

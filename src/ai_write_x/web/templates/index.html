@@ -4,202 +4,50 @@
     <meta charset="UTF-8">  
     <meta name="viewport" content="width=device-width, initial-scale=1.0">  
     <title>AIWriteX - 智能内容创作平台</title>  
+      
+    <!-- 核心样式文件 -->  
     <link rel="stylesheet" href="/static/css/main.css">  
-    <link rel="stylesheet" href="/static/css/components.css">  
+      
+    <!-- 主题样式文件 -->  
+    <link rel="stylesheet" href="/static/css/themes/light-theme.css">  
+    <link rel="stylesheet" href="/static/css/themes/dark-theme.css">  
+      
+    <!-- 组件样式文件 -->  
+    <link rel="stylesheet" href="/static/css/components/header.css">  
+    <link rel="stylesheet" href="/static/css/components/sidebar.css">  
+    <link rel="stylesheet" href="/static/css/components/footer.css"> 
+    <link rel="stylesheet" href="/static/css/components/navigation.css">  
+    <link rel="stylesheet" href="/static/css/components/buttons.css">  
+    <link rel="stylesheet" href="/static/css/components/forms.css">  
+    <link rel="stylesheet" href="/static/css/components/notifications.css">  
+    <link rel="stylesheet" href="/static/css/components/modals.css">  
+      
+    <!-- 视图样式文件 -->  
+    <link rel="stylesheet" href="/static/css/views/creative-workshop.css">  
+    <link rel="stylesheet" href="/static/css/views/article-manager.css">  
+    <link rel="stylesheet" href="/static/css/views/template-manager.css">  
+    <link rel="stylesheet" href="/static/css/views/config-manager.css">  
 </head>
+
 <body class="window-mode-standard" data-window-mode="standard">  
     <div class="app-container">  
-        <!-- 头部 -->  
-        <header class="app-header">  
-            <div class="app-title">  
-                <span>AIWriteX</span>  
-                <span class="app-subtitle">智能内容创作平台</span>  
-            </div>  
-            <div class="app-status">  
-                <div class="status-indicator" id="status-indicator">  
-                    <span class="status-dot"></span>  
-                    <span class="status-text">就绪</span>  
-                </div>  
-            </div>  
-        </header>  
-        <!-- 左侧导航 -->  
-        <aside class="sidebar">  
-            <nav class="nav-menu">  
-                <ul class="nav-list">  
-                    <li class="nav-item active">  
-                        <a href="#" class="nav-link" data-view="creative-workshop">  
-                            <svg class="nav-icon" viewBox="0 0 24 24">  
-                                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>  
-                            </svg>  
-                            <span>创意工坊</span>  
-                        </a>  
-                    </li>  
-                    <li class="nav-item">  
-                        <a href="#" class="nav-link" data-view="article-manager">  
-                            <svg class="nav-icon" viewBox="0 0 24 24">  
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>  
-                                <polyline points="14,2 14,8 20,8"/>  
-                                <line x1="16" y1="13" x2="8" y2="13"/>  
-                                <line x1="16" y1="17" x2="8" y2="17"/>  
-                                <polyline points="10,9 9,9 8,9"/>  
-                            </svg>  
-                            <span>文章管理</span>  
-                        </a>  
-                    </li>  
-                    <li class="nav-item">  
-                        <a href="#" class="nav-link" data-view="template-manager">  
-                            <svg class="nav-icon" viewBox="0 0 24 24">  
-                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>  
-                                <line x1="9" y1="9" x2="15" y2="9"/>  
-                                <line x1="9" y1="12" x2="15" y2="12"/>  
-                                <line x1="9" y1="15" x2="15" y2="15"/>  
-                            </svg>  
-                            <span>模板管理</span>  
-                        </a>  
-                    </li>  
-                    <li class="nav-item">  
-                        <a href="#" class="nav-link" data-view="config-manager">  
-                            <svg class="nav-icon" viewBox="0 0 24 24">  
-                                <circle cx="12" cy="12" r="3"/>  
-                                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1 1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>  
-                            </svg>  
-                            <span>系统配置</span>  
-                        </a>  
-                    </li>
-                </ul>  
-            </nav>  
-        </aside>  
+        <!-- 组件化的头部 -->  
+        {% include 'components/header.html' %}  
+          
+        <!-- 组件化的侧边栏 -->  
+        {% include 'components/sidebar.html' %}  
+          
         <!-- 主体布局 -->  
         <div class="app-main">  
-            <!-- 中央内容区 -->  
             <main class="content-area">  
-                <!-- 创意工坊视图 -->  
-                <div id="creative-workshop-view" class="view-content active">  
-                    <div class="content-header">  
-                        <h2 class="content-title">创意工坊</h2>  
-                        <p class="content-subtitle">AI驱动的智能内容创作</p>  
-                    </div>  
-                    <div class="content-body">  
-                        <div class="workshop-form">  
-                            <div class="form-group">  
-                                <label class="form-label">创作主题</label>  
-                                <input type="text" id="topic-input" class="form-input" placeholder="请输入您想要创作的主题...">  
-                            </div>  
-                            <div class="form-group">  
-                                <label class="form-label">发布平台</label>  
-                                <select id="platform-select" class="form-select">  
-                                    <option value="wechat">微信公众号</option>  
-                                    <option value="xiaohongshu">小红书</option>  
-                                    <option value="zhihu">知乎</option>  
-                                </select>  
-                            </div>  
-                            <div class="form-actions">  
-                                <button type="button" class="btn btn-primary" id="generate-btn">  
-                                    <span class="btn-text">开始创作</span>  
-                                    <span class="btn-loading" style="display: none;">创作中...</span>  
-                                </button>  
-                            </div>  
-                        </div>  
-                    </div>  
-                </div>  
-  
-                <!-- 文章管理视图 -->  
-                <div id="article-manager-view" class="view-content">  
-                    <div class="content-header">  
-                        <h2 class="content-title">文章管理</h2>  
-                        <p class="content-subtitle">管理您的创作内容</p>  
-                    </div>  
-                    <div class="content-body">  
-                        <div class="article-list">  
-                            <div class="article-item">  
-                                <div class="article-info">  
-                                    <h3 class="article-title">示例文章标题</h3>  
-                                    <p class="article-meta">创建时间：2024-01-01 12:00:00</p>  
-                                </div>  
-                                <div class="article-actions">  
-                                    <button class="btn btn-sm btn-secondary">编辑</button>  
-                                    <button class="btn btn-sm btn-primary">发布</button>  
-                                </div>  
-                            </div>  
-                        </div>  
-                    </div>  
-                </div>  
-  
-                <!-- 模板管理视图 -->  
-                <div id="template-manager-view" class="view-content">  
-                    <div class="content-header">  
-                        <h2 class="content-title">模板管理</h2>  
-                        <p class="content-subtitle">管理文章模板，自定义创作风格</p>  
-                    </div>  
-                    <div class="content-body">  
-                        <p>模板管理功能开发中...</p>  
-                    </div>  
-                </div>  
-  
-                <!-- 系统配置视图 -->  
-                <div id="config-manager-view" class="view-content">  
-                    <div class="content-header">  
-                        <h2 class="content-title">系统配置</h2>  
-                        <p class="content-subtitle">配置API密钥、微信公众号等系统参数</p>  
-                    </div>  
-                    <div class="content-body">  
-                        <div class="config-section">  
-                            <h3 class="config-section-title">API配置</h3>  
-                            <div class="config-grid">  
-                                <div class="config-item">  
-                                    <label class="form-label">API提供商</label>  
-                                    <select class="form-select">  
-                                        <option value="openrouter">OpenRouter</option>  
-                                        <option value="deepseek">DeepSeek</option>  
-                                        <option value="grok">Grok</option>  
-                                    </select>  
-                                </div>  
-                                <div class="config-item">  
-                                    <label class="form-label">API密钥</label>  
-                                    <input type="password" class="form-input" placeholder="请输入API密钥">  
-                                </div>  
-                            </div>  
-                        </div>  
-  
-                        <div class="config-section">  
-                            <h3 class="config-section-title">微信公众号配置</h3>  
-                            <div class="config-grid">  
-                                <div class="config-item">  
-                                    <label class="form-label">AppID</label>  
-                                    <input type="text" class="form-input" placeholder="微信公众号AppID">  
-                                </div>  
-                                <div class="config-item">  
-                                    <label class="form-label">AppSecret</label>  
-                                    <input type="password" class="form-input" placeholder="微信公众号AppSecret">  
-                                </div>  
-                            </div>  
-                        </div>  
-  
-                        <!-- 窗口模式设置 -->  
-                        <div class="config-section">  
-                            <h3 class="config-section-title">界面设置</h3>  
-                            <div class="config-grid">  
-                                <div class="config-item">  
-                                    <label class="form-label">窗口模式</label>  
-                                    <select id="window-mode-select" class="form-select">  
-                                        <option value="STANDARD">标准模式 (1400x900)</option>  
-                                        <option value="MAXIMIZED">最大化模式</option>  
-                                    </select>  
-                                    <p class="form-help">更改窗口模式需要重启应用生效</p>  
-                                </div>  
-                                <div class="config-item">  
-                                    <label class="form-label">主题模式</label>  
-                                    <select id="theme-selector" class="form-input">  
-                                        <option value="light">亮色模式</option>  
-                                        <option value="dark">暗色模式</option>  
-                                    </select>  
-                                </div>  
-                            </div>
-                        </div>
-                    </div>  
-                </div>  
+                <!-- 组件化的视图 -->  
+                {% include 'components/views/creative-workshop.html' %}  
+                {% include 'components/views/article-manager.html' %}  
+                {% include 'components/views/template-manager.html' %}  
+                {% include 'components/views/config-manager/config-manager.html' %}  
             </main>  
         </div>  
+          
         <!-- 右侧面板 -->  
         <aside class="side-panel">  
             <div class="panel-header">  
@@ -210,54 +58,16 @@
                     <p class="preview-placeholder">内容预览将在这里显示</p>  
                 </div>  
             </div>  
-        </aside>
-        <!-- 底部状态栏 -->  
-        <footer class="app-footer">  
-            <div class="footer-left">  
-                <span class="footer-text">AIWriteX v2.3.0</span>  
-            </div>  
-            <div class="footer-right">  
-                <span class="footer-text">就绪</span>  
-            </div>  
-        </footer>  
+        </aside>  
+          
+        <!-- 组件化的底部 -->  
+        {% include 'components/footer.html' %}  
     </div>  
   
-    <!-- 加载脚本 -->
-    <script src="/static/js/config-manager.js"></script>
-    <script src="/static/js/theme-manager.js"></script> 
+    <!-- 脚本加载 -->  
+    <script src="/static/js/config-manager.js"></script>  
+    <script src="/static/js/theme-manager.js"></script>  
     <script src="/static/js/window-modes.js"></script>  
     <script src="/static/js/main.js"></script>  
-    <script>  
-        // 初始化应用  
-        document.addEventListener('DOMContentLoaded', () => {  
-            // 导航切换  
-            document.querySelectorAll('.nav-link').forEach(link => {  
-                link.addEventListener('click', (e) => {  
-                    e.preventDefault();  
-                    const viewId = link.dataset.view + '-view';  
-                      
-                    // 更新导航状态  
-                    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));  
-                    link.parentElement.classList.add('active');  
-                      
-                    // 切换视图  
-                    document.querySelectorAll('.view-content').forEach(view => view.classList.remove('active'));  
-                    document.getElementById(viewId).classList.add('active');  
-                });  
-            });  
-  
-            // 生成按钮点击事件  
-            document.getElementById('generate-btn').addEventListener('click', () => {  
-                const topic = document.getElementById('topic-input').value;  
-                if (!topic.trim()) {  
-                    alert('请输入创作主题');  
-                    return;  
-                }  
-                  
-                // 这里可以调用后端API  
-                console.log('开始创作:', topic);  
-            });  
-        });  
-    </script>  
 </body>  
 </html>

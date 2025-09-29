@@ -42,40 +42,83 @@ class AIWriteXApp {
     }  
       
     setupEventListeners() {  
-        // 导航菜单点击事件  
-        document.querySelectorAll('.nav-link').forEach(link => {  
+        // 原有的导航菜单点击事件（排除系统配置的切换按钮）  
+        document.querySelectorAll('.nav-link:not(.nav-toggle)').forEach(link => {  
             link.addEventListener('click', (e) => {  
                 e.preventDefault();  
                 const view = link.dataset.view;  
                 this.showView(view);  
             });  
         });  
-          
+    
+        // 系统配置主菜单切换  
+        const navToggle = document.querySelector('.nav-toggle');  
+        if (navToggle) {  
+            navToggle.addEventListener('click', (e) => {  
+                e.preventDefault();  
+                const navItem = e.target.closest('.nav-item-expandable');  
+                if (navItem) {  
+                    navItem.classList.toggle('expanded');  
+                }  
+                this.showView('config-manager');  
+            });  
+        }  
+    
+        // 配置二级菜单点击事件  
+        document.querySelectorAll('.nav-sublink').forEach(link => {  
+            link.addEventListener('click', (e) => {  
+                e.preventDefault();  
+                const configType = link.dataset.config;  
+                
+                // 更新二级菜单状态  
+                document.querySelectorAll('.nav-sublink').forEach(sublink => {  
+                    sublink.classList.remove('active');  
+                });  
+                link.classList.add('active');  
+                
+                // 显示对应配置面板  
+                this.showConfigPanel(configType);  
+            });  
+        });  
+    
         // 生成按钮事件  
         const generateBtn = document.getElementById('generate-btn');  
         if (generateBtn) {  
             generateBtn.addEventListener('click', () => this.startGeneration());  
         }  
-          
+    
         // 停止按钮事件  
         const stopBtn = document.getElementById('stop-btn');  
         if (stopBtn) {  
             stopBtn.addEventListener('click', () => this.stopGeneration());  
         }  
-          
+    
         // 配置保存事件 - 使用统一配置管理器  
         const saveConfigBtn = document.getElementById('save-config-btn');  
         if (saveConfigBtn) {  
             saveConfigBtn.addEventListener('click', () => this.saveConfig());  
         }  
-          
+    
         // 维度滑块事件  
         document.querySelectorAll('.dimension-slider').forEach(slider => {  
             slider.addEventListener('input', (e) => {  
                 this.updateDimensionValue(e.target);  
             });  
         });  
-    }  
+    }
+
+    showConfigPanel(panelType) {  
+        // 隐藏所有配置面板  
+        document.querySelectorAll('.config-panel').forEach(panel => {  
+            panel.classList.remove('active');  
+        });  
+        
+        // 显示目标面板  
+        const targetPanel = document.getElementById(`config-${panelType}`);  
+        if (targetPanel) {  
+            targetPanel.classList.add('active');  
+        }  
+    }
       
     connectWebSocket() {  
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';  
@@ -151,10 +194,16 @@ class AIWriteXApp {
         // 更新导航状态  
         document.querySelectorAll('.nav-link').forEach(link => {  
             link.classList.remove('active');  
-            if (link.dataset.view === viewName) {  
-                link.classList.add('active');  
-            }  
         });  
+        
+        // 使用 requestAnimationFrame 确保DOM更新完成  
+        requestAnimationFrame(() => {  
+            document.querySelectorAll('.nav-link').forEach(link => {  
+                if (link.dataset.view === viewName) {  
+                    link.classList.add('active');  
+                }  
+            });  
+        });   
           
         // 显示对应视图  
         document.querySelectorAll('.view-content').forEach(view => {  
@@ -324,36 +373,42 @@ class AIWriteXApp {
         return configData;  
     }  
       
-    async loadDimensionalConfig() {  
-        if (!window.configManager) return;  
-          
-        try {  
-            const config = window.configManager.getConfig();  
-            if (config.dimensional_creative) {  
-                this.updateDimensionalUI(config.dimensional_creative);  
-            }  
-        } catch (error) {  
-            console.error('加载维度配置失败:', error);  
+    async loadDimensionalConfig() {    
+        // 必须通过配置管理器获取，无回退  
+        if (!window.configManager) {  
+            console.warn('配置管理器未初始化');  
+            return;  
+        }    
+            
+        try {    
+            const config = window.configManager.getConfig();    
+            if (config.dimensional_creative) {    
+                this.updateDimensionalUI(config.dimensional_creative);    
+            }    
+        } catch (error) {    
+            console.error('加载维度配置失败:', error);    
+        }    
+    }   
+        
+    updateDimensionValue(slider) {    
+        const value = slider.value;    
+        const valueDisplay = slider.parentElement.querySelector('.slider-value');    
+        if (valueDisplay) {    
+            valueDisplay.textContent = value;    
+        }    
+            
+        // 必须通过配置管理器更新，无直接操作  
+        const dimensionName = slider.dataset.dimension;    
+        if (dimensionName && window.configManager) {    
+            const config = window.configManager.getConfig();    
+            if (!config.dimensional_creative) {    
+                config.dimensional_creative = {};    
+            }    
+            config.dimensional_creative[dimensionName] = parseFloat(value);    
+        } else {  
+            console.warn('配置管理器不可用，无法保存维度配置');  
         }  
-    }  
-      
-    updateDimensionValue(slider) {  
-        const value = slider.value;  
-        const valueDisplay = slider.parentElement.querySelector('.slider-value');  
-        if (valueDisplay) {  
-            valueDisplay.textContent = value;  
-        }  
-          
-        // 实时更新配置到统一配置管理器  
-        const dimensionName = slider.dataset.dimension;  
-        if (dimensionName && window.configManager) {  
-            const config = window.configManager.getConfig();  
-            if (!config.dimensional_creative) {  
-                config.dimensional_creative = {};  
-            }  
-            config.dimensional_creative[dimensionName] = parseFloat(value);  
-        }  
-    }  
+    }
       
     updateDimensionalUI(dimensionalConfig) {  
         // 更新维度滑块  

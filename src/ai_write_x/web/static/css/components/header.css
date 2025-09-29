@@ -1,0 +1,51 @@
+/* 头部组件样式 */  
+.app-header {  
+    grid-area: header;  
+    background: var(--surface-color);  
+    border-bottom: 1px solid var(--border-color);  
+    display: flex;  
+    align-items: center;  
+    justify-content: space-between;  
+    padding: 0 20px;  
+    box-shadow: var(--shadow);  
+    z-index: 100;  
+}  
+  
+.app-title {  
+    font-size: 18px;  
+    font-weight: 600;  
+    color: var(--primary-color);  
+    display: flex;  
+    align-items: center;  
+}  
+  
+.app-status {  
+    display: flex;  
+    align-items: center;  
+    gap: 15px;  
+}  
+  
+.status-indicator {  
+    display: flex;  
+    align-items: center;  
+    gap: 8px;  
+    padding: 6px 12px;  
+    background: var(--success-color);  
+    color: white;  
+    border-radius: 20px;  
+    font-size: 12px;  
+    font-weight: 500;  
+}  
+  
+.status-dot {  
+    width: 8px;  
+    height: 8px;  
+    border-radius: 50%;  
+    background: currentColor;  
+    animation: pulse 2s infinite;  
+}  
+  
+@keyframes pulse {  
+    0%, 100% { opacity: 1; }  
+    50% { opacity: 0.5; }  
+}

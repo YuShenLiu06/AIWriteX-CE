@@ -1,0 +1,48 @@
+/* 底部组件样式 */  
+.app-footer {  
+    grid-area: footer;  
+    background: var(--surface-color);  
+    border-top: 1px solid var(--border-color);  
+    display: flex;  
+    align-items: center;  
+    justify-content: space-between;  
+    padding: 0 20px;  
+    font-size: 12px;  
+    color: var(--text-secondary);  
+    z-index: 50;  
+}  
+  
+.footer-left {  
+    display: flex;  
+    align-items: center;  
+    gap: 15px;  
+}  
+  
+.footer-right {  
+    display: flex;  
+    align-items: center;  
+    gap: 15px;  
+}  
+  
+.footer-text {  
+    font-weight: 500;  
+}  
+  
+/* 状态指示器（如果在footer中使用） */  
+.footer-status {  
+    display: flex;  
+    align-items: center;  
+    gap: 6px;  
+    padding: 4px 8px;  
+    background: var(--background-color);  
+    border-radius: 12px;  
+    font-size: 11px;  
+}  
+  
+.footer-status.connected {  
+    color: var(--success-color);  
+}  
+  
+.footer-status.disconnected {  
+    color: var(--error-color);  
+}
