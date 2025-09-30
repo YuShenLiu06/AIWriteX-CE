@@ -2,20 +2,17 @@
 :root {  
     /* 窗口模式变量 */  
     --sidebar-width: 180px;  
-    --panel-width: 240px;  
     --header-height: 60px;  
     --footer-height: 40px;  
 }  
   
 /* 窗口模式样式 */  
 .window-mode-standard {  
-    --sidebar-width: 200px;  /* 优化后增加20px */  
-    --panel-width: 260px;    /* 优化后增加20px */  
+    --sidebar-width: 200px;  
 }  
   
 .window-mode-maximized {  
-    --sidebar-width: 240px;  /* 优化后增加20px */  
-    --panel-width: 300px;    /* 优化后增加20px */  
+    --sidebar-width: 240px;  
 }  
   
 /* 基础重置 */  
@@ -34,15 +31,15 @@ body {
     overflow: hidden;  
 }  
   
-/* 应用容器 */  
+/* 应用容器 - 移除右侧面板列 */  
 .app-container {  
     display: grid;  
     grid-template-rows: var(--header-height) 1fr var(--footer-height);  
-    grid-template-columns: var(--sidebar-width) 1fr var(--panel-width);  
+    grid-template-columns: var(--sidebar-width) 1fr;  
     grid-template-areas:  
-        "header header header"  
-        "sidebar main panel"  
-        "footer footer footer";  
+        "header header"  
+        "sidebar main"  
+        "footer footer";  
     height: 100vh;  
     width: 100vw;  
     transition: all 0.3s ease;  
@@ -59,7 +56,7 @@ body {
   
 .view-content {  
     height: 100%;  
-    padding: 20px;  
+    padding: 10px;  
     overflow-y: auto;  
     opacity: 0;  
     transform: translateX(10px);  
@@ -67,8 +64,11 @@ body {
     display: none;  
 }  
   
-.view-content.active {  
+.view-content.show {  
     display: block;  
+}  
+  
+.view-content.active {  
     opacity: 1;  
     transform: translateX(0);  
 }  
@@ -95,7 +95,6 @@ body {
 /* 模式切换动画 */  
 .app-container,  
 .sidebar,  
-.side-panel,  
 .app-main {  
     transition: all 0.3s ease;  
 }

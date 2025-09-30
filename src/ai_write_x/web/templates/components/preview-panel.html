@@ -1,0 +1,34 @@
+<!-- 预览面板触发按钮 -->  
+<div class="preview-trigger" id="preview-trigger">  
+    <div class="trigger-icon">    
+        <svg viewBox="0 0 24 24" width="20" height="20" style="transform: scaleX(-1);">    
+            <path d="M8.59 16.59L13.17 12 8.59 7.41 10 6l6 6-6 6-1.41-1.41z"/>    
+            <path d="M2.59 16.59L7.17 12 2.59 7.41 4 6l6 6-6 6-1.41-1.41z"/>    
+        </svg>    
+    </div>
+</div>
+
+<!-- 悬浮预览面板组件 -->  
+<div class="preview-overlay" id="preview-overlay" style="display: none;">  
+    <div class="preview-panel mobile-width">  
+        <div class="preview-header">  
+            <h3 class="preview-title">实时预览</h3>  
+            <div class="preview-controls">  
+                <button class="preview-toggle-size" id="preview-toggle-size" title="切换尺寸">  
+                    📱  
+                </button>  
+                <button class="preview-close" id="preview-close">×</button>  
+            </div>  
+        </div>  
+        <div class="preview-content">  
+            <div class="preview-area" id="preview-area">  
+                <p class="preview-placeholder">内容预览将在这里显示</p>  
+            </div>  
+        </div>  
+        <div class="preview-footer">  
+            <div class="preview-info">  
+                <span class="preview-size-info">375×667 (iPhone)</span>  
+            </div>  
+        </div>  
+    </div>  
+</div>

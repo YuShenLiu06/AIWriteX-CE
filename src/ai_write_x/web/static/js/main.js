@@ -108,16 +108,37 @@ class AIWriteXApp {
     }
 
     showConfigPanel(panelType) {  
-        // 隐藏所有配置面板  
+        const targetPanel = document.getElementById(`config-${panelType}`);  
+        
+        // 隐藏其他配置面板（排除目标面板）  
         document.querySelectorAll('.config-panel').forEach(panel => {  
-            panel.classList.remove('active');  
+            if (panel !== targetPanel) {  
+                panel.classList.remove('active');  
+                // 等待动画完成后隐藏  
+                setTimeout(() => {  
+                    panel.style.display = 'none';  
+                }, 200);  
+            }  
         });  
         
         // 显示目标面板  
-        const targetPanel = document.getElementById(`config-${panelType}`);  
         if (targetPanel) {  
-            targetPanel.classList.add('active');  
+            targetPanel.style.display = 'block';  
+            // 确保display生效后再触发动画  
+            requestAnimationFrame(() => {  
+                targetPanel.classList.add('active');  
+            });  
         }  
+        
+        // 更新导航状态  
+        document.querySelectorAll('.config-nav-item').forEach(item => {  
+            item.classList.remove('active');  
+        });
+        
+        const activeNavItem = document.querySelector(`[data-config="${panelType}"]`).parentElement;  
+        activeNavItem.classList.add('active');  
+        
+        this.currentPanel = panelType;  
     }
       
     connectWebSocket() {  
@@ -196,27 +217,38 @@ class AIWriteXApp {
             link.classList.remove('active');  
         });  
         
-        // 使用 requestAnimationFrame 确保DOM更新完成  
         requestAnimationFrame(() => {  
             document.querySelectorAll('.nav-link').forEach(link => {  
                 if (link.dataset.view === viewName) {  
                     link.classList.add('active');  
                 }  
             });  
-        });   
-          
-        // 显示对应视图  
-        document.querySelectorAll('.view-content').forEach(view => {  
-            view.style.display = 'none';  
         });  
-          
+        
         const targetView = document.getElementById(`${viewName}-view`);  
+        
+        // 隐藏其他视图（排除目标视图）  
+        document.querySelectorAll('.view-content').forEach(view => {  
+            if (view !== targetView) {  
+                view.classList.remove('active');  
+                // 等待动画完成后隐藏  
+                setTimeout(() => {  
+                    view.style.display = 'none';  
+                }, 200);  
+            }  
+        });  
+        
+        // 显示目标视图  
         if (targetView) {  
             targetView.style.display = 'block';  
+            // 确保display生效后再触发动画  
+            requestAnimationFrame(() => {  
+                targetView.classList.add('active');  
+            });  
         }  
-          
-        this.currentView = viewName;  
-          
+        
+        this.currentView = viewName;    
+        
         // 根据视图加载相应数据  
         switch (viewName) {  
             case 'creative-workshop':  
@@ -226,10 +258,9 @@ class AIWriteXApp {
                 this.loadArticles();  
                 break;  
             case 'config-manager':  
-                // 配置已由 configManager 自动加载和填充  
                 break;  
         }  
-    }  
+    }
       
     async startGeneration() {  
         if (this.isGenerating) return;  
@@ -502,7 +533,20 @@ class AIWriteXApp {
         console.log('编辑文章:', articleId);  
         // 这里可以跳转到编辑页面  
     }  
-      
+    
+    // 添加新的预览方法  
+    showPreview(content) {  
+        if (window.previewPanelManager) {  
+            window.previewPanelManager.show(content);  
+        }  
+    }  
+    
+    hidePreview() {  
+        if (window.previewPanelManager) {  
+            window.previewPanelManager.hide();  
+        }  
+    }
+
     showNotification(message, type = 'info') {  
         const notification = document.createElement('div');  
         notification.className = `notification ${type}`;  

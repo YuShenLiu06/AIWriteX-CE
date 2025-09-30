@@ -2,25 +2,34 @@
 .config-layout {  
     display: flex;  
     height: 100%;  
-    gap: 20px;  
+    gap: 0px;  
 }  
   
 .config-content {  
     flex: 1;  
     overflow-y: auto;  
-    padding: 0 20px; /* 添加左右内边距 */  
+    padding: 0 10px; /* 基础左右内边距 */  
+}  
+  
+/* 最大化模式下的内容区域优化 */  
+.window-mode-maximized .config-content {  
+    padding: 0 15px; /* 适当的左右内边距 */  
 }  
   
 .config-panel {  
-    display: none;  
     height: 100%;  
+    padding: 10px;  
     overflow-y: auto;  
-    padding: 20px;  
-    max-width: 100%;  
+    opacity: 0;  
+    transform: translateX(10px);  
+    transition: opacity 0.2s ease, transform 0.2s ease;  
+    display: none;  
 }  
   
 .config-panel.active {  
     display: block;  
+    opacity: 1;  
+    transform: translateX(0);  
 }  
   
 /* 确保滚动条可见且美观 */  
@@ -43,8 +52,8 @@
 }  
   
 .config-header {  
-    margin-bottom: 20px;  /* 从30px减少到20px */  
-    padding-bottom: 16px; /* 从20px减少到16px */  
+    margin-bottom: 20px;  
+    padding-bottom: 16px;  
     border-bottom: 1px solid var(--border-color);  
 }  
   
@@ -60,12 +69,26 @@
     font-size: 14px;  
 }  
   
+/* 配置表单 - 完全响应式宽度控制 */  
 .config-form {  
-    max-width: 1400px;  
-    margin: 0 auto;  
+    width: 100%;  
     display: flex;  
     flex-direction: column;  
     gap: 24px;  
+    /* 移除默认的margin和max-width */  
+}  
+  
+/* 标准模式：居中并限制宽度 */  
+.window-mode-standard .config-form {  
+    max-width: 1400px;  
+    margin: 0 auto;  
+}  
+  
+/* 最大化模式：完全占满可用空间 */  
+.window-mode-maximized .config-form {  
+    max-width: none !important;  
+    margin: 0 !important;  
+    width: 100% !important;  
 }  
   
 .config-section {  
@@ -83,7 +106,7 @@
   
 /* 最大化模式下更宽松 */  
 .window-mode-maximized .config-section {  
-    padding: 24px;  
+    padding: 24px 32px;  
 }  
   
 .section-title {  
@@ -103,16 +126,17 @@
     margin-bottom: 16px;  
 }  
   
-/* 标准模式：根据内容自适应 */  
+/* 标准模式的响应式断点 */  
 .window-mode-standard .form-grid {  
     grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));  
     max-width: 100%;  
 }  
   
-/* 最大化模式：更好地利用空间 */  
+/* 最大化模式：完全响应式，不受屏幕尺寸限制 */  
 .window-mode-maximized .form-grid {  
     grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));  
-    max-width: 1200px; /* 限制最大宽度避免过度拉伸 */  
+    max-width: none !important;  
+    width: 100%;  
 }  
   
 .form-group {  
@@ -150,7 +174,7 @@
     gap: 8px;  
     cursor: pointer;  
     font-size: 14px;  
-    white-space: nowrap; /* 防止文字不当换行 */  
+    white-space: nowrap;  
     min-width: fit-content;  
 }  
   
@@ -196,12 +220,12 @@
     display: flex;  
     gap: 12px;  
     margin-bottom: 16px;  
-    flex-wrap: wrap; /* 允许换行 */  
+    flex-wrap: wrap;  
 }  
   
 .form-group-half {  
     flex: 1;  
-    min-width: 200px; /* 确保最小宽度 */  
+    min-width: 200px;  
     margin-bottom: 0;  
 }  
   
@@ -215,12 +239,15 @@
     width: 100%;  
 }  
   
-/* 更精确的响应式断点 */  
+/* 标准模式的小屏幕响应式 */  
 @media (max-width: 1200px) {  
-    .form-grid {  
+    .window-mode-standard .form-grid {  
         grid-template-columns: 1fr;  
     }  
-      
+}  
+  
+/* 行布局的响应式处理 - 只在真正小屏幕时生效 */  
+@media (max-width: 800px) {  
     .form-row {  
         flex-direction: column;  
         gap: 12px;  
@@ -229,16 +256,6 @@
     .form-group-half,  
     .form-group-quarter {  
         min-width: auto;  
-    }  
-}  
-  
-@media (min-width: 1600px) {  
-    .window-mode-maximized .config-form {  
-        max-width: 1600px;  
-    }  
-      
-    .window-mode-maximized .form-grid {  
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));  
     }  
 }  
   

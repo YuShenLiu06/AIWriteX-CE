@@ -59,12 +59,10 @@ class WindowModeManager {
             root.style.setProperty('--window-width', '1400px');  
             root.style.setProperty('--window-height', '900px');  
             root.style.setProperty('--sidebar-width', '200px');   
-            root.style.setProperty('--panel-width', '260px');    
         } else if (mode === 'MAXIMIZED') {  
             root.style.setProperty('--window-width', '100vw');  
             root.style.setProperty('--window-height', '100vh');  
             root.style.setProperty('--sidebar-width', '240px'); 
-            root.style.setProperty('--panel-width', '300px');  
         }  
         this.currentMode = mode;  
     } 

@@ -21,6 +21,7 @@
     <link rel="stylesheet" href="/static/css/components/forms.css">  
     <link rel="stylesheet" href="/static/css/components/notifications.css">  
     <link rel="stylesheet" href="/static/css/components/modals.css">  
+    <link rel="stylesheet" href="/static/css/components/preview-panel.css">
       
     <!-- 视图样式文件 -->  
     <link rel="stylesheet" href="/static/css/views/creative-workshop.css">  
@@ -49,22 +50,14 @@
         </div>  
           
         <!-- 右侧面板 -->  
-        <aside class="side-panel">  
-            <div class="panel-header">  
-                <h3 class="panel-title">实时预览</h3>  
-            </div>  
-            <div class="panel-content">  
-                <div class="preview-area">  
-                    <p class="preview-placeholder">内容预览将在这里显示</p>  
-                </div>  
-            </div>  
-        </aside>  
+        {% include 'components/preview-panel.html' %}
           
         <!-- 组件化的底部 -->  
         {% include 'components/footer.html' %}  
     </div>  
   
     <!-- 脚本加载 -->  
+    <script src="/static/js/preview-panel.js"></script>
     <script src="/static/js/config-manager.js"></script>  
     <script src="/static/js/theme-manager.js"></script>  
     <script src="/static/js/window-modes.js"></script>  

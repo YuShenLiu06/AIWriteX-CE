@@ -4,7 +4,7 @@ class AIWriteXConfigManager {
         this.config = {};  
         this.uiConfig = this.loadUIConfig();  
         
-        this.currentPanel = 'base';  
+        this.currentPanel = 'ui';  
         this.bindConfigNavigation();  
 
         this.init(); 
@@ -13,7 +13,8 @@ class AIWriteXConfigManager {
     async init() {  
         try {  
             await this.loadConfig();  
-            this.populateUI();  
+            this.populateUI();
+            this.showConfigPanel(this.currentPanel);   
         } catch (error) {  
             console.error('配置管理器初始化失败:', error);  
         }  
@@ -166,7 +167,57 @@ class AIWriteXConfigManager {
                 if (appidInput) appidInput.value = cred.appid || '';  
                 if (secretInput) secretInput.value = cred.appsecret || '';  
             });  
+        } 
+
+        // 填充界面配置  
+        const themeSelector = document.getElementById('theme-selector');  
+        if (themeSelector) {  
+            themeSelector.value = this.getTheme();  
+            themeSelector.addEventListener('change', (e) => {  
+                this.setTheme(e.target.value);  
+                // 触发主题管理器更新  
+                if (window.themeManager) {  
+                    window.themeManager.applyTheme(e.target.value);  
+                }  
+            });  
         }  
+        
+        const windowModeSelector = document.getElementById('window-mode-selector');  
+        if (windowModeSelector) {  
+            windowModeSelector.value = this.getWindowMode();  
+            windowModeSelector.addEventListener('change', (e) => {  
+                this.setWindowMode(e.target.value);  
+                // 触发窗口模式管理器更新  
+                if (window.windowModeManager) {  
+                    window.windowModeManager.applyMode(e.target.value);  
+                }  
+            });  
+        } 
+
+        const saveUIConfigBtn = document.getElementById('save-ui-config');  
+        if (saveUIConfigBtn) {  
+            saveUIConfigBtn.addEventListener('click', () => {  
+                // UI配置已经通过change事件自动保存，这里可以显示成功提示  
+                console.log('界面配置已保存');  
+            });  
+        }  
+        
+        const resetUIConfigBtn = document.getElementById('reset-ui-config');  
+        if (resetUIConfigBtn) {  
+            resetUIConfigBtn.addEventListener('click', () => {  
+                // 重置为默认配置  
+                this.saveUIConfig({ theme: 'light', windowMode: 'STANDARD' });  
+                // 更新UI显示  
+                const themeSelector = document.getElementById('theme-selector');  
+                const windowModeSelector = document.getElementById('window-mode-selector');  
+                if (themeSelector) themeSelector.value = 'light';  
+                if (windowModeSelector) windowModeSelector.value = 'STANDARD';  
+                
+                // 应用主题和窗口模式  
+                if (window.themeManager) window.themeManager.applyTheme('light');  
+                if (window.windowModeManager) window.windowModeManager.applyMode('STANDARD');  
+            });  
+        }
     } 
       
     // 获取当前配置  
