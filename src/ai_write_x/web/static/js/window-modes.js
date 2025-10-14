@@ -50,26 +50,15 @@ class WindowModeManager {
     }    
             
     applyMode(mode) {  
-        document.body.className = document.body.className.replace(/window-mode-\\w+/g, '');  
+        document.body.className = document.body.className.replace(/window-mode-\w+/g, '');  
         document.body.classList.add(`window-mode-${mode.toLowerCase()}`);  
         document.body.setAttribute('data-window-mode', mode.toLowerCase());  
-        
-        const root = document.documentElement;  
-        if (mode === 'STANDARD') {  
-            root.style.setProperty('--window-width', '1400px');  
-            root.style.setProperty('--window-height', '900px');  
-            root.style.setProperty('--sidebar-width', '200px');   
-        } else if (mode === 'MAXIMIZED') {  
-            root.style.setProperty('--window-width', '100vw');  
-            root.style.setProperty('--window-height', '100vh');  
-            root.style.setProperty('--sidebar-width', '240px'); 
-        }  
         this.currentMode = mode;  
-    } 
+    }
         
     bindModeSelector() {              
         try {    
-            const selector = document.getElementById('window-mode-select');                  
+            const selector = document.getElementById('window-mode-selector');                  
             if (!selector) return;    
                 
             selector.value = this.currentMode;    
@@ -88,23 +77,23 @@ class WindowModeManager {
         }  
     }    
         
-    showRestartNotification() {    
-        const notification = document.createElement('div');    
-        notification.className = 'restart-notification';    
-        notification.innerHTML = `    
-            <div class="notification-content">    
-                <span>窗口模式已保存，请重启应用生效</span>    
-                <button onclick="this.parentElement.parentElement.remove()">确定</button>    
-            </div>    
-        `;    
-        document.body.appendChild(notification);    
+    showRestartNotification() {      
+        const notification = document.createElement('div');      
+        notification.className = 'restart-notification';      
+        notification.innerHTML = `      
+            <div class="notification-content">      
+                <span>窗口模式已保存，请重启应用生效</span>      
+                <button class="btn btn-primary" onclick="this.parentElement.parentElement.remove()">确定</button>      
+            </div>      
+        `;      
+        document.body.appendChild(notification);      
             
-        setTimeout(() => {    
-            if (notification.parentElement) {    
-                notification.remove();    
-            }    
-        }, 3000);    
-    }    
+        setTimeout(() => {      
+            if (notification.parentElement) {      
+                notification.remove();      
+            }      
+        }, 3000);      
+    }  
 }    
     
 document.addEventListener('DOMContentLoaded', () => {    
