@@ -312,21 +312,22 @@ class WebViewGUI:
     def get_window_config(self):
         """获取窗口配置"""
         try:
-            if self.window is not None:
-                mode = self.window.evaluate_js(
-                    """
-                    localStorage.getItem('aiwritex_window_mode') || 'STANDARD'
-                    """
-                )
+            from src.ai_write_x.utils.path_manager import PathManager
+            import json
+
+            ui_config_file = PathManager.get_config_dir() / "ui_config.json"
+            if ui_config_file.exists():
+                config = json.loads(ui_config_file.read_text(encoding="utf-8"))
+                mode = config.get("windowMode", "STANDARD")
 
                 if mode == "MAXIMIZED":
                     return {"width": 1400, "height": 900, "maximized": True}
                 else:
                     return {"width": 1400, "height": 900, "maximized": False}
-            else:
-                return {"width": 1400, "height": 900, "maximized": False}
-        except Exception:
-            return {"width": 1400, "height": 900, "maximized": False}
+        except Exception as e:
+            log.print_log(f"读取 UI 配置失败: {e}", "warning")
+
+        return {"width": 1400, "height": 900, "maximized": False}
 
 
 def gui_start():

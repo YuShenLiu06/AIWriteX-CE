@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
+import json
 from typing import Dict, Any
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from src.ai_write_x.config.config import Config
 from src.ai_write_x.utils import log
+from src.ai_write_x.utils.path_manager import PathManager
 
 router = APIRouter(prefix="/api/config", tags=["config"])
 
@@ -102,3 +104,25 @@ async def update_dimensional_creative_config(config_data: Dict[str, Any]):
     except Exception as e:
         log.print_log(f"更新维度化创意配置失败: {str(e)}", "error")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+def get_ui_config_path():
+    """获取 UI 配置文件路径"""
+    return PathManager.get_config_dir() / "ui_config.json"
+
+
+@router.get("/ui-config")
+async def get_ui_config():
+    """获取 UI 配置"""
+    config_file = get_ui_config_path()
+    if config_file.exists():
+        return json.loads(config_file.read_text(encoding="utf-8"))
+    return {"theme": "light", "windowMode": "STANDARD"}
+
+
+@router.post("/ui-config")
+async def save_ui_config(config: dict):
+    """保存 UI 配置"""
+    config_file = get_ui_config_path()
+    config_file.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
+    return {"success": True}

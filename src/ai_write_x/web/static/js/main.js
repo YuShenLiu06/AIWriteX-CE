@@ -347,13 +347,12 @@ class AIWriteXApp {
             const success = await window.configManager.saveConfig(configData);  
               
             if (success) {  
-                this.showNotification('配置保存成功', 'success');  
+                this.showNotification('设置保存成功', 'success');  
             } else {  
                 throw new Error('保存失败');  
             }  
         } catch (error) {  
-            console.error('保存配置失败:', error);  
-            this.showNotification('配置保存失败', 'error');  
+            this.showNotification('设置保存失败', 'error');  
         }  
     }  
       
@@ -571,5 +570,6 @@ class AIWriteXApp {
 // 初始化应用  
 let app;  
 document.addEventListener('DOMContentLoaded', () => {  
-    app = new AIWriteXApp();  
+    app = new AIWriteXApp();
+    window.app = app;
 });

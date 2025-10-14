@@ -12,6 +12,7 @@ backup/
 temp/
 tmp/
 config.bk
+ui_config.json
 output/*/*
 !output/article/.gitkeep
 !output/exe/.gitkeep

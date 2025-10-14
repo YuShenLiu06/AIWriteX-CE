@@ -15,14 +15,19 @@ class ThemeManager {
         this.bindSystemThemeChange();    
     }    
         
-    waitForConfigManager() {    
-        if (window.configManager) {    
-            this.configManager = window.configManager;    
-            this.init();    
-        } else {    
-            setTimeout(() => this.waitForConfigManager(), 50);    
-        }    
-    }    
+    waitForConfigManager() {  
+        if (window.configManager) {  
+            this.configManager = window.configManager;  
+            // 不立即初始化,等待 onConfigLoaded 回调  
+        } else {  
+            setTimeout(() => this.waitForConfigManager(), 50);  
+        }  
+    }  
+    
+    onConfigLoaded() {  
+        // 配置加载完成后才初始化  
+        this.init();  
+    }   
         
     loadSavedTheme() {    
         try {    
@@ -59,21 +64,27 @@ class ThemeManager {
         this.updateThemeSelector();    
     }  
         
-    bindThemeSelector() {    
-        try {    
-            const selector = document.getElementById('theme-selector');    
-            if (!selector) return;    
-                
-            selector.value = this.currentTheme;    
-                
-            selector.addEventListener('change', async (e) => {    
-                const newTheme = e.target.value;    
-                await this.applyTheme(newTheme);    
-            });                  
-        } catch (error) {    
-            console.error('绑定主题选择器失败:', error);    
-        }    
-    }    
+    bindThemeSelector() {  
+        try {  
+            const selector = document.getElementById('theme-selector');  
+            if (!selector) return;  
+            
+            selector.value = this.currentTheme;  
+            
+            selector.addEventListener('change', async (e) => {  
+                const newTheme = e.target.value;  
+                // 只应用主题,不保存  
+                await this.applyTheme(newTheme, false);  
+            });  
+        } catch (error) {  
+            console.error('绑定主题选择器失败:', error);  
+        }  
+    }  
+    
+    // 添加手动保存方法  
+    async saveCurrentTheme() {  
+        return await this.saveTheme(this.currentTheme);  
+    }  
         
     updateThemeSelector() {    
         const selector = document.getElementById('theme-selector');    

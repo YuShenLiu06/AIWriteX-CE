@@ -13,13 +13,18 @@ class WindowModeManager {
         this.applyMode(this.currentMode);    
     }    
         
-    waitForConfigManager() {    
-        if (window.configManager) {    
-            this.configManager = window.configManager;    
-            this.init();    
-        } else {    
-            setTimeout(() => this.waitForConfigManager(), 50);    
-        }    
+    waitForConfigManager() {  
+        if (window.configManager) {  
+            this.configManager = window.configManager;  
+            // 不立即初始化,等待 onConfigLoaded 回调  
+        } else {  
+            setTimeout(() => this.waitForConfigManager(), 50);  
+        }  
+    }  
+    
+    onConfigLoaded() {  
+        // 配置加载完成后才初始化  
+        this.init();  
     }    
         
     loadSavedMode() {              
@@ -55,44 +60,40 @@ class WindowModeManager {
         document.body.setAttribute('data-window-mode', mode.toLowerCase());  
         this.currentMode = mode;  
     }
-        
-    bindModeSelector() {              
-        try {    
-            const selector = document.getElementById('window-mode-selector');                  
-            if (!selector) return;    
                 
-            selector.value = this.currentMode;    
-                
-            selector.addEventListener('change', async (e) => {    
-                const newMode = e.target.value;    
-                const success = await this.saveMode(newMode);    
-                if (success) {    
-                    this.showRestartNotification();    
-                } else {    
-                    console.error('保存窗口模式失败');    
-                }    
-            });                  
-        } catch (error) {    
-            console.error('绑定窗口模式选择器失败:', error);    
+    bindModeSelector() {  
+        try {  
+            const selector = document.getElementById('window-mode-selector');  
+            if (!selector) return;  
+            
+            selector.value = this.currentMode;  
+            
+            selector.addEventListener('change', async (e) => {  
+                const newMode = e.target.value;  
+                // 只应用模式,不保存  
+                this.applyMode(newMode);  
+                // 立即显示重启提示  
+                this.showRestartNotification();  
+            });  
+        } catch (error) {  
+            console.error('绑定窗口模式选择器失败:', error);  
         }  
+    }
+        
+    // 添加手动保存方法  
+    async saveCurrentMode() {  
+        const success = await this.saveMode(this.currentMode);  
+        if (success) {  
+            this.showRestartNotification();  
+        }  
+        return success;  
     }    
         
-    showRestartNotification() {      
-        const notification = document.createElement('div');      
-        notification.className = 'restart-notification';      
-        notification.innerHTML = `      
-            <div class="notification-content">      
-                <span>窗口模式已保存，请重启应用生效</span>      
-                <button class="btn btn-primary" onclick="this.parentElement.parentElement.remove()">确定</button>      
-            </div>      
-        `;      
-        document.body.appendChild(notification);      
-            
-        setTimeout(() => {      
-            if (notification.parentElement) {      
-                notification.remove();      
-            }      
-        }, 3000);      
+    showRestartNotification() {  
+        // 直接使用统一的通知系统,警告样式  
+        if (window.app && window.app.showNotification) {  
+            window.app.showNotification('窗口模式已修改，请保存后重启生效', 'warning');  
+        } 
     }  
 }    
     
