@@ -566,7 +566,7 @@ class ConfigEditor:
             [
                 sg.Text("文章格式：", size=(15, 1), tooltip=tips["article_format"]),
                 sg.Combo(
-                    ["html", "plaintext", "txt"],
+                    ["html", "markdown", "txt"],
                     default_value=self.config.article_format,
                     key="-ARTICLE_FORMAT-",
                     size=(11, 1),
@@ -1375,7 +1375,7 @@ class ConfigEditor:
                     # HTML格式禁用格式化勾选框
                     self.window["-FORMAT_PUBLISH-"].update(disabled=True)
                 else:
-                    # 其他格式（markdown, txt）启用格式化勾选框
+                    # 其他格式（markdown, text）启用格式化勾选框
                     self.window["-FORMAT_PUBLISH-"].update(disabled=False)
 
             # 动态启用/禁用下拉列表

@@ -21,9 +21,41 @@ class PlatformType(Enum):
     DOUBAN = "douban"
 
     @classmethod
+    def _get_display_names(cls):
+        """获取显示名称映射字典"""
+        return {
+            "wechat": "微信公众号",
+            "xiaohongshu": "小红书",
+            "douyin": "抖音",
+            "toutiao": "今日头条",
+            "baijiahao": "百家号",
+            "zhihu": "知乎",
+            "douban": "豆瓣",
+        }
+
+    @classmethod
     def get_all_platforms(cls):
         """获取所有支持的平台"""
         return [platform.value for platform in cls]
+
+    @classmethod
+    def get_display_name(cls, platform_value: str) -> str:
+        """获取平台的显示名称"""
+        return cls._get_display_names().get(platform_value, platform_value)
+
+    @classmethod
+    def get_platform_key(cls, display_name: str) -> str:
+        """根据显示名称获取平台键"""
+        for key, name in cls._get_display_names().items():
+            if name == display_name:
+                return key
+        return "wechat"
+
+    @classmethod
+    def get_all_display_names(cls) -> list:
+        """获取所有平台的显示名称列表"""
+        display_names = cls._get_display_names()
+        return [display_names[p.value] for p in cls]
 
     @classmethod
     def is_valid_platform(cls, platform_name: str) -> bool:

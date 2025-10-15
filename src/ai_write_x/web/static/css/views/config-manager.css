@@ -160,7 +160,31 @@
     font-size: 12px;      
     font-weight: bold;      
 }      
-      
+    
+/* 复选框禁用状态 */  
+.checkbox-label input[type="checkbox"]:disabled + .checkbox-custom {  
+    background: var(--surface-color);  
+    border-color: var(--border-color);  
+    opacity: 0.5;  
+    cursor: not-allowed;  
+}  
+  
+.checkbox-label input[type="checkbox"]:disabled:checked + .checkbox-custom {  
+    background: var(--border-color);  
+    border-color: var(--border-color);  
+    opacity: 0.5;  
+}  
+  
+.checkbox-label input[type="checkbox"]:disabled:checked + .checkbox-custom::after {  
+    color: rgba(255, 255, 255, 0.6);  
+}  
+  
+/* 禁用状态下的标签文字 */  
+.checkbox-label:has(input[type="checkbox"]:disabled) {  
+    opacity: 0.6;  
+    cursor: not-allowed;  
+}
+
 .config-actions {      
     display: flex;      
     gap: 12px;      

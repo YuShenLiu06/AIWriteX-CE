@@ -248,8 +248,25 @@ class AIWriteXApp {
             });  
         }  
         
-        // 关键:如果切换到非配置管理视图,折叠系统设置菜单  
-        if (viewName !== 'config-manager') {  
+        // 关键修改:如果切换到配置管理视图,默认激活界面设置子菜单  
+        if (viewName === 'config-manager') {  
+            // 清除所有子菜单的active状态  
+            document.querySelectorAll('.nav-sublink').forEach(sublink => {  
+                sublink.classList.remove('active');  
+            });  
+            
+            // 激活界面设置子菜单  
+            const uiConfigSublink = document.querySelector('[data-config="ui"]');  
+            if (uiConfigSublink) {  
+                uiConfigSublink.classList.add('active');  
+            }  
+            
+            // 显示界面设置面板  
+            if (window.configManager) {  
+                window.configManager.showConfigPanel('ui');  
+            }  
+        } else {  
+            // 关键:如果切换到非配置管理视图,折叠系统设置菜单  
             const expandableNavItem = document.querySelector('.nav-item-expandable');  
             if (expandableNavItem) {  
                 expandableNavItem.classList.remove('expanded');  
@@ -272,7 +289,7 @@ class AIWriteXApp {
             }  
         }  
         
-        this.currentView = viewName;      
+        this.currentView = viewName;  
         
         // 根据视图加载相应数据  
         switch (viewName) {  
@@ -363,14 +380,10 @@ class AIWriteXApp {
             this.showNotification('配置管理器未初始化', 'error');  
             return;  
         }  
-          
+        
         try {  
-            // 收集当前界面的配置数据  
-            const configData = this.collectConfigData();  
-              
-            // 使用统一配置管理器保存  
-            const success = await window.configManager.saveConfig(configData);  
-              
+            const success = await window.configManager.saveConfig();  
+            
             if (success) {  
                 this.showNotification('设置保存成功', 'success');  
             } else {  
@@ -379,54 +392,7 @@ class AIWriteXApp {
         } catch (error) {  
             this.showNotification('设置保存失败', 'error');  
         }  
-    }  
-      
-    collectConfigData() {  
-        const configData = {};  
-          
-        // 收集API配置  
-        const apiTypeSelect = document.getElementById('api-type-select');  
-        if (apiTypeSelect) {  
-            configData.api = {  
-                api_type: apiTypeSelect.value  
-            };  
-        }  
-          
-        // 收集微信配置  
-        const wechatAppId = document.getElementById('wechat-appid');  
-        const wechatAppSecret = document.getElementById('wechat-appsecret');  
-        if (wechatAppId || wechatAppSecret) {  
-            configData.wechat = {  
-                credentials: [{  
-                    appid: wechatAppId?.value || '',  
-                    appsecret: wechatAppSecret?.value || ''  
-                }]  
-            };  
-        }  
-          
-        // 收集模板配置  
-        const useTemplate = document.getElementById('use-template');  
-        if (useTemplate) {  
-            configData.template = {  
-                use_template: useTemplate.checked  
-            };  
-        }  
-          
-        // 收集维度配置  
-        const dimensionalConfig = {};  
-        document.querySelectorAll('.dimension-slider').forEach(slider => {  
-            const dimensionName = slider.dataset.dimension;  
-            if (dimensionName) {  
-                dimensionalConfig[dimensionName] = parseFloat(slider.value);  
-            }  
-        });  
-          
-        if (Object.keys(dimensionalConfig).length > 0) {  
-            configData.dimensional_creative = dimensionalConfig;  
-        }  
-          
-        return configData;  
-    }  
+    }
       
     async loadDimensionalConfig() {    
         // 必须通过配置管理器获取，无回退  
@@ -445,21 +411,22 @@ class AIWriteXApp {
         }    
     }   
         
-    updateDimensionValue(slider) {    
-        const value = slider.value;    
-        const valueDisplay = slider.parentElement.querySelector('.slider-value');    
-        if (valueDisplay) {    
-            valueDisplay.textContent = value;    
-        }    
-            
-        // 必须通过配置管理器更新，无直接操作  
-        const dimensionName = slider.dataset.dimension;    
-        if (dimensionName && window.configManager) {    
-            const config = window.configManager.getConfig();    
-            if (!config.dimensional_creative) {    
-                config.dimensional_creative = {};    
-            }    
-            config.dimensional_creative[dimensionName] = parseFloat(value);    
+    updateDimensionValue(slider) {  
+        const value = slider.value;  
+        const valueDisplay = slider.parentElement.querySelector('.slider-value');  
+        if (valueDisplay) {  
+            valueDisplay.textContent = value;  
+        }  
+        
+        // 通过配置管理器更新后端内存  
+        const dimensionName = slider.dataset.dimension;  
+        if (dimensionName && window.configManager) {  
+            window.configManager.updateConfig({  
+                dimensional_creative: {  
+                    ...window.configManager.config.dimensional_creative,  
+                    [dimensionName]: parseFloat(value)  
+                }  
+            });  
         } else {  
             console.warn('配置管理器不可用，无法保存维度配置');  
         }  

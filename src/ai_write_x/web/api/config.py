@@ -9,6 +9,8 @@ from pydantic import BaseModel
 from src.ai_write_x.config.config import Config
 from src.ai_write_x.utils import log
 from src.ai_write_x.utils.path_manager import PathManager
+from src.ai_write_x.adapters.platform_adapters import PlatformType
+
 
 router = APIRouter(prefix="/api/config", tags=["config"])
 
@@ -22,26 +24,25 @@ async def get_config():
     """获取当前配置"""
     try:
         config = Config.get_instance()
+        config_dict = config.config
 
-        # 构建配置数据结构，基于现有配置系统
         config_data = {
-            "platforms": getattr(config, "platforms", []),
-            "api": {
-                "api_type": getattr(config, "api_type", ""),
-                "providers": getattr(config, "config", {}).get("api", {}),
-            },
-            "wechat": {"credentials": getattr(config, "wechat_credentials", [])},
-            "template": {
-                "use_template": getattr(config, "use_template", True),
-                "template_category": getattr(config, "template_category", ""),
-                "template": getattr(config, "template", ""),
-            },
-            "dimensional_creative": getattr(config, "dimensional_creative_config", {}),
-            "publishing": {
-                "auto_publish": getattr(config, "auto_publish", False),
-                "article_format": getattr(config, "article_format", "html"),
-                "format_publish": getattr(config, "format_publish", True),
-            },
+            "platforms": config_dict.get("platforms", []),
+            "publish_platform": config_dict.get("publish_platform", "wechat"),
+            "api": config_dict.get("api", {}),
+            "wechat": config_dict.get("wechat", {}),
+            "use_template": config_dict.get("use_template", True),
+            "template_category": config_dict.get("template_category", ""),
+            "template": config_dict.get("template", ""),
+            "use_compress": config_dict.get("use_compress", True),
+            "aiforge_search_max_results": config_dict.get("aiforge_search_max_results", 10),
+            "aiforge_search_min_results": config_dict.get("aiforge_search_min_results", 1),
+            "min_article_len": config_dict.get("min_article_len", 1000),
+            "max_article_len": config_dict.get("max_article_len", 2000),
+            "auto_publish": config_dict.get("auto_publish", False),
+            "article_format": config_dict.get("article_format", "html"),
+            "format_publish": config_dict.get("format_publish", True),
+            "dimensional_creative": config_dict.get("dimensional_creative", {}),
         }
 
         return {"status": "success", "data": config_data}
@@ -51,58 +52,53 @@ async def get_config():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/")
-async def update_config(request: ConfigUpdateRequest):
-    """更新配置"""
+@router.patch("/")
+async def update_config_memory(request: ConfigUpdateRequest):
+    """仅更新内存中的配置,不保存到文件"""
     try:
         config = Config.get_instance()
-
-        # 更新配置数据
         config_data = request.config_data.get("config_data", request.config_data)
 
-        # 使用 Config 类的 save_config 方法
-        if config.save_config(config_data):
-            return {"status": "success", "message": "配置更新成功"}
-        else:
-            raise HTTPException(status_code=500, detail="配置保存失败")
+        # 深度合并配置到内存
+        def deep_merge(target, source):
+            for key, value in source.items():
+                if key in target and isinstance(target[key], dict) and isinstance(value, dict):
+                    deep_merge(target[key], value)
+                else:
+                    target[key] = value
 
+        with config._lock:
+            deep_merge(config.config, config_data)
+        return {"status": "success", "message": "配置已更新(仅内存)"}
     except Exception as e:
-        log.print_log(f"更新配置失败: {str(e)}", "error")
+        log.print_log(f"更新内存配置失败: {str(e)}", "error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/dimensional_creative")
-async def get_dimensional_creative_config():
-    """获取维度化创意配置"""
+@router.post("/")
+async def save_config_to_file():
+    """保存当前内存配置到文件"""
     try:
         config = Config.get_instance()
-        dimensional_config = getattr(config, "dimensional_creative_config", {})
 
-        return {"status": "success", "data": dimensional_config}
-
+        # 直接保存当前内存中的配置
+        if config.save_config(config.config):
+            return {"status": "success", "message": "配置已保存"}
+        else:
+            raise HTTPException(status_code=500, detail="配置保存失败")
     except Exception as e:
-        log.print_log(f"获取维度化创意配置失败: {str(e)}", "error")
+        log.print_log(f"保存配置失败: {str(e)}", "error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.post("/dimensional_creative")
-async def update_dimensional_creative_config(config_data: Dict[str, Any]):
-    """更新维度化创意配置"""
+@router.get("/default")
+async def get_default_config():
+    """获取默认配置"""
     try:
         config = Config.get_instance()
-
-        # 更新维度化创意配置
-        current_config = getattr(config, "dimensional_creative_config", {})
-        current_config.update(config_data)
-
-        # 保存配置
-        if config.save_config():
-            return {"status": "success", "message": "维度化创意配置更新成功"}
-        else:
-            raise HTTPException(status_code=500, detail="配置保存失败")
-
+        return {"status": "success", "data": config.default_config}
     except Exception as e:
-        log.print_log(f"更新维度化创意配置失败: {str(e)}", "error")
+        log.print_log(f"获取默认配置失败: {str(e)}", "error")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -126,3 +122,47 @@ async def save_ui_config(config: dict):
     config_file = get_ui_config_path()
     config_file.write_text(json.dumps(config, ensure_ascii=False, indent=2), encoding="utf-8")
     return {"success": True}
+
+
+@router.get("/template-categories")
+async def get_template_categories():
+    """获取所有模板分类"""
+    try:
+        from src.ai_write_x.config.config import DEFAULT_TEMPLATE_CATEGORIES
+
+        categories = PathManager.get_all_categories(DEFAULT_TEMPLATE_CATEGORIES)
+
+        return {"status": "success", "data": categories}
+    except Exception as e:
+        log.print_log(f"获取模板分类失败: {str(e)}", "error")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/templates/{category}")
+async def get_templates_by_category(category: str):
+    """获取指定分类下的模板列表"""
+    try:
+        if category == "随机分类":
+            return {"status": "success", "data": []}
+
+        templates = PathManager.get_templates_by_category(category)
+
+        return {"status": "success", "data": templates}
+    except Exception as e:
+        log.print_log(f"获取模板列表失败: {str(e)}", "error")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get("/platforms")
+async def get_platforms():
+    """获取所有支持的发布平台"""
+    try:
+        platforms = [
+            {"value": platform_value, "label": PlatformType.get_display_name(platform_value)}
+            for platform_value in PlatformType.get_all_platforms()
+        ]
+
+        return {"status": "success", "data": platforms}
+    except Exception as e:
+        log.print_log(f"获取平台列表失败: {str(e)}", "error")
+        raise HTTPException(status_code=500, detail=str(e))
