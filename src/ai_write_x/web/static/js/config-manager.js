@@ -48,27 +48,43 @@ class AIWriteXConfigManager {
     }  
       
     showConfigPanel(panelType) {  
+        const configContent = document.querySelector('.config-content');  
+        const targetPanel = document.getElementById(`config-${panelType}`);  
+        
+        // 关键:在任何DOM操作之前立即重置滚动位置  
+        if (configContent) {  
+            configContent.scrollTop = 0;  
+        }  
+        
         // 隐藏所有配置面板  
         document.querySelectorAll('.config-panel').forEach(panel => {  
-            panel.classList.remove('active');  
+            if (panel !== targetPanel) {  
+                panel.classList.remove('active');  
+                // 立即隐藏,不使用 setTimeout  
+                panel.style.display = 'none';  
+            }  
         });  
-          
+        
         // 显示目标面板  
-        const targetPanel = document.getElementById(`config-${panelType}`);  
         if (targetPanel) {  
+            targetPanel.style.display = 'block';  
+            // 强制浏览器重排,确保 display 生效  
+            targetPanel.offsetHeight;  
             targetPanel.classList.add('active');  
         }  
-          
+        
         // 更新导航状态  
         document.querySelectorAll('.config-nav-item').forEach(item => {  
             item.classList.remove('active');  
         });  
-          
+        
         const activeNavItem = document.querySelector(`[data-config="${panelType}"]`).parentElement;  
-        activeNavItem.classList.add('active');  
-          
+        if (activeNavItem) {  
+            activeNavItem.classList.add('active');  
+        }  
+        
         this.currentPanel = panelType;  
-    }  
+    }
 
     // UI配置管理（localStorage）  
     loadUIConfig() {  

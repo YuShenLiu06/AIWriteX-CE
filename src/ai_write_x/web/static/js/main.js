@@ -108,39 +108,42 @@ class AIWriteXApp {
     }
 
     showConfigPanel(panelType) {  
+        const configContent = document.querySelector('.config-content');  
         const targetPanel = document.getElementById(`config-${panelType}`);  
         
-        // 隐藏其他配置面板（排除目标面板）  
+        // 立即重置滚动位置  
+        if (configContent) {  
+            configContent.scrollTop = 0;  
+        }  
+        
+        // 隐藏其他配置面板  
         document.querySelectorAll('.config-panel').forEach(panel => {  
             if (panel !== targetPanel) {  
                 panel.classList.remove('active');  
-                // 等待动画完成后隐藏  
-                setTimeout(() => {  
-                    panel.style.display = 'none';  
-                }, 200);  
+                panel.style.display = 'none';  
             }  
         });  
         
         // 显示目标面板  
         if (targetPanel) {  
             targetPanel.style.display = 'block';  
-            // 确保display生效后再触发动画  
-            requestAnimationFrame(() => {  
-                targetPanel.classList.add('active');  
-            });  
+            targetPanel.offsetHeight; // 强制重排  
+            targetPanel.classList.add('active');  
         }  
         
         // 更新导航状态  
         document.querySelectorAll('.config-nav-item').forEach(item => {  
             item.classList.remove('active');  
-        });
+        });  
         
         const activeNavItem = document.querySelector(`[data-config="${panelType}"]`).parentElement;  
-        activeNavItem.classList.add('active');  
+        if (activeNavItem) {  
+            activeNavItem.classList.add('active');  
+        }  
         
         this.currentPanel = panelType;  
     }
-      
+        
     connectWebSocket() {  
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';  
         const wsUrl = `${protocol}//${window.location.host}/ws/logs`;  
@@ -227,11 +230,10 @@ class AIWriteXApp {
         
         const targetView = document.getElementById(`${viewName}-view`);  
         
-        // 隐藏其他视图（排除目标视图）  
+        // 隐藏其他视图  
         document.querySelectorAll('.view-content').forEach(view => {  
             if (view !== targetView) {  
                 view.classList.remove('active');  
-                // 等待动画完成后隐藏  
                 setTimeout(() => {  
                     view.style.display = 'none';  
                 }, 200);  
@@ -241,13 +243,36 @@ class AIWriteXApp {
         // 显示目标视图  
         if (targetView) {  
             targetView.style.display = 'block';  
-            // 确保display生效后再触发动画  
             requestAnimationFrame(() => {  
                 targetView.classList.add('active');  
             });  
         }  
         
-        this.currentView = viewName;    
+        // 关键:如果切换到非配置管理视图,折叠系统设置菜单  
+        if (viewName !== 'config-manager') {  
+            const expandableNavItem = document.querySelector('.nav-item-expandable');  
+            if (expandableNavItem) {  
+                expandableNavItem.classList.remove('expanded');  
+            }  
+            
+            // 同时清除所有子菜单的 active 状态  
+            document.querySelectorAll('.nav-sublink').forEach(sublink => {  
+                sublink.classList.remove('active');  
+            });  
+        }  
+        
+        // 控制预览按钮的显示/隐藏  
+        const previewTrigger = document.getElementById('preview-trigger');  
+        if (previewTrigger) {  
+            const viewsWithPreview = ['creative-workshop', 'article-manager', 'template-manager'];  
+            if (viewsWithPreview.includes(viewName)) {  
+                previewTrigger.style.display = 'flex';  
+            } else {  
+                previewTrigger.style.display = 'none';  
+            }  
+        }  
+        
+        this.currentView = viewName;      
         
         // 根据视图加载相应数据  
         switch (viewName) {  
