@@ -55,20 +55,46 @@ def get_res_path(file_name, basedir=""):
 
 def get_random_platform(platforms):
     """
-    根据权重随机选择一个平台。
+    根据权重随机选择一个启用的平台。
+    自动归一化权重,无需用户关心总和是否为1。
     """
-    total_weight = sum(p["weight"] for p in platforms)
+    # 过滤出启用的平台
+    enabled_platforms = [p for p in platforms if p.get("enabled", True)]
 
-    if int(total_weight * 100) / 100 != 1:
-        warnings.warn(f"平台权重总和应为1，当前为{total_weight:.2f}，将默认选择微博", UserWarning)
-        return "微博"
+    # 如果没有启用平台,启用所有平台
+    if not enabled_platforms:
+        warnings.warn("没有启用的平台，将自动启用所有平台", UserWarning)
+        enabled_platforms = platforms
+        for p in enabled_platforms:
+            p["enabled"] = True
 
+    # 计算启用平台的权重总和
+    total_weight = sum(p["weight"] for p in enabled_platforms)
+
+    # 如果权重总和为0或负数,平均分配权重
+    if total_weight <= 0:
+        warnings.warn("启用平台权重总和为0，将平均分配权重", UserWarning)
+        avg_weight = 1.0 / len(enabled_platforms)
+        for p in enabled_platforms:
+            p["weight"] = avg_weight
+        total_weight = 1.0
+
+    # 归一化处理 - 保持相对权重比例
+    if abs(total_weight - 1.0) > 0.01:
+        for platform in enabled_platforms:
+            platform["weight"] = platform["weight"] / total_weight
+        total_weight = 1.0
+
+    # 加权随机选择
     rand = random.uniform(0, total_weight)
     cumulative_weight = 0
-    for platform in platforms:
+    for platform in enabled_platforms:
         cumulative_weight += platform["weight"]
         if rand <= cumulative_weight:
             return platform["name"]
+
+    # 兜底返回第一个启用的平台
+    return enabled_platforms[0]["name"]
 
 
 def extract_html(html, max_length=64):

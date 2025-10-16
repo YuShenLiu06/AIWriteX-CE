@@ -123,7 +123,7 @@ class AIWriteXConfigManager {
             resetBaseConfigBtn.addEventListener('click', async () => {  
                 const success = await this.resetToDefault();  
                 window.app?.showNotification(  
-                    success ? '已恢复默认设置(未保存,点击保存按钮持久化)' : '恢复默认设置失败',  
+                    success ? '已恢复默认设置(仅当前运行有效，永久有效需点“保存设置”)' : '恢复默认设置失败',  
                     success ? 'info' : 'error'  
                 );  
             });  
@@ -257,7 +257,44 @@ class AIWriteXConfigManager {
             maxArticleLenInput.addEventListener('change', async (e) => {  
                 await this.updateConfig({ max_article_len: parseInt(e.target.value) });  
             });  
+        }
+
+        // ========== 热搜平台设置事件绑定 ==========  
+
+        // 保存平台配置按钮  
+        const savePlatformsConfigBtn = document.getElementById('save-platforms-config');  
+        if (savePlatformsConfigBtn) {  
+            savePlatformsConfigBtn.addEventListener('click', async () => {  
+                const success = await this.saveConfig();  
+                window.app?.showNotification(  
+                    success ? '平台配置已保存' : '保存平台配置失败',  
+                    success ? 'success' : 'error'  
+                );  
+            });  
         }  
+        
+        // 恢复默认平台配置按钮  
+        const resetPlatformsConfigBtn = document.getElementById('reset-platforms-config');  
+        if (resetPlatformsConfigBtn) {  
+            resetPlatformsConfigBtn.addEventListener('click', async () => {  
+                // 获取默认配置  
+                const response = await fetch(`${this.apiEndpoint}/default`);  
+                if (response.ok) {  
+                    const result = await response.json();  
+                    const defaultPlatforms = result.data.platforms;  
+                    
+                    // 更新配置  
+                    await this.updateConfig({ platforms: defaultPlatforms });  
+                    
+                    // 刷新UI  
+                    this.populatePlatformsUI();  
+                    
+                    window.app?.showNotification('已恢复默认平台配置(仅当前运行有效，永久有效需点“保存设置”)', 'info');  
+                } else {  
+                    window.app?.showNotification('恢复默认配置失败', 'error');  
+                }  
+            });  
+        }
     }  
     
     populateUI() {  
@@ -374,7 +411,123 @@ class AIWriteXConfigManager {
         const windowModeSelector = document.getElementById('window-mode-selector');  
         if (windowModeSelector) {  
             windowModeSelector.value = this.getWindowMode();  
+        }
+        
+        // ========== 填充热搜平台配置 ==========  
+        this.populatePlatformsUI();
+
+    }
+
+    // 填充热搜平台UI  
+    populatePlatformsUI() {  
+        const platformListBody = document.getElementById('platform-list-body');  
+        if (!platformListBody || !this.config.platforms) return;  
+        
+        // 清空现有内容  
+        platformListBody.innerHTML = '';  
+        
+        // 生成平台行  
+        this.config.platforms.forEach((platform, index) => {  
+            const row = document.createElement('tr');  
+            row.dataset.platformIndex = index;  
+            
+            // 启用复选框列 - 使用统一的checkbox-label样式  
+            const enabledCell = document.createElement('td');  
+            const checkboxLabel = document.createElement('label');  
+            checkboxLabel.className = 'checkbox-label';  
+            checkboxLabel.style.justifyContent = 'center';  
+            checkboxLabel.style.margin = '0';  
+            
+            const enabledCheckbox = document.createElement('input');  
+            enabledCheckbox.type = 'checkbox';  
+            enabledCheckbox.checked = platform.enabled !== false;  
+            enabledCheckbox.addEventListener('change', async (e) => {  
+                await this.updatePlatformEnabled(index, e.target.checked);  
+            });  
+            
+            const checkboxCustom = document.createElement('span');  
+            checkboxCustom.className = 'checkbox-custom';  
+            
+            checkboxLabel.appendChild(enabledCheckbox);  
+            checkboxLabel.appendChild(checkboxCustom);  
+            enabledCell.appendChild(checkboxLabel);  
+            
+            // 平台名称列  
+            const nameCell = document.createElement('td');  
+            nameCell.className = 'platform-name';  
+            nameCell.textContent = platform.name;  
+            
+            // 权重输入框列  
+            const weightCell = document.createElement('td');  
+            const weightInput = document.createElement('input');  
+            weightInput.type = 'number';  
+            weightInput.className = 'platform-weight-input';  
+            weightInput.value = platform.weight;  
+            weightInput.min = '0';  
+            weightInput.max = '1';  
+            weightInput.step = '0.01';  
+            weightInput.disabled = platform.enabled === false;  
+            weightInput.addEventListener('change', async (e) => {  
+                await this.updatePlatformWeight(index, parseFloat(e.target.value));  
+            });  
+            weightCell.appendChild(weightInput);  
+            
+            // 说明列  
+            const descCell = document.createElement('td');  
+            descCell.className = 'platform-description';  
+            descCell.textContent = this.getPlatformDescription(platform.name);  
+            
+            // 组装行  
+            row.appendChild(enabledCell);  
+            row.appendChild(nameCell);  
+            row.appendChild(weightCell);  
+            row.appendChild(descCell);  
+            
+            platformListBody.appendChild(row);  
+        });  
+    }
+    
+    // 更新平台启用状态  
+    async updatePlatformEnabled(index, enabled) {  
+        const platforms = [...this.config.platforms];  
+        platforms[index] = { ...platforms[index], enabled };  
+        
+        await this.updateConfig({ platforms });  
+        
+        // 更新权重输入框的禁用状态  
+        const row = document.querySelector(`tr[data-platform-index="${index}"]`);  
+        if (row) {  
+            const weightInput = row.querySelector('.platform-weight-input');  
+            if (weightInput) {  
+                weightInput.disabled = !enabled;  
+            }  
         }  
+    }  
+    
+    // 更新平台权重  
+    async updatePlatformWeight(index, weight) {  
+        const platforms = [...this.config.platforms];  
+        platforms[index] = { ...platforms[index], weight };  
+        
+        await this.updateConfig({ platforms });  
+    }  
+    
+    // 获取平台描述  
+    getPlatformDescription(platformName) {  
+        const descriptions = {  
+            '微博': '社交媒体热搜话题',  
+            '抖音': '短视频平台热点',  
+            '小红书': '生活方式分享平台',  
+            '今日头条': '新闻资讯聚合',  
+            '百度热点': '搜索引擎热搜',  
+            '哔哩哔哩': '视频弹幕网站',  
+            '快手': '短视频社交平台',  
+            '虎扑': '体育社区论坛',  
+            '豆瓣小组': '文化兴趣社区',  
+            '澎湃新闻': '专业新闻媒体',  
+            '知乎热榜': '问答社区热榜'  
+        };  
+        return descriptions[platformName] || '热搜话题来源';  
     }
 
   

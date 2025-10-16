@@ -1,0 +1,53 @@
+<div id="config-platforms" class="config-panel">  
+    <div class="config-header">  
+        <h2>热搜平台</h2>  
+        <p class="config-description">配置各平台热搜话题的随机选取权重,控制选用优先级</p>  
+    </div>  
+      
+    <div class="config-form">  
+        <!-- 平台列表 -->  
+        <div class="config-section">  
+            <h3 class="section-title">  
+                <i class="icon-platform"></i>  
+                热搜平台列表  
+            </h3>  
+              
+            <div class="platform-list-container">  
+                <table class="platform-table">  
+                    <thead>  
+                        <tr>  
+                            <th class="col-enabled">启用</th>  
+                            <th class="col-platform">平台</th>  
+                            <th class="col-weight">权重</th>  
+                            <th class="col-description">说明</th>  
+                        </tr>  
+                    </thead>  
+                    <tbody id="platform-list-body">  
+                        <!-- 动态生成平台行 -->  
+                    </tbody>  
+                </table>  
+            </div>  
+              
+            <div class="form-row" style="margin-top: 20px;">  
+                <div class="form-group">  
+                    <small class="form-help">  
+                        <strong>Tips:</strong><br/>  
+                        1. 根据权重随机一个平台,获取其当前的最热门话题;<br/>  
+                        2. 不启用则不会被选取，全部不启用默认采用微博。  
+                    </small>  
+                </div>  
+            </div>  
+        </div>  
+    </div>  
+      
+    <div class="config-actions">  
+        <button type="button" class="btn btn-primary" id="save-platforms-config">  
+            <i class="icon-save"></i>  
+            保存配置  
+        </button>  
+        <button type="button" class="btn btn-secondary" id="reset-platforms-config">  
+            <i class="icon-reset"></i>  
+            恢复默认  
+        </button>  
+    </div>  
+</div>

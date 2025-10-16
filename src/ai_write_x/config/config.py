@@ -62,17 +62,17 @@ class Config:
         # 默认配置
         self.default_config = {
             "platforms": [
-                {"name": "微博", "weight": 0.3},
-                {"name": "抖音", "weight": 0.2},
-                {"name": "小红书", "weight": 0.12},
-                {"name": "今日头条", "weight": 0.1},
-                {"name": "百度热点", "weight": 0.08},
-                {"name": "哔哩哔哩", "weight": 0.06},
-                {"name": "快手", "weight": 0.05},
-                {"name": "虎扑", "weight": 0.05},
-                {"name": "豆瓣小组", "weight": 0.02},
-                {"name": "澎湃新闻", "weight": 0.01},
-                {"name": "知乎热榜", "weight": 0.01},
+                {"name": "微博", "weight": 0.3, "enabled": True},
+                {"name": "抖音", "weight": 0.2, "enabled": True},
+                {"name": "小红书", "weight": 0.12, "enabled": True},
+                {"name": "今日头条", "weight": 0.1, "enabled": True},
+                {"name": "百度热点", "weight": 0.08, "enabled": True},
+                {"name": "哔哩哔哩", "weight": 0.06, "enabled": True},
+                {"name": "快手", "weight": 0.05, "enabled": True},
+                {"name": "虎扑", "weight": 0.05, "enabled": True},
+                {"name": "豆瓣小组", "weight": 0.02, "enabled": True},
+                {"name": "澎湃新闻", "weight": 0.01, "enabled": True},
+                {"name": "知乎热榜", "weight": 0.01, "enabled": True},
             ],
             "publish_platform": "wechat",
             "wechat": {
@@ -1684,11 +1684,6 @@ class Config:
             # 检查是否配置了aiforge api_key
             if not self.aiforge_api_key:
                 log.print_log("AIForge未配置有效的llm提供商的api_key，将不使用搜索功能")
-
-            total_weight = sum(platform["weight"] for platform in self.platforms)
-            if abs(total_weight - 1.0) > 0.01:
-                self.error_message = f"平台权重之和 {total_weight} 不等于 1"
-                return True  # 这里可以不失败，会默认使用微博
 
             return True
 

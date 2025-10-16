@@ -1,26 +1,37 @@
 platforms:
   - name: 微博
     weight: 0.3
+    enabled: true
   - name: 抖音
     weight: 0.2
+    enabled: true
   - name: 小红书
     weight: 0.12
+    enabled: true
   - name: 今日头条
     weight: 0.1
+    enabled: true
   - name: 百度热点
     weight: 0.08
+    enabled: true
   - name: 哔哩哔哩
     weight: 0.06
+    enabled: true
   - name: 快手
     weight: 0.05
+    enabled: true
   - name: 虎扑
     weight: 0.05
+    enabled: true
   - name: 豆瓣小组
     weight: 0.02
+    enabled: true
   - name: 澎湃新闻
     weight: 0.01
+    enabled: true
   - name: 知乎热榜
     weight: 0.01
+    enabled: true
 publish_platform: wechat
 wechat:
   credentials:

@@ -276,3 +276,137 @@
         min-width: auto;  
     }  
 }
+
+/* 平台列表容器 */  
+.platform-list-container {  
+    background: var(--surface-color);  
+    border-radius: 8px;  
+    padding: 16px;  
+    margin-top: 12px;  
+}  
+  
+/* 平台表格 */  
+.platform-table {  
+    width: 100%;  
+    border-collapse: collapse;  
+    background: var(--surface-color);  /* 修改:默认使用surface-color */  
+    border-radius: 6px;  
+    overflow: hidden;  
+}  
+  
+.platform-table thead {  
+    background: var(--surface-color);  
+}  
+  
+.platform-table th {  
+    padding: 12px 16px;  
+    text-align: left;  
+    font-weight: 600;  
+    color: var(--text-primary);  
+    border-bottom: 2px solid var(--border-color);  
+}  
+  
+/* 优化的列宽设置 - 避免"启用"换行 */  
+.platform-table .col-enabled {  
+    width: 80px;  
+    text-align: center;  
+}  
+  
+.platform-table .col-platform {  
+    width: 180px;  
+}  
+  
+.platform-table .col-weight {  
+    width: 200px;  
+}  
+  
+.platform-table .col-description {  
+    width: auto;  
+    min-width: 200px;  
+}  
+  
+.platform-table tbody tr {  
+    background: var(--surface-color);  /* 修改:默认使用surface-color */  
+    border-bottom: 1px solid var(--border-color);  
+    transition: background-color 0.2s;  
+}  
+  
+.platform-table tbody tr:hover {  
+    background: var(--background-color);  /* 修改:hover时使用background-color */  
+}  
+  
+.platform-table tbody tr:last-child {  
+    border-bottom: none;  
+}  
+  
+.platform-table td {  
+    padding: 12px 16px;  
+    color: var(--text-secondary);  
+}  
+  
+/* 启用列居中对齐 */  
+.platform-table td:first-child {  
+    text-align: center;  
+}  
+  
+/* 平台名称样式 */  
+.platform-table .platform-name {  
+    font-weight: 500;  
+    color: var(--text-primary);  
+}  
+  
+/* 平台权重输入框 */  
+.platform-table .platform-weight-input {  
+    width: 120px;  
+    padding: 8px 12px;  
+    border: 1px solid var(--border-color);  
+    border-radius: 4px;  
+    background: var(--background-color);  
+    color: var(--text-primary);  
+    font-size: 14px;  
+    transition: border-color 0.2s;  
+}  
+  
+.platform-table .platform-weight-input:focus {  
+    outline: none;  
+    border-color: var(--primary-color);  
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);  
+}  
+  
+.platform-table .platform-weight-input:disabled {  
+    background: var(--surface-color);  
+    cursor: not-allowed;  
+    opacity: 0.6;  
+}  
+  
+/* 说明文字样式 */  
+.platform-table .platform-description {  
+    color: var(--text-tertiary);  
+    font-size: 13px;  
+}  
+  
+/* 响应式优化 */  
+@media (max-width: 1200px) {  
+    .platform-table .col-description {  
+        display: none;  
+    }  
+      
+    .platform-table .col-weight {  
+        width: auto;  
+    }  
+}  
+  
+@media (max-width: 800px) {  
+    .platform-table .col-enabled {  
+        width: 60px;  
+    }  
+      
+    .platform-table .col-platform {  
+        width: 120px;  
+    }  
+      
+    .platform-table th,  
+    .platform-table td {  
+        padding: 8px 12px;  
+    }  
+}
