@@ -123,7 +123,7 @@ class AIWriteXConfigManager {
             resetBaseConfigBtn.addEventListener('click', async () => {  
                 const success = await this.resetToDefault();  
                 window.app?.showNotification(  
-                    success ? '已恢复默认设置(仅当前运行有效，永久有效需点“保存设置”)' : '恢复默认设置失败',  
+                    success ? '已恢复默认设置(永久生效需点“保存设置”)' : '恢复默认设置失败',  
                     success ? 'info' : 'error'  
                 );  
             });  
@@ -289,7 +289,7 @@ class AIWriteXConfigManager {
                     // 刷新UI  
                     this.populatePlatformsUI();  
                     
-                    window.app?.showNotification('已恢复默认平台配置(仅当前运行有效，永久有效需点“保存设置”)', 'info');  
+                    window.app?.showNotification('已恢复默认平台配置(永久生效需点“保存设置”)', 'info');  
                 } else {  
                     window.app?.showNotification('恢复默认配置失败', 'error');  
                 }  
@@ -329,7 +329,7 @@ class AIWriteXConfigManager {
                     
                     this.populateWeChatUI();  
                     
-                    window.app?.showNotification('已恢复默认微信配置(仅当前运行有效，永久有效需点“保存设置”)', 'info');  
+                    window.app?.showNotification('已恢复默认微信配置(永久生效需点“保存设置”)', 'info');  
                 } else {  
                     window.app?.showNotification('恢复默认配置失败', 'error');  
                 }  
@@ -374,6 +374,51 @@ class AIWriteXConfigManager {
                     }  
                 }  
             });  
+        }
+
+        // ========== 大模型API设置事件绑定 ==========  
+  
+        // 保存API配置按钮  
+        const saveAPIConfigBtn = document.getElementById('save-api-config');  
+        if (saveAPIConfigBtn) {  
+            saveAPIConfigBtn.addEventListener('click', async () => {  
+                await this.saveAPIConfig();  
+            });  
+        }  
+        
+        // 恢复默认API配置按钮  
+        const resetAPIConfigBtn = document.getElementById('reset-api-config');  
+        if (resetAPIConfigBtn) {  
+            resetAPIConfigBtn.addEventListener('click', async () => {  
+                const response = await fetch(`${this.apiEndpoint}/default`);  
+                if (response.ok) {  
+                    const result = await response.json();  
+                    const defaultAPI = result.data.api;  
+                    
+                    await this.updateConfig({ api: defaultAPI });  
+                    
+                    this.populateAPIUI();  
+                    
+                    window.app?.showNotification('已恢复默认API配置(永久生效需点“保存设置”)', 'info');  
+                } else {  
+                    window.app?.showNotification('恢复默认配置失败', 'error');  
+                }  
+            });  
+        }
+
+        // 使用事件委托处理动态生成的输入框  
+        const apiProvidersContainer = document.getElementById('api-providers-container');  
+        if (apiProvidersContainer) {  
+            apiProvidersContainer.addEventListener('blur', async (e) => {  
+                if (e.target.matches('input[id^="api-"]')) {  
+                    const id = e.target.id;  
+                    const match = id.match(/api-(\w+)-(\w+)/);  
+                    if (match) {  
+                        const [, provider, field] = match;  
+                        await this.updateAPIProviderField(provider, field, e.target.value);  
+                    }  
+                }  
+            }, true);  
         }
     }  
     
@@ -455,9 +500,7 @@ class AIWriteXConfigManager {
         if (templateSelect) {  
             templateSelect.value = this.config.template || '';  
             // 关键:根据use_template设置禁用状态  
-            templateSelect.disabled = !this.config.use_template;  
-            console.log('设置template:', templateSelect.value);  
-            console.log('template禁用状态:', templateSelect.disabled);  
+            templateSelect.disabled = !this.config.use_template;
         }    
         
         // ========== 6. 填充搜索数量配置 ==========  
@@ -498,6 +541,9 @@ class AIWriteXConfigManager {
 
         // ========== 填充微信公众号配置 ==========  
         this.populateWeChatUI();
+
+        // ========== 填充大模型API配置 ==========  
+        this.populateAPIUI();
     }
 
     // 填充热搜平台UI  
@@ -586,45 +632,51 @@ class AIWriteXConfigManager {
         });  
     }  
     
-    // 创建表单组辅助方法  
-    createFormGroup(label, type, id, value, placeholder, required = false) {  
-        const group = document.createElement('div');  
-        group.className = 'form-group';  
+    // 创建表单组辅助方法    
+    createFormGroup(label, type, id, value, placeholder, required = false) {    
+        const group = document.createElement('div');    
+        group.className = 'form-group';    
         
-        const labelEl = document.createElement('label');  
-        labelEl.setAttribute('for', id);  
-        labelEl.textContent = label;  
-        if (required) {  
-            const requiredSpan = document.createElement('span');  
-            requiredSpan.className = 'required';  
-            requiredSpan.textContent = ' *';  
-            labelEl.appendChild(requiredSpan);  
+        const labelEl = document.createElement('label');    
+        labelEl.setAttribute('for', id);    
+        labelEl.textContent = label;    
+        if (required) {    
+            const requiredSpan = document.createElement('span');    
+            requiredSpan.className = 'required';    
+            requiredSpan.textContent = ' *';    
+            labelEl.appendChild(requiredSpan);    
+        }    
+        
+        const input = document.createElement('input');    
+        input.type = type;    
+        input.id = id;    
+        input.className = 'form-control';  
+        
+        if (value !== undefined && value !== null) {  
+            input.value = value;  
+        } else {  
+            input.value = '';  
         }  
         
-        const input = document.createElement('input');  
-        input.type = type;  
-        input.id = id;  
-        input.className = 'form-control';  // 确保所有输入框都有这个类  
-        input.value = value || '';  
-        if (placeholder) {  
-            input.placeholder = placeholder;  
-            input.title = placeholder;  
-        }  
+        if (placeholder) {    
+            input.placeholder = placeholder;    
+            input.title = placeholder;    
+        }    
         
-        // 为输入框添加blur事件  
-        input.addEventListener('blur', async () => {  
-            const match = id.match(/wechat-\w+-(\d+)/);  
-            if (match) {  
-                const index = parseInt(match[1]);  
-                await this.updateWeChatCredential(index);  
-            }  
-        });  
+        // 为输入框添加blur事件    
+        input.addEventListener('blur', async () => {    
+            const match = id.match(/wechat-\w+-(\d+)/);    
+            if (match) {    
+                const index = parseInt(match[1]);    
+                await this.updateWeChatCredential(index);    
+            }    
+        });    
         
-        group.appendChild(labelEl);  
-        group.appendChild(input);  
+        group.appendChild(labelEl);    
+        group.appendChild(input);    
         
-        return group;  
-    }  
+        return group;    
+    }
     
     // 更新群发选项联动逻辑  
     updateSendallOptions(index, callSendallEnabled) {  
@@ -711,7 +763,7 @@ class AIWriteXConfigManager {
             this.populateWeChatUI();  
             
             window.app?.showNotification(  
-                '凭证已删除(未保存,点击保存按钮持久化)',  
+                '凭证已删除(永久生效需点“保存设置”)',  
                 'info'  
             );  
         });  
@@ -833,7 +885,7 @@ class AIWriteXConfigManager {
         
         const callSendallLabel = document.createElement('label');  
         callSendallLabel.className = 'checkbox-label';  
-        callSendallLabel.title = '1. 启用群发,群发才有效\n2. 否则不启用,需要网页后台群发';  
+        callSendallLabel.title = '1. 启用群发,群发才生效\n2. 否则不启用,需要网页后台群发';  
         
         const callSendallCheckbox = document.createElement('input');  
         callSendallCheckbox.type = 'checkbox';  
@@ -855,7 +907,7 @@ class AIWriteXConfigManager {
         
         const callSendallHelp = document.createElement('small');  
         callSendallHelp.className = 'form-help';  
-        callSendallHelp.textContent = '仅对已认证公众号有效';  
+        callSendallHelp.textContent = '仅对已认证公众号生效';  
         callSendallGroup.appendChild(callSendallHelp);  
         
         // 群发复选框  
@@ -971,7 +1023,554 @@ class AIWriteXConfigManager {
         return descriptions[platformName] || '热搜话题来源';  
     }
 
-  
+    // 填充大模型API UI  
+    populateAPIUI() {  
+        const container = document.getElementById('api-providers-container');  
+        if (!container || !this.config.api) return;  
+        
+        const currentAPIType = this.config.api.api_type;  
+        
+        // 更新当前API类型指示器  
+        const indicator = document.getElementById('current-api-type');  
+        if (indicator) {  
+            indicator.textContent = currentAPIType === 'SiliconFlow' ? '硅基流动' : currentAPIType;  
+        }  
+        
+        // 清空现有内容  
+        container.innerHTML = '';  
+        
+        const apiConfig = this.config.api;  
+        const providers = Object.keys(apiConfig)  
+            .filter(key => key !== 'api_type')  // 排除api_type字段  
+            .map(key => ({  
+                key: key,  
+                display: key === 'SiliconFlow' ? '硅基流动' : key  
+            }));  
+        
+        // 生成提供商卡片  
+        providers.forEach(provider => {  
+            const providerData = apiConfig[provider.key];  
+            if (providerData) {  
+                const card = this.createAPIProviderCard(provider.key, provider.display, providerData, currentAPIType);  
+                container.appendChild(card);  
+            }  
+        });  
+    } 
+
+    // 创建API提供商卡片    
+    createAPIProviderCard(providerKey, providerDisplay, providerData, currentAPIType) {  
+        const card = document.createElement('div');  
+        card.className = 'api-provider-card';  
+        if (providerKey === currentAPIType) {  
+            card.classList.add('active');  
+        }  
+        
+        // 卡片头部  
+        const header = document.createElement('div');  
+        header.className = 'provider-header';  
+        
+        const titleGroup = document.createElement('div');  
+        titleGroup.className = 'provider-title-group';  
+        
+        const name = document.createElement('div');  
+        name.className = 'provider-name';  
+        name.textContent = providerDisplay;  
+        
+        const badge = document.createElement('span');  
+        badge.className = `provider-badge ${providerKey === currentAPIType ? 'active' : 'inactive'}`;  
+        badge.textContent = providerKey === currentAPIType ? '当前使用' : '未使用';  
+        
+        titleGroup.appendChild(name);  
+        titleGroup.appendChild(badge);  
+        
+        const toggleBtn = document.createElement('button');  
+        toggleBtn.className = `provider-toggle-btn ${providerKey === currentAPIType ? 'active' : ''}`;  
+        toggleBtn.textContent = providerKey === currentAPIType ? '当前使用' : '设为当前';  
+        toggleBtn.addEventListener('click', async () => {  
+            await this.setCurrentAPIProvider(providerKey);  
+        });  
+        
+        header.appendChild(titleGroup);  
+        header.appendChild(toggleBtn);  
+        
+        // 表单内容  
+        const form = document.createElement('div');  
+        form.className = 'provider-form';  
+        
+        // 行1: KEY名称和API BASE同一行,各占一半  
+        const row1 = document.createElement('div');  
+        row1.className = 'form-row';  
+        
+        const keyNameGroup = this.createFormGroup(  
+            'KEY名称',  
+            'text',  
+            `api-${providerKey}-key-name`,  
+            providerData.key || '',  
+            '',  
+            false,  
+            true  // 只读  
+        );  
+        keyNameGroup.classList.add('form-group-half');  
+        
+        const apiBaseGroup = this.createFormGroup(  
+            'API BASE',  
+            'text',  
+            `api-${providerKey}-api-base`,  
+            providerData.api_base || '',  
+            '',  
+            false,  
+            true  // 只读  
+        );  
+        apiBaseGroup.classList.add('form-group-half');  
+        
+        row1.appendChild(keyNameGroup);  
+        row1.appendChild(apiBaseGroup);  
+        
+        // 行2: KEY选择和模型选择同一行,各占一半  
+        const row2 = document.createElement('div');  
+        row2.className = 'form-row';  
+        
+        // 左侧: KEY选择  
+        const keySelectGroup = document.createElement('div');  
+        keySelectGroup.className = 'form-group form-group-half';  
+        
+        const keySelectLabel = document.createElement('label');  
+        keySelectLabel.textContent = 'API KEY';  
+        const keyRequiredSpan = document.createElement('span');  
+        keyRequiredSpan.className = 'required';  
+        keyRequiredSpan.textContent = ' *';  
+        keySelectLabel.appendChild(keyRequiredSpan);  
+        
+        const keySelect = this.createEditableSelect(  
+            providerKey,  
+            'API KEY',  
+            providerData.api_key || [],  
+            providerData.key_index || 0  
+        );  
+        
+        keySelectGroup.appendChild(keySelectLabel);  
+        keySelectGroup.appendChild(keySelect);  
+        
+        // 右侧: 模型选择  
+        const modelSelectGroup = document.createElement('div');  
+        modelSelectGroup.className = 'form-group form-group-half';  
+        
+        const modelSelectLabel = document.createElement('label');  
+        modelSelectLabel.textContent = '模型';  
+        const modelRequiredSpan = document.createElement('span');  
+        modelRequiredSpan.className = 'required';  
+        modelRequiredSpan.textContent = ' *';  
+        modelSelectLabel.appendChild(modelRequiredSpan);  
+        
+        const modelSelect = this.createEditableSelect(  
+            providerKey,  
+            '模型',  
+            providerData.model || [],  
+            providerData.model_index || 0  
+        );  
+        
+        modelSelectGroup.appendChild(modelSelectLabel);  
+        modelSelectGroup.appendChild(modelSelect);  
+        
+        row2.appendChild(keySelectGroup);  
+        row2.appendChild(modelSelectGroup);  
+        
+        // 组装表单  
+        form.appendChild(row1);  
+        form.appendChild(row2);  
+        
+        // 组装卡片  
+        card.appendChild(header);  
+        card.appendChild(form);  
+        
+        return card;  
+    }
+
+    // 创建自定义下拉框  
+    createEditableSelect(providerKey, type, items, selectedIndex) {  
+        const container = document.createElement('div');  
+        container.className = 'editable-select';  
+        
+        const validItems = items.filter(item => item && item.trim() !== '');  
+        
+        // 当前选中值显示  
+        const display = document.createElement('div');  
+        display.className = 'select-display';  
+        // 如果选中的是空字符串或索引超出有效范围,显示"-- 点击添加 --"  
+        const selectedItem = validItems[selectedIndex];  
+        display.textContent = selectedItem || '-- 点击添加 --';  
+        
+        // 下拉选项容器  
+        const dropdown = document.createElement('div');  
+        dropdown.className = 'select-dropdown';  
+        dropdown.style.display = 'none';  
+        
+        // 渲染选项列表  
+        const renderOptions = () => {  
+            dropdown.innerHTML = '';  
+            
+            const addOption = document.createElement('div');  
+            addOption.className = 'select-option select-option-add';  
+            addOption.textContent = '-- 点击添加 --';  
+            addOption.addEventListener('click', (e) => {  
+                e.stopPropagation();   
+                showAddInput();  
+            });  
+            dropdown.appendChild(addOption);  
+            
+            // 现有选项  
+            validItems.forEach((item, index) => {  
+                const option = document.createElement('div');  
+                option.className = 'select-option';  
+                option.textContent = item;  
+                
+                // 点击选项  
+                option.addEventListener('click', async (e) => {  
+                    e.stopPropagation(); 
+                    display.textContent = item;  
+                    dropdown.style.display = 'none';  
+                    
+                    const originalIndex = items.indexOf(item);  
+                    const fieldName = type === 'API KEY' ? 'key_index' : 'model_index';  
+                    
+                    await this.updateConfig({  
+                        api: {  
+                            [providerKey]: {  
+                                ...this.config.api[providerKey],  
+                                [fieldName]: originalIndex  
+                            }  
+                        }  
+                    });  
+                });  
+                
+                // 右键菜单  
+                option.addEventListener('contextmenu', (e) => {  
+                    const originalIndex = items.indexOf(item);  
+                    this.showContextMenu(e, providerKey, type, originalIndex, item);  
+                });  
+                
+                dropdown.appendChild(option);  
+            });  
+        };  
+        
+        // 显示添加输入框  
+        const showAddInput = () => {  
+            dropdown.innerHTML = '';  
+            
+            const input = document.createElement('input');  
+            input.type = 'text';  
+            input.className = 'select-input';  
+            input.placeholder = `输入新的${type}`;  
+            
+            // 回车添加  
+            input.addEventListener('keydown', async (e) => {  
+                if (e.key === 'Enter') {  
+                    const newValue = input.value.trim();  
+                    if (newValue) {  
+                        if (type === 'API KEY') {  
+                            await this.addAPIKey(providerKey, newValue);  
+                        } else {  
+                            await this.addModel(providerKey, newValue);  
+                        }  
+                        
+                        dropdown.style.display = 'none';  
+                    }  
+                } else if (e.key === 'Escape') {  
+                    renderOptions();  
+                }  
+            });  
+            
+            input.addEventListener('blur', () => {  
+                if (!input.value.trim()) {  
+                    renderOptions();  
+                }  
+            });  
+            
+            input.addEventListener('click', (e) => {  
+                e.stopPropagation();  
+            });  
+            
+            dropdown.appendChild(input);  
+            setTimeout(() => input.focus(), 0);  
+        };  
+        
+        // 初始化选项  
+        renderOptions();  
+        
+        // 点击显示框切换下拉框  
+        display.addEventListener('click', (e) => {  
+            e.stopPropagation();  
+            const isVisible = dropdown.style.display === 'block';  
+            dropdown.style.display = isVisible ? 'none' : 'block';  
+            
+            if (!isVisible) {  
+                renderOptions(); // 每次打开时重新渲染选项  
+            }  
+        });  
+        
+        // 点击外部关闭  
+        document.addEventListener('click', (e) => {  
+            if (!container.contains(e.target)) {  
+                dropdown.style.display = 'none';  
+            }  
+        });  
+        
+        container.appendChild(display);  
+        container.appendChild(dropdown);  
+        
+        return container;  
+    }
+        
+    // 显示右键菜单    
+    showContextMenu(e, providerKey, type, index, item) {  
+        e.preventDefault();  
+        
+        // 移除已存在的菜单  
+        const existingMenu = document.querySelector('.context-menu');  
+        if (existingMenu) {  
+            existingMenu.remove();  
+        }  
+        
+        // 创建菜单  
+        const menu = document.createElement('div');  
+        menu.className = 'context-menu';  
+        menu.style.left = `${e.pageX}px`;  
+        menu.style.top = `${e.pageY}px`;  
+        
+        // 删除选项  
+        const deleteItem = document.createElement('div');  
+        deleteItem.className = 'context-menu-item';  
+        deleteItem.textContent = '删除';  
+        deleteItem.addEventListener('click', async () => {  
+            // 使用自定义确认弹窗而非系统confirm  
+            window.dialogManager.showConfirm(  
+                `确定删除这个${type}吗?`,  
+                async () => {  
+                    if (type === 'API KEY') {  
+                        await this.deleteAPIKey(providerKey, index);  
+                    } else {  
+                        await this.deleteModel(providerKey, index);  
+                    }  
+                }  
+            );  
+            menu.remove();  
+        });  
+        
+        menu.appendChild(deleteItem);  
+        document.body.appendChild(menu);  
+        
+        // 点击外部关闭菜单  
+        setTimeout(() => {  
+            const closeMenu = () => {  
+                menu.remove();  
+                document.removeEventListener('click', closeMenu);  
+            };  
+            document.addEventListener('click', closeMenu);  
+        }, 0);  
+    }
+    
+    // 更新API选择    
+    async updateAPISelection(providerKey, type, index) {    
+        const fieldName = type === 'API KEY' ? 'key_index' : 'model_index';    
+        await this.updateConfig({    
+            api: {    
+                [providerKey]: {    
+                    ...this.config.api[providerKey],    
+                    [fieldName]: index    
+                }    
+            }    
+        });    
+    }
+
+    // 添加API KEY    
+    async addAPIKey(providerKey, value) {    
+        const apiKeys = [...(this.config.api[providerKey].api_key || [])];    
+        apiKeys.push(value || '');    
+        
+        await this.updateConfig({    
+            api: {    
+                [providerKey]: {    
+                    ...this.config.api[providerKey],    
+                    api_key: apiKeys    
+                }    
+            }    
+        });    
+        
+        this.populateAPIUI();    
+    }    
+    
+    // 删除API KEY    
+    async deleteAPIKey(providerKey, index) {    
+        const apiKeys = [...(this.config.api[providerKey].api_key || [])];    
+        apiKeys.splice(index, 1);    
+        
+        let keyIndex = this.config.api[providerKey].key_index;    
+        if (keyIndex >= apiKeys.length) {    
+            keyIndex = Math.max(0, apiKeys.length - 1);    
+        }    
+        
+        await this.updateConfig({    
+            api: {    
+                [providerKey]: {    
+                    ...this.config.api[providerKey],    
+                    api_key: apiKeys,    
+                    key_index: keyIndex    
+                }    
+            }    
+        });    
+        
+        this.populateAPIUI();    
+    }
+
+    // 更新指定索引的KEY    
+    async updateAPIKeyAtIndex(providerKey, index, value) {    
+        const apiKeys = [...(this.config.api[providerKey].api_key || [])];    
+        apiKeys[index] = value;    
+        
+        await this.updateConfig({    
+            api: {    
+                [providerKey]: {    
+                    ...this.config.api[providerKey],    
+                    api_key: apiKeys    
+                }    
+            }    
+        });    
+    }  
+    
+    // 添加模型    
+    async addModel(providerKey, value) {    
+        const models = [...(this.config.api[providerKey].model || [])];    
+        models.push(value || '');    
+        
+        await this.updateConfig({    
+            api: {    
+                [providerKey]: {    
+                    ...this.config.api[providerKey],    
+                    model: models    
+                }    
+            }    
+        });    
+        
+        this.populateAPIUI();    
+    }    
+    
+    // 删除模型    
+    async deleteModel(providerKey, index) {    
+        const models = [...(this.config.api[providerKey].model || [])];    
+        models.splice(index, 1);    
+        
+        // 如果删除的是当前选中的模型,重置索引    
+        let modelIndex = this.config.api[providerKey].model_index;    
+        if (modelIndex >= models.length) {    
+            modelIndex = Math.max(0, models.length - 1);    
+        }    
+        
+        await this.updateConfig({    
+            api: {    
+                [providerKey]: {    
+                    ...this.config.api[providerKey],    
+                    model: models,    
+                    model_index: modelIndex    
+                }    
+            }    
+        });    
+        
+        this.populateAPIUI();    
+    }    
+    
+    // 更新指定索引的模型    
+    async updateModelAtIndex(providerKey, index, value) {    
+        const models = [...(this.config.api[providerKey].model || [])];    
+        models[index] = value;    
+        
+        await this.updateConfig({    
+            api: {    
+                [providerKey]: {    
+                    ...this.config.api[providerKey],    
+                    model: models    
+                }    
+            }    
+        });    
+    }  
+    
+    // 更新API选择(当用户从下拉框选择时)    
+    async updateAPISelection(providerKey, type, index) {    
+        const fieldName = type === 'API KEY' ? 'key_index' : 'model_index';    
+        await this.updateConfig({    
+            api: {    
+                [providerKey]: {    
+                    ...this.config.api[providerKey],    
+                    [fieldName]: index    
+                }    
+            }    
+        });    
+    }  
+    
+    // 设置当前API提供商    
+    async setCurrentAPIProvider(providerKey) {    
+        await this.updateConfig({    
+            api: {    
+                ...this.config.api,    
+                api_type: providerKey    
+            }    
+        });    
+        
+        // 刷新UI以更新激活状态    
+        this.populateAPIUI();    
+        
+        window.app?.showNotification(    
+            `已切换到 ${providerKey === 'SiliconFlow' ? '硅基流动' : providerKey}`,    
+            'success'    
+        );    
+    }  
+    
+    // 保存API配置    
+    async saveAPIConfig() {    
+        const success = await this.saveConfig();    
+        
+        if (success) {    
+            // 清除未保存提示    
+            const saveBtn = document.getElementById('save-api-config');    
+            if (saveBtn) {    
+                saveBtn.classList.remove('has-changes');    
+                saveBtn.innerHTML = '<i class="icon-save"></i> 保存配置';    
+            }    
+        }    
+        
+        window.app?.showNotification(    
+            success ? 'API配置已保存' : '保存API配置失败',    
+            success ? 'success' : 'error'    
+        );    
+    }  
+    
+    // 恢复默认API配置    
+    async resetAPIConfig() {  
+        // 使用自定义确认弹窗  
+        window.dialogManager.showConfirm(  
+            '确定要恢复默认API配置吗？这将清除所有自定义设置。',  
+            async () => {  
+                try {  
+                    const response = await fetch(`${this.apiEndpoint}/default`);  
+                    if (!response.ok) throw new Error('获取默认配置失败');  
+                    
+                    const result = await response.json();  
+                    const defaultAPI = result.data.api;  
+                    
+                    // 更新配置到内存  
+                    await this.updateConfig({ api: defaultAPI });  
+                    
+                    // 刷新UI  
+                    this.populateAPIUI();  
+                    
+                    window.app?.showNotification('已恢复默认API配置', 'success');  
+                } catch (error) {  
+                    console.error('恢复默认配置失败:', error);  
+                    window.app?.showNotification('恢复默认配置失败', 'error');  
+                }  
+            }  
+        );  
+    }
+
     bindConfigNavigation() {  
         const links = document.querySelectorAll('.nav-sublink');          
         links.forEach((link, index) => {  

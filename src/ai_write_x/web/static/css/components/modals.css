@@ -54,3 +54,93 @@
     justify-content: flex-end;  
     gap: 12px;  
 }
+
+/* 确认弹窗遮罩层 */  
+.dialog-overlay {  
+    position: fixed;  
+    top: 0;  
+    left: 0;  
+    right: 0;  
+    bottom: 0;  
+    background: rgba(0, 0, 0, 0.5);  
+    z-index: 9998;  
+    animation: fadeIn 0.2s ease;  
+}  
+  
+/* 自定义确认弹窗 */  
+.custom-confirm-dialog {  
+    position: fixed;  
+    top: 50%;  
+    left: 50%;  
+    transform: translate(-50%, -50%);  
+    background: var(--surface-color);  
+    border-radius: 8px;  
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);  
+    z-index: 9999;  
+    min-width: 400px;  
+    max-width: 500px;  
+    animation: slideIn 0.3s ease;  
+}  
+  
+/* 弹窗头部 */  
+.dialog-header {  
+    padding: 20px 24px;  
+    border-bottom: 1px solid var(--border-color);  
+}  
+  
+.dialog-header h3 {  
+    margin: 0;  
+    font-size: 18px;  
+    font-weight: 600;  
+    color: var(--text-primary);  
+}  
+  
+/* 弹窗内容 */  
+.dialog-body {  
+    padding: 24px;  
+}  
+  
+.dialog-body p {  
+    margin: 0;  
+    font-size: 14px;  
+    line-height: 1.6;  
+    color: var(--text-secondary);  
+}  
+  
+/* 弹窗底部 */  
+.dialog-footer {  
+    padding: 16px 24px;  
+    border-top: 1px solid var(--border-color);  
+    display: flex;  
+    justify-content: flex-end;  
+    gap: 12px;  
+}  
+  
+.dialog-footer .btn {  
+    min-width: 80px;  
+}  
+  
+/* 动画 */  
+@keyframes fadeIn {  
+    from { opacity: 0; }  
+    to { opacity: 1; }  
+}  
+  
+@keyframes slideIn {  
+    from {  
+        opacity: 0;  
+        transform: translate(-50%, -48%);  
+    }  
+    to {  
+        opacity: 1;  
+        transform: translate(-50%, -50%);  
+    }  
+}  
+  
+/* 响应式优化 */  
+@media (max-width: 600px) {  
+    .custom-confirm-dialog {  
+        min-width: 90%;  
+        max-width: 90%;  
+    }  
+}

@@ -560,4 +560,249 @@
 @keyframes pulse {  
     0%, 100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4); }  
     50% { box-shadow: 0 0 0 4px rgba(255, 152, 0, 0); }  
+}  
+    
+/* API提供商卡片容器 */    
+#api-providers-container {    
+    display: flex;    
+    flex-direction: column;    
+    gap: 16px;    
+}    
+    
+/* API提供商卡片 */    
+.api-provider-card {    
+    background: var(--surface-color);    
+    border: 2px solid var(--border-color);    
+    border-radius: 8px;    
+    padding: 20px;    
+    transition: all 0.2s;    
+}    
+    
+.api-provider-card.active {    
+    border-color: var(--primary-color);    
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.15);    
+}    
+    
+/* 提供商卡片头部 */    
+.provider-header {    
+    display: flex;    
+    justify-content: space-between;    
+    align-items: center;    
+    margin-bottom: 16px;    
+    padding-bottom: 12px;    
+    border-bottom: 1px solid var(--border-color);    
+}    
+    
+.provider-title-group {    
+    display: flex;    
+    align-items: center;    
+    gap: 12px;    
+}    
+    
+.provider-name {    
+    font-size: 18px;    
+    font-weight: 600;    
+    color: var(--text-primary);    
+}    
+    
+.provider-badge {    
+    padding: 4px 12px;    
+    border-radius: 12px;    
+    font-size: 12px;    
+    font-weight: 500;    
+}    
+    
+.provider-badge.active {    
+    background: var(--primary-color);    
+    color: white;    
+}    
+    
+.provider-badge.inactive {    
+    background: var(--border-color);    
+    color: var(--text-secondary);    
+}    
+    
+.provider-toggle-btn {    
+    padding: 6px 16px;    
+    background: transparent;    
+    border: 1px solid var(--primary-color);    
+    color: var(--primary-color);    
+    border-radius: 4px;    
+    cursor: pointer;    
+    font-size: 13px;    
+    transition: all 0.2s;    
+}    
+    
+.provider-toggle-btn:hover {    
+    background: var(--primary-color);    
+    color: white;    
+}    
+    
+.provider-toggle-btn.active {    
+    background: var(--primary-color);    
+    color: white;    
+}    
+    
+/* 提供商表单 */    
+.provider-form {    
+    display: flex;    
+    flex-direction: column;    
+    gap: 16px;    
+}    
+    
+/* 只读字段样式 */    
+.form-control[readonly] {    
+    background: var(--surface-color);    
+    color: var(--text-tertiary);    
+    cursor: not-allowed;    
+}    
+    
+/* 信息提示框样式 */    
+.config-notice {    
+    display: flex;    
+    gap: 12px;    
+    padding: 12px 16px;    
+    background: var(--info-bg, #e3f2fd);    
+    border-left: 4px solid var(--info-color, #2196f3);    
+    border-radius: 4px;    
+    margin-top: 20px;    
+}    
+    
+.notice-icon {    
+    width: 20px;    
+    height: 20px;    
+    flex-shrink: 0;    
+    stroke: var(--info-color, #2196f3);    
+    fill: none;    
+    stroke-width: 2;    
+}    
+    
+.notice-content {    
+    flex: 1;    
+    font-size: 13px;    
+    color: var(--text-secondary);    
+}    
+    
+.notice-content ul {    
+    margin: 4px 0 0 0;    
+    padding-left: 20px;    
+}    
+    
+.notice-content li {    
+    margin: 2px 0;    
+}
+
+/* 自定义下拉框容器 */    
+.editable-select {    
+    position: relative;    
+    width: 100%;    
+}    
+    
+/* 当前选中值显示 */    
+.select-display {    
+    padding: 12px;  
+    border: 1px solid var(--border-color);    
+    border-radius: 4px;    
+    background: var(--background-color);    
+    cursor: pointer;    
+    user-select: none;  
+    box-sizing: border-box;   
+    height: auto;  
+}    
+    
+.select-display:hover {    
+    border-color: var(--primary-color);    
+}    
+    
+/* 下拉选项容器 */    
+.select-dropdown {    
+    position: absolute;    
+    top: 100%;    
+    left: 0;    
+    right: 0;    
+    max-height: 300px;    
+    overflow-y: auto;    
+    background: var(--surface-color);    
+    border: 1px solid var(--border-color);    
+    border-radius: 4px;    
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);    
+    z-index: 1000;    
+    margin-top: 4px;    
+}    
+    
+/* 选项 */    
+.select-option {    
+    padding: 10px 12px;    
+    cursor: pointer;    
+    transition: background 0.2s;    
+}    
+    
+.select-option:hover {    
+    background: var(--background-color);    
+}    
+    
+/* 输入框 */    
+.select-input {    
+    width: 100%;    
+    padding: 10px 12px;    
+    border: none;    
+    outline: none;    
+    background: var(--background-color);    
+}    
+    
+/* 右键菜单 */    
+.context-menu {    
+    position: fixed;    
+    background: var(--surface-color);    
+    border: 1px solid var(--border-color);    
+    border-radius: 4px;    
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);    
+    z-index: 10000;    
+    min-width: 120px;    
+}    
+    
+.context-menu-item {    
+    padding: 8px 16px;    
+    cursor: pointer;    
+    transition: background 0.2s;    
+}    
+    
+.context-menu-item:hover {    
+    background: var(--background-color);    
+}  
+  
+/* "-- 请添加 --"选项特殊样式 */    
+.select-option-add {    
+    color: var(--primary-color);    
+    font-weight: 500;    
+    border-bottom: 1px solid var(--border-color);    
+}    
+    
+.select-option-add:hover {    
+    background: var(--primary-color);    
+    color: white;    
+}
+
+.select-dropdown::-webkit-scrollbar {    
+    width: 8px;    
+}    
+    
+.select-dropdown::-webkit-scrollbar-track {    
+    background: var(--background-color);    
+    border-radius: 4px;    
+}    
+    
+.select-dropdown::-webkit-scrollbar-thumb {    
+    background: var(--border-color);    
+    border-radius: 4px;    
+}    
+    
+.select-dropdown::-webkit-scrollbar-thumb:hover {    
+    background: var(--secondary-color);    
+}
+
+.select-display:focus {    
+    outline: none;    
+    border-color: var(--primary-color);    
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);    
 }
