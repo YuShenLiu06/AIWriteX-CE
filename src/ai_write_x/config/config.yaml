@@ -41,18 +41,6 @@ wechat:
       call_sendall: false
       sendall: true
       tag_id: 0
-    - appid: ""
-      appsecret: ""
-      author: ""
-      call_sendall: false
-      sendall: true
-      tag_id: 0
-    - appid: ""
-      appsecret: ""
-      author: ""
-      call_sendall: false
-      sendall: true
-      tag_id: 0
 api:
   api_type: OpenRouter
   Grok:

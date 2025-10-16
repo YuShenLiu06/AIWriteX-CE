@@ -295,6 +295,86 @@ class AIWriteXConfigManager {
                 }  
             });  
         }
+
+        // ========== 微信公众号设置事件绑定 ==========  
+
+        // 添加凭证按钮  
+        const addWeChatCredentialBtn = document.getElementById('add-wechat-credential');  
+        if (addWeChatCredentialBtn) {  
+            addWeChatCredentialBtn.addEventListener('click', () => {  
+                this.addWeChatCredential();  
+            });  
+        }  
+        
+        // 保存微信配置按钮  
+        const saveWeChatConfigBtn = document.getElementById('save-wechat-config');  
+        if (saveWeChatConfigBtn) {  
+            saveWeChatConfigBtn.addEventListener('click', async () => {  
+                await this.saveWeChatConfig();  
+            });  
+        }  
+        
+        // 恢复默认微信配置按钮  
+        const resetWeChatConfigBtn = document.getElementById('reset-wechat-config');  
+        if (resetWeChatConfigBtn) {  
+            resetWeChatConfigBtn.addEventListener('click', async () => {  
+                const response = await fetch(`${this.apiEndpoint}/default`);  
+                if (response.ok) {  
+                    const result = await response.json();  
+                    const defaultCredentials = result.data.wechat.credentials;  
+                    
+                    await this.updateConfig({   
+                        wechat: { credentials: defaultCredentials }   
+                    });  
+                    
+                    this.populateWeChatUI();  
+                    
+                    window.app?.showNotification('已恢复默认微信配置(仅当前运行有效，永久有效需点“保存设置”)', 'info');  
+                } else {  
+                    window.app?.showNotification('恢复默认配置失败', 'error');  
+                }  
+            });  
+        }
+
+        // ========== 微信公众号输入框事件绑定 ==========  
+        // 注意:由于凭证是动态生成的,需要使用事件委托  
+        
+        const wechatContainer = document.getElementById('wechat-credentials-container');  
+        if (wechatContainer) {  
+            // 使用事件委托处理所有输入框的blur事件  
+            wechatContainer.addEventListener('blur', async (e) => {  
+                if (e.target.matches('input[id^="wechat-"]')) {  
+                    const id = e.target.id;  
+                    const match = id.match(/wechat-\w+-(\d+)/);  
+                    if (match) {  
+                        const index = parseInt(match[1]);  
+                        await this.updateWeChatCredential(index);  
+                    }  
+                }  
+            }, true);  
+            
+            // 处理复选框的change事件  
+            wechatContainer.addEventListener('change', async (e) => {  
+                if (e.target.matches('input[type="checkbox"][id^="wechat-"]')) {  
+                    const id = e.target.id;  
+                    const match = id.match(/wechat-(\w+)-(\d+)/);  
+                    if (match) {  
+                        const [, field, indexStr] = match;  
+                        const index = parseInt(indexStr);  
+                        
+                        if (field === 'call-sendall') {  
+                            this.updateSendallOptions(index, e.target.checked);  
+                        } else if (field === 'sendall') {  
+                            const tagIdInput = document.getElementById(`wechat-tag-id-${index}`);  
+                            if (tagIdInput) {  
+                                tagIdInput.disabled = e.target.checked;  
+                            }  
+                            await this.updateWeChatCredential(index);  
+                        }  
+                    }  
+                }  
+            });  
+        }
     }  
     
     populateUI() {  
@@ -416,6 +496,8 @@ class AIWriteXConfigManager {
         // ========== 填充热搜平台配置 ==========  
         this.populatePlatformsUI();
 
+        // ========== 填充微信公众号配置 ==========  
+        this.populateWeChatUI();
     }
 
     // 填充热搜平台UI  
@@ -487,6 +569,365 @@ class AIWriteXConfigManager {
         });  
     }
     
+    // 填充微信公众号UI  
+    populateWeChatUI() {  
+        const container = document.getElementById('wechat-credentials-container');  
+        if (!container) return;  
+        
+        const credentials = this.config.wechat?.credentials || [];  
+        
+        // 清空现有内容  
+        container.innerHTML = '';  
+        
+        // 生成凭证卡片  
+        credentials.forEach((credential, index) => {  
+            const card = this.createWeChatCredentialCard(credential, index);  
+            container.appendChild(card);  
+        });  
+    }  
+    
+    // 创建表单组辅助方法  
+    createFormGroup(label, type, id, value, placeholder, required = false) {  
+        const group = document.createElement('div');  
+        group.className = 'form-group';  
+        
+        const labelEl = document.createElement('label');  
+        labelEl.setAttribute('for', id);  
+        labelEl.textContent = label;  
+        if (required) {  
+            const requiredSpan = document.createElement('span');  
+            requiredSpan.className = 'required';  
+            requiredSpan.textContent = ' *';  
+            labelEl.appendChild(requiredSpan);  
+        }  
+        
+        const input = document.createElement('input');  
+        input.type = type;  
+        input.id = id;  
+        input.className = 'form-control';  // 确保所有输入框都有这个类  
+        input.value = value || '';  
+        if (placeholder) {  
+            input.placeholder = placeholder;  
+            input.title = placeholder;  
+        }  
+        
+        // 为输入框添加blur事件  
+        input.addEventListener('blur', async () => {  
+            const match = id.match(/wechat-\w+-(\d+)/);  
+            if (match) {  
+                const index = parseInt(match[1]);  
+                await this.updateWeChatCredential(index);  
+            }  
+        });  
+        
+        group.appendChild(labelEl);  
+        group.appendChild(input);  
+        
+        return group;  
+    }  
+    
+    // 更新群发选项联动逻辑  
+    updateSendallOptions(index, callSendallEnabled) {  
+        const sendallCheckbox = document.getElementById(`wechat-sendall-${index}`);  
+        const tagIdInput = document.getElementById(`wechat-tag-id-${index}`);  
+        
+        if (sendallCheckbox) {  
+            sendallCheckbox.disabled = !callSendallEnabled;  
+        }  
+        
+        if (tagIdInput) {  
+            const sendallChecked = sendallCheckbox?.checked !== false;  
+            tagIdInput.disabled = !callSendallEnabled || sendallChecked;  
+        }  
+        
+        // 更新配置  
+        this.updateWeChatCredential(index);  
+    } 
+    
+    // 更新单个凭证配置  
+    async updateWeChatCredential(index) {  
+        const credentials = [...(this.config.wechat?.credentials || [])];  
+        
+        const credential = {  
+            appid: document.getElementById(`wechat-appid-${index}`)?.value || '',  
+            appsecret: document.getElementById(`wechat-appsecret-${index}`)?.value || '',  
+            author: document.getElementById(`wechat-author-${index}`)?.value || '',  
+            call_sendall: document.getElementById(`wechat-call-sendall-${index}`)?.checked || false,  
+            sendall: document.getElementById(`wechat-sendall-${index}`)?.checked !== false,  
+            tag_id: parseInt(document.getElementById(`wechat-tag-id-${index}`)?.value || 0)  
+        };  
+        
+        credentials[index] = credential;  
+        
+        await this.updateConfig({   
+            wechat: { credentials }   
+        });  
+    }  
+    
+    // 添加新凭证  
+    addWeChatCredential() {  
+        const credentials = [...(this.config.wechat?.credentials || [])];  
+        
+        // 添加默认凭证  
+        credentials.push({  
+            appid: '',  
+            appsecret: '',  
+            author: '',  
+            call_sendall: false,  
+            sendall: true,  
+            tag_id: 0  
+        });  
+        
+        // 更新配置  
+        this.updateConfig({   
+            wechat: { credentials }   
+        }).then(() => {  
+            // 刷新UI  
+            this.populateWeChatUI();  
+            
+            window.app?.showNotification(  
+                '已添加新凭证,请填写后保存',  
+                'info'  
+            );  
+        });  
+    }  
+    
+    // 删除凭证  
+    deleteWeChatCredential(index) {  
+        if (index === 0) {  
+            window.app?.showNotification(  
+                '第一个凭证不能删除',  
+                'warning'  
+            );  
+            return;  
+        }  
+        
+        const credentials = [...(this.config.wechat?.credentials || [])];  
+        credentials.splice(index, 1);  
+        
+        this.updateConfig({   
+            wechat: { credentials }   
+        }).then(() => {  
+            this.populateWeChatUI();  
+            
+            window.app?.showNotification(  
+                '凭证已删除(未保存,点击保存按钮持久化)',  
+                'info'  
+            );  
+        });  
+    }  
+    
+    // 保存微信配置  
+    async saveWeChatConfig() {  
+        // 验证必填字段  
+        const credentials = this.config.wechat?.credentials || [];  
+        
+        for (let i = 0; i < credentials.length; i++) {  
+            const cred = credentials[i];  
+            
+            // 如果启用了自动发布,检查必填字段  
+            if (this.config.auto_publish) {  
+                if (!cred.appid || !cred.appsecret || !cred.author) {  
+                    window.app?.showNotification(  
+                        `凭证 ${i + 1} 缺少必填字段(AppID/AppSecret/作者)`,  
+                        'error'  
+                    );  
+                    return;  
+                }  
+            }  
+        }  
+        
+        // 调用通用保存方法  
+        const success = await this.saveConfig();  
+        
+        if (success) {  
+            const saveBtn = document.getElementById('save-wechat-config');  
+            if (saveBtn) {  
+                saveBtn.classList.remove('has-changes');  
+                saveBtn.innerHTML = '<i class="icon-save"></i> 保存配置';  
+            }  
+        }  
+        
+        window.app?.showNotification(  
+            success ? '微信配置已保存' : '保存微信配置失败',  
+            success ? 'success' : 'error'  
+        );  
+    }
+
+    // 创建微信凭证卡片  
+    createWeChatCredentialCard(credential, index) {  
+        const card = document.createElement('div');  
+        card.className = 'wechat-credential-card';  
+        card.dataset.credentialIndex = index;  
+        
+        // 标题栏  
+        const header = document.createElement('div');  
+        header.className = 'credential-header';  
+        
+        const title = document.createElement('div');  
+        title.className = 'credential-title';  
+        title.textContent = `凭证 ${index + 1}`;  
+        
+        const deleteBtn = document.createElement('button');  
+        deleteBtn.className = 'credential-delete-btn';  
+        deleteBtn.textContent = '删除';  
+        deleteBtn.disabled = index === 0; // 第一个凭证不能删除  
+        deleteBtn.addEventListener('click', () => {  
+            this.deleteWeChatCredential(index);  
+        });  
+        
+        header.appendChild(title);  
+        header.appendChild(deleteBtn);  
+        
+        // 表单内容  
+        const form = document.createElement('div');  
+        form.className = 'credential-form';  
+        
+        // 行1: AppID、AppSecret、作者在同一行  
+        const row1 = document.createElement('div');  
+        row1.className = 'form-row';  
+        
+        const appidGroup = this.createFormGroup(  
+            'AppID',  
+            'text',  
+            `wechat-appid-${index}`,  
+            credential.appid || '',  
+            '微信公众号AppID',  
+            true  
+        );  
+        appidGroup.classList.add('form-group-third');  
+        
+        const appsecretGroup = this.createFormGroup(  
+            'AppSecret',  
+            'password',  
+            `wechat-appsecret-${index}`,  
+            credential.appsecret || '',  
+            '微信公众号AppSecret',  
+            true  
+        );  
+        appsecretGroup.classList.add('form-group-third');  
+        
+        const authorGroup = this.createFormGroup(  
+            '作者',  
+            'text',  
+            `wechat-author-${index}`,  
+            credential.author || '',  
+            '文章作者名称'  
+        );  
+        authorGroup.classList.add('form-group-third');  
+        
+        row1.appendChild(appidGroup);  
+        row1.appendChild(appsecretGroup);  
+        row1.appendChild(authorGroup);  
+        
+        // 行2: 群发选项  
+        const row2 = document.createElement('div');  
+        row2.className = 'form-row';  
+        
+        const sendallOptionsDiv = document.createElement('div');  
+        sendallOptionsDiv.className = 'sendall-options';  
+        
+        // 启用群发复选框  
+        const callSendallGroup = document.createElement('div');  
+        callSendallGroup.className = 'form-group';  
+        
+        const callSendallLabel = document.createElement('label');  
+        callSendallLabel.className = 'checkbox-label';  
+        callSendallLabel.title = '1. 启用群发,群发才有效\n2. 否则不启用,需要网页后台群发';  
+        
+        const callSendallCheckbox = document.createElement('input');  
+        callSendallCheckbox.type = 'checkbox';  
+        callSendallCheckbox.id = `wechat-call-sendall-${index}`;  
+        callSendallCheckbox.checked = credential.call_sendall || false;  
+        callSendallCheckbox.addEventListener('change', (e) => {  
+            this.updateSendallOptions(index, e.target.checked);  
+        });  
+        
+        const callSendallCustom = document.createElement('span');  
+        callSendallCustom.className = 'checkbox-custom';  
+        
+        const callSendallText = document.createTextNode('启用群发');  
+        
+        callSendallLabel.appendChild(callSendallCheckbox);  
+        callSendallLabel.appendChild(callSendallCustom);  
+        callSendallLabel.appendChild(callSendallText);  
+        callSendallGroup.appendChild(callSendallLabel);  
+        
+        const callSendallHelp = document.createElement('small');  
+        callSendallHelp.className = 'form-help';  
+        callSendallHelp.textContent = '仅对已认证公众号有效';  
+        callSendallGroup.appendChild(callSendallHelp);  
+        
+        // 群发复选框  
+        const sendallGroup = document.createElement('div');  
+        sendallGroup.className = 'form-group';  
+        
+        const sendallLabel = document.createElement('label');  
+        sendallLabel.className = 'checkbox-label';  
+        sendallLabel.title = '1. 认证号群发数量有限,群发可控\n2. 非认证号,此选项无效(不支持群发)';  
+        
+        // 群发复选框  
+        const sendallCheckbox = document.createElement('input');  
+        sendallCheckbox.type = 'checkbox';  
+        sendallCheckbox.id = `wechat-sendall-${index}`;  
+        sendallCheckbox.checked = credential.sendall !== false;  
+        sendallCheckbox.disabled = !credential.call_sendall;
+        sendallCheckbox.addEventListener('change', async (e) => {  
+            const tagIdInput = document.getElementById(`wechat-tag-id-${index}`);  
+            if (tagIdInput) {  
+                tagIdInput.disabled = e.target.checked;  
+            }  
+            await this.updateWeChatCredential(index);  
+        });  
+        
+        const sendallCustom = document.createElement('span');  
+        sendallCustom.className = 'checkbox-custom';  
+        
+        const sendallText = document.createTextNode('群发');  
+        
+        sendallLabel.appendChild(sendallCheckbox);  
+        sendallLabel.appendChild(sendallCustom);  
+        sendallLabel.appendChild(sendallText);  
+        sendallGroup.appendChild(sendallLabel);  
+        
+        const sendallHelp = document.createElement('small');  
+        sendallHelp.className = 'form-help';  
+        sendallHelp.textContent = '发送给所有关注者';  
+        sendallGroup.appendChild(sendallHelp);  
+        
+        // 标签组ID部分  
+        const tagIdGroup = this.createFormGroup(  
+            '标签组ID',  
+            'number',  
+            `wechat-tag-id-${index}`,  
+            credential.tag_id || 0,  
+            '群发的标签组ID'  
+        );  
+        const tagIdInput = tagIdGroup.querySelector('input');  
+        tagIdInput.classList.add('tag-id-input');  // 添加特定宽度类  
+        // form-control类已经在createFormGroup中添加,确保高度一致  
+        tagIdInput.disabled = !credential.call_sendall || credential.sendall !== false;  
+        tagIdInput.addEventListener('change', async () => {  
+            await this.updateWeChatCredential(index);  
+        }); 
+        
+        sendallOptionsDiv.appendChild(callSendallGroup);  
+        sendallOptionsDiv.appendChild(sendallGroup);  
+        sendallOptionsDiv.appendChild(tagIdGroup);  
+        
+        row2.appendChild(sendallOptionsDiv);  
+        
+        // 组装表单  
+        form.appendChild(row1);  
+        form.appendChild(row2);  
+        
+        // 组装卡片  
+        card.appendChild(header);  
+        card.appendChild(form);  
+        
+        return card;  
+    }  
+
     // 更新平台启用状态  
     async updatePlatformEnabled(index, enabled) {  
         const platforms = [...this.config.platforms];  
@@ -753,27 +1194,33 @@ class AIWriteXConfigManager {
         }  
     }    
     // 更新配置(仅内存,不保存文件)  
-    async updateConfig(updates) {    
-        try {    
-            const response = await fetch(this.apiEndpoint, {    
-                method: 'PATCH',    
-                headers: { 'Content-Type': 'application/json' },    
-                body: JSON.stringify({ config_data: updates })  // ✅ 包装在config_data中  
-            });    
+    async updateConfig(updates) {      
+        try {      
+            const response = await fetch(this.apiEndpoint, {      
+                method: 'PATCH',      
+                headers: { 'Content-Type': 'application/json' },      
+                body: JSON.stringify({ config_data: updates })  
+            });      
                 
-            if (!response.ok) {    
-                throw new Error(`HTTP ${response.status}`);    
-            }    
+            if (!response.ok) {      
+                throw new Error(`HTTP ${response.status}`);      
+            }      
                 
-            // 同步更新前端内存    
-            this.deepMerge(this.config, updates);    
+            // 同步更新前端内存      
+            this.deepMerge(this.config, updates);  
+            
+            const saveBtn = document.getElementById('save-wechat-config');    
+            if (saveBtn && !saveBtn.classList.contains('has-changes')) {    
+                saveBtn.classList.add('has-changes');    
+                saveBtn.innerHTML = '💾 保存配置 <span style="color: var(--warning-color);">(有未保存更改)</span>';    
+            }  
                 
-            return true;    
-        } catch (error) {    
-            console.error('更新配置失败:', error);    
-            return false;    
-        }    
-    }  
+            return true;      
+        } catch (error) {      
+            console.error('更新配置失败:', error);      
+            return false;      
+        }      
+    } 
       
     // 保存配置到文件  
     async saveConfig() {  

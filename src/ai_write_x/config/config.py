@@ -85,22 +85,6 @@ class Config:
                         "sendall": True,
                         "tag_id": 0,
                     },
-                    {
-                        "appid": "",
-                        "appsecret": "",
-                        "author": "",
-                        "call_sendall": False,
-                        "sendall": True,
-                        "tag_id": 0,
-                    },
-                    {
-                        "appid": "",
-                        "appsecret": "",
-                        "author": "",
-                        "call_sendall": False,
-                        "sendall": True,
-                        "tag_id": 0,
-                    },
                 ]
             },
             "api": {

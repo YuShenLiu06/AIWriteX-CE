@@ -410,3 +410,154 @@
         padding: 8px 12px;  
     }  
 }
+
+/* 微信凭证容器 */  
+#wechat-credentials-container {  
+    display: flex;  
+    flex-direction: column;  
+    gap: 20px;  
+}  
+  
+/* 凭证卡片 */  
+.wechat-credential-card {  
+    background: var(--surface-color);  
+    border: 1px solid var(--border-color);  
+    border-radius: 8px;  
+    padding: 20px;  
+    position: relative;  
+}  
+  
+/* 凭证标题栏 */  
+.credential-header {  
+    display: flex;  
+    justify-content: space-between;  
+    align-items: center;  
+    margin-bottom: 16px;  
+    padding-bottom: 12px;  
+    border-bottom: 1px solid var(--border-color);  
+}  
+  
+.credential-title {  
+    font-size: 16px;  
+    font-weight: 600;  
+    color: var(--text-primary);  
+}  
+  
+.credential-delete-btn {  
+    padding: 6px 12px;  
+    background: var(--error-color);  
+    color: white;  
+    border: none;  
+    border-radius: 4px;  
+    cursor: pointer;  
+    font-size: 13px;  
+    transition: opacity 0.2s;  
+}  
+  
+.credential-delete-btn:hover {  
+    opacity: 0.8;  
+}  
+  
+.credential-delete-btn:disabled {  
+    background: var(--border-color);  
+    cursor: not-allowed;  
+    opacity: 0.5;  
+}  
+  
+/* 凭证表单布局 */  
+.credential-form {  
+    display: flex;  
+    flex-direction: column;  
+    gap: 16px;  
+}  
+  
+/* 群发选项特殊布局 */  
+.sendall-options {  
+    display: flex;  
+    gap: 24px; 
+    align-items: flex-start;  
+    flex-wrap: wrap;  
+}  
+  
+.sendall-options .form-group {  
+    margin-bottom: 0;  
+    min-width: 120px;
+}  
+  
+/* 标签组ID输入框 */  
+.tag-id-input {  
+    width: 150px;  
+    padding: 12px;  
+    height: auto;     
+    box-sizing: border-box;   
+}  
+  
+/* 增强禁用状态的视觉反馈 */  
+.form-control:disabled,  
+.tag-id-input:disabled {  
+    background: var(--surface-color);  
+    color: var(--text-tertiary);  
+    cursor: not-allowed;  
+    opacity: 0.6;  
+    border-color: var(--border-color);  
+}  
+  
+/* 禁用状态下的占位符文字 */  
+.form-control:disabled::placeholder,  
+.tag-id-input:disabled::placeholder {  
+    color: var(--text-tertiary);  
+    opacity: 0.5;  
+}  
+  
+/* 群发选项中的输入框统一样式 */  
+.sendall-options .form-control {  
+    padding: 12px;  
+    height: auto;  
+}
+  
+/* 禁用状态下的标签文字 */  
+.checkbox-label:has(input[type="checkbox"]:disabled) {  
+    opacity: 0.6;  
+    cursor: not-allowed;  
+}  
+  
+/* 为普通label添加禁用状态支持 */  
+.form-group:has(input:disabled) label {  
+    opacity: 0.6;  
+    color: var(--text-tertiary);  
+}  
+  
+/* 确保form-help在输入框禁用时也变暗 */  
+.form-group:has(input:disabled) .form-help {  
+    opacity: 0.6;  
+}
+
+/* 确保三列布局在较小屏幕下也能正常显示 */  
+@media (max-width: 1200px) {  
+    .credential-form .form-row .form-group-third {  
+        flex: 1 1 calc(50% - 6px);  /* 两列布局 */  
+        min-width: 200px;  
+    }  
+}  
+  
+@media (max-width: 800px) {  
+    .credential-form .form-row .form-group-third {  
+        flex: 1 1 100%;  /* 单列布局 */  
+        min-width: auto;  
+    }  
+      
+    .sendall-options {  
+        flex-direction: column;  
+        gap: 12px;  
+    }  
+}
+
+/* 未保存更改提示样式 */  
+.btn.has-changes {  
+    animation: pulse 2s infinite;  
+}  
+  
+@keyframes pulse {  
+    0%, 100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4); }  
+    50% { box-shadow: 0 0 0 4px rgba(255, 152, 0, 0); }  
+}
