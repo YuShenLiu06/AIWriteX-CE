@@ -225,7 +225,7 @@ class NotificationManager {
         notification.style.cssText = `  
             pointer-events: auto;  
             margin-bottom: 12px;  
-            animation: slideIn 0.3s ease;  
+            animation: notificationSlideIn 0.3s ease;  
         `;  
           
         notification.innerHTML = `  

@@ -10,7 +10,7 @@
     max-width: 400px;  
     z-index: 1100;  
     border-left: 4px solid var(--primary-color);  
-    animation: slideIn 0.3s ease;  
+    animation: notificationSlideIn 0.3s ease;  
 }  
   
 .notification.success {  
@@ -50,10 +50,10 @@
     padding: 15px;  
     box-shadow: var(--shadow-lg);  
     z-index: 1000;  
-    animation: slideIn 0.3s ease;  
+    animation: notificationSlideIn 0.3s ease;  
 }  
   
-@keyframes slideIn {  
+@keyframes notificationSlideIn {  
     from {  
         transform: translateX(100%);  
         opacity: 0;  

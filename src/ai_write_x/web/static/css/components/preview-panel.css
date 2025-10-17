@@ -190,14 +190,14 @@
 }  
   
 /* 左右晃动动画 */  
-@keyframes wiggle {  
+@keyframes previewWiggle {  
     0%, 100% { transform: translateX(0); }  
     25% { transform: translateX(-2px); }  
     75% { transform: translateX(2px); }  
 }  
   
 .trigger-icon {  
-    animation: wiggle 2s linear infinite;  
+    animation: previewWiggle 2s linear infinite;  
 }  
   
 .preview-trigger:hover .trigger-icon {  

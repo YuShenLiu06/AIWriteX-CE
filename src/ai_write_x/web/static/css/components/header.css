@@ -42,10 +42,10 @@
     height: 8px;  
     border-radius: 50%;  
     background: currentColor;  
-    animation: pulse 2s infinite;  
+    animation: headerPulse 2s infinite;  
 }  
   
-@keyframes pulse {  
+@keyframes headerPulse {  
     0%, 100% { opacity: 1; }  
     50% { opacity: 0.5; }  
 }

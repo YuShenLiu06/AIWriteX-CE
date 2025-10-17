@@ -123,7 +123,7 @@ class AIWriteXConfigManager {
             resetBaseConfigBtn.addEventListener('click', async () => {  
                 const success = await this.resetToDefault();  
                 window.app?.showNotification(  
-                    success ? '已恢复默认设置(永久生效需点“保存设置”)' : '恢复默认设置失败',  
+                    success ? '已恢复默认设置' : '恢复默认设置失败',  
                     success ? 'info' : 'error'  
                 );  
             });  
@@ -289,7 +289,7 @@ class AIWriteXConfigManager {
                     // 刷新UI  
                     this.populatePlatformsUI();  
                     
-                    window.app?.showNotification('已恢复默认平台配置(永久生效需点“保存设置”)', 'info');  
+                    window.app?.showNotification('已恢复默认平台配置', 'info');  
                 } else {  
                     window.app?.showNotification('恢复默认配置失败', 'error');  
                 }  
@@ -329,7 +329,7 @@ class AIWriteXConfigManager {
                     
                     this.populateWeChatUI();  
                     
-                    window.app?.showNotification('已恢复默认微信配置(永久生效需点“保存设置”)', 'info');  
+                    window.app?.showNotification('已恢复默认微信配置', 'info');  
                 } else {  
                     window.app?.showNotification('恢复默认配置失败', 'error');  
                 }  
@@ -399,7 +399,7 @@ class AIWriteXConfigManager {
                     
                     this.populateAPIUI();  
                     
-                    window.app?.showNotification('已恢复默认API配置(永久生效需点“保存设置”)', 'info');  
+                    window.app?.showNotification('已恢复默认API配置', 'info');  
                 } else {  
                     window.app?.showNotification('恢复默认配置失败', 'error');  
                 }  
@@ -763,7 +763,7 @@ class AIWriteXConfigManager {
             this.populateWeChatUI();  
             
             window.app?.showNotification(  
-                '凭证已删除(永久生效需点“保存设置”)',  
+                '凭证已删除',  
                 'info'  
             );  
         });  
@@ -1086,6 +1086,7 @@ class AIWriteXConfigManager {
         const toggleBtn = document.createElement('button');  
         toggleBtn.className = `provider-toggle-btn ${providerKey === currentAPIType ? 'active' : ''}`;  
         toggleBtn.textContent = providerKey === currentAPIType ? '当前使用' : '设为当前';  
+        toggleBtn.disabled = providerKey === currentAPIType;
         toggleBtn.addEventListener('click', async () => {  
             await this.setCurrentAPIProvider(providerKey);  
         });  
