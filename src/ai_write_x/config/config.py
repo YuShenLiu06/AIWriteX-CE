@@ -92,7 +92,7 @@ class Config:
                 "OpenRouter": {
                     "key": "OPENROUTER_API_KEY",
                     "key_index": 0,
-                    "api_key": ["", ""],
+                    "api_key": [],
                     "model_index": 0,
                     "model": [
                         "openrouter/deepseek/deepseek-chat-v3-0324:free",
@@ -110,7 +110,7 @@ class Config:
                 "Deepseek": {
                     "key": "DEEPSEEK_API_KEY",
                     "key_index": 0,
-                    "api_key": [""],
+                    "api_key": [],
                     "model_index": 0,
                     "model": ["deepseek/deepseek-chat", "deepseek/deepseek-reasoner"],
                     "api_base": "https://api.deepseek.com/v1",
@@ -118,7 +118,7 @@ class Config:
                 "Grok": {
                     "key": "XAI_API_KEY",
                     "key_index": 0,
-                    "api_key": ["", ""],
+                    "api_key": [],
                     "model_index": 0,
                     "model": ["xai/grok-3"],
                     "api_base": "https://api.x.ai/v1/chat/completions",
@@ -126,7 +126,7 @@ class Config:
                 "Qwen": {
                     "key": "OPENAI_API_KEY",
                     "key_index": 0,
-                    "api_key": ["", ""],
+                    "api_key": [],
                     "model_index": 0,
                     "model": ["openai/qwen-plus"],
                     "api_base": "https://dashscope.aliyuncs.com/compatible-mode/v1",
@@ -134,7 +134,7 @@ class Config:
                 "Gemini": {
                     "key": "GEMINI_API_KEY",
                     "key_index": 0,
-                    "api_key": ["", ""],
+                    "api_key": [],
                     "model_index": 0,
                     "model": [
                         "gemini/gemini-1.5-flash",
@@ -147,14 +147,14 @@ class Config:
                     "key": "OPENAI_API_KEY",
                     "model_index": 0,
                     "key_index": 0,
-                    "api_key": ["tmp-key"],
+                    "api_key": [],
                     "model": ["ollama/deepseek-r1:14b", "ollama/deepseek-r1:7b"],
                     "api_base": "http://localhost:11434",
                 },
                 "SiliconFlow": {
                     "key": "OPENAI_API_KEY",
                     "key_index": 0,
-                    "api_key": ["", ""],
+                    "api_key": [],
                     "model_index": 0,
                     "model": [
                         "openai/deepseek-ai/DeepSeek-V3",

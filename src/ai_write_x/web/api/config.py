@@ -30,6 +30,7 @@ async def get_config():
             "platforms": config_dict.get("platforms", []),
             "publish_platform": config_dict.get("publish_platform", "wechat"),
             "api": config_dict.get("api", {}),
+            "img_api": config_dict.get("img_api", {}),
             "wechat": config_dict.get("wechat", {}),
             "use_template": config_dict.get("use_template", True),
             "template_category": config_dict.get("template_category", ""),

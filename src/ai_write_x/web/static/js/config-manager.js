@@ -70,17 +70,26 @@ class AIWriteXConfigManager {
         }  
         
         // 保存按钮  
-        const saveUIConfigBtn = document.getElementById('save-ui-config');  
-        if (saveUIConfigBtn) {  
-            saveUIConfigBtn.addEventListener('click', async () => {  
-                const success = await this.saveUIConfig(this.uiConfig);  
+        const saveUIConfigBtn = document.getElementById('save-ui-config');    
+        if (saveUIConfigBtn) {    
+            saveUIConfigBtn.addEventListener('click', async () => {    
+                const success = await this.saveUIConfig(this.uiConfig);    
+                
                 if (success) {  
-                    window.app?.showNotification('界面设置已保存', 'success');  
-                } else {  
-                    window.app?.showNotification('保存界面设置失败', 'error');  
+                    // 清除未保存提示  
+                    const saveBtn = document.getElementById('save-ui-config');  
+                    if (saveBtn) {  
+                        saveBtn.classList.remove('has-changes');  
+                        saveBtn.innerHTML = '<i class="icon-save"></i> 保存设置';  
+                    }  
                 }  
-            });  
-        }  
+                
+                window.app?.showNotification(  
+                    success ? '界面设置已保存' : '保存界面设置失败',  
+                    success ? 'success' : 'error'  
+                );  
+            });    
+        }
         
         // 恢复默认按钮  
         const resetUIConfigBtn = document.getElementById('reset-ui-config');  
@@ -110,6 +119,10 @@ class AIWriteXConfigManager {
         if (saveBaseConfigBtn) {  
             saveBaseConfigBtn.addEventListener('click', async () => {  
                 const success = await this.saveConfig();  
+                if (success) {  
+                    saveBaseConfigBtn.classList.remove('has-changes');  
+                    saveBaseConfigBtn.innerHTML = '<i class="icon-save"></i> 保存设置';  
+                }  
                 window.app?.showNotification(  
                     success ? '基础设置已保存' : '保存基础设置失败',  
                     success ? 'success' : 'error'  
@@ -262,16 +275,26 @@ class AIWriteXConfigManager {
         // ========== 热搜平台设置事件绑定 ==========  
 
         // 保存平台配置按钮  
-        const savePlatformsConfigBtn = document.getElementById('save-platforms-config');  
-        if (savePlatformsConfigBtn) {  
-            savePlatformsConfigBtn.addEventListener('click', async () => {  
+        const savePlatformsConfigBtn = document.getElementById('save-platforms-config');    
+        if (savePlatformsConfigBtn) {    
+            savePlatformsConfigBtn.addEventListener('click', async () => {    
                 const success = await this.saveConfig();  
-                window.app?.showNotification(  
-                    success ? '平台配置已保存' : '保存平台配置失败',  
-                    success ? 'success' : 'error'  
-                );  
-            });  
-        }  
+                
+                if (success) {  
+                    // 清除未保存提示  
+                    const saveBtn = document.getElementById('save-platforms-config');  
+                    if (saveBtn) {  
+                        saveBtn.classList.remove('has-changes');  
+                        saveBtn.innerHTML = '<i class="icon-save"></i> 保存设置';  
+                    }  
+                }  
+                
+                window.app?.showNotification(    
+                    success ? '平台配置已保存' : '保存平台配置失败',    
+                    success ? 'success' : 'error'    
+                );    
+            });    
+        } 
         
         // 恢复默认平台配置按钮  
         const resetPlatformsConfigBtn = document.getElementById('reset-platforms-config');  
@@ -382,9 +405,19 @@ class AIWriteXConfigManager {
         const saveAPIConfigBtn = document.getElementById('save-api-config');  
         if (saveAPIConfigBtn) {  
             saveAPIConfigBtn.addEventListener('click', async () => {  
-                await this.saveAPIConfig();  
+                const success = await this.saveConfig();  
+                
+                if (success) {  
+                    saveAPIConfigBtn.classList.remove('has-changes');  
+                    saveAPIConfigBtn.innerHTML = '<i class="icon-save"></i> 保存设置';  
+                }  
+                
+                window.app?.showNotification(  
+                    success ? 'API配置已保存' : '保存API配置失败',  
+                    success ? 'success' : 'error'  
+                );  
             });  
-        }  
+        } 
         
         // 恢复默认API配置按钮  
         const resetAPIConfigBtn = document.getElementById('reset-api-config');  
@@ -420,6 +453,44 @@ class AIWriteXConfigManager {
                 }  
             }, true);  
         }
+
+        // 保存图片API配置  
+        const saveImgAPIConfigBtn = document.getElementById('save-img-api-config');  
+        if (saveImgAPIConfigBtn) {  
+            saveImgAPIConfigBtn.addEventListener('click', async () => {  
+                const success = await this.saveConfig();  
+                
+                if (success) {  
+                    saveImgAPIConfigBtn.classList.remove('has-changes');  
+                    saveImgAPIConfigBtn.innerHTML = '<i class="icon-save"></i> 保存设置';  
+                }  
+                
+                window.app?.showNotification(  
+                    success ? '图片API配置已保存' : '保存图片API配置失败',  
+                    success ? 'success' : 'error'  
+                );  
+            });  
+        } 
+        
+        // 恢复默认图片API配置  
+        const resetImgAPIConfigBtn = document.getElementById('reset-img-api-config');  
+        if (resetImgAPIConfigBtn) {  
+            resetImgAPIConfigBtn.addEventListener('click', async () => {  
+                await this.resetImgAPIConfig();  
+            });  
+        }  
+        
+        // 监听图片API输入框变化,显示未保存提示  
+        const imgApiInputs = document.querySelectorAll('[id^="img-api-"]');  
+        imgApiInputs.forEach(input => {  
+            input.addEventListener('blur', async () => {  
+                const saveBtn = document.getElementById('save-img-api-config');  
+                if (saveBtn && !saveBtn.classList.contains('has-changes')) {  
+                    saveBtn.classList.add('has-changes');  
+                    saveBtn.innerHTML = '<i class="icon-save"></i> 保存设置 (有未保存更改)';  
+                }  
+            });  
+        });
     }  
     
     populateUI() {  
@@ -544,6 +615,8 @@ class AIWriteXConfigManager {
 
         // ========== 填充大模型API配置 ==========  
         this.populateAPIUI();
+
+        this.populateImgAPIUI();
     }
 
     // 填充热搜平台UI  
@@ -632,50 +705,81 @@ class AIWriteXConfigManager {
         });  
     }  
     
-    // 创建表单组辅助方法    
-    createFormGroup(label, type, id, value, placeholder, required = false) {    
-        const group = document.createElement('div');    
-        group.className = 'form-group';    
+    // 创建表单组辅助方法      
+    createFormGroup(label, type, id, value, placeholder, required = false, readonly = false) {      
+        const group = document.createElement('div');      
+        group.className = 'form-group';      
         
-        const labelEl = document.createElement('label');    
-        labelEl.setAttribute('for', id);    
-        labelEl.textContent = label;    
-        if (required) {    
-            const requiredSpan = document.createElement('span');    
-            requiredSpan.className = 'required';    
-            requiredSpan.textContent = ' *';    
-            labelEl.appendChild(requiredSpan);    
+        const labelEl = document.createElement('label');      
+        labelEl.setAttribute('for', id);      
+        labelEl.textContent = label;      
+        if (required) {      
+            const requiredSpan = document.createElement('span');      
+            requiredSpan.className = 'required';      
+            requiredSpan.textContent = ' *';      
+            labelEl.appendChild(requiredSpan);      
+        }      
+        
+        const input = document.createElement('input');      
+        input.type = type;      
+        input.id = id;      
+        input.className = 'form-control';    
+        
+        if (value !== undefined && value !== null) {    
+            input.value = value;    
+        } else {    
+            input.value = '';    
         }    
         
-        const input = document.createElement('input');    
-        input.type = type;    
-        input.id = id;    
-        input.className = 'form-control';  
-        
-        if (value !== undefined && value !== null) {  
-            input.value = value;  
-        } else {  
-            input.value = '';  
+        if (placeholder) {      
+            input.placeholder = placeholder;      
+            input.title = placeholder;      
         }  
         
-        if (placeholder) {    
-            input.placeholder = placeholder;    
-            input.title = placeholder;    
-        }    
+        if (readonly) {  
+            input.readOnly = true;  
+        }  
         
-        // 为输入框添加blur事件    
-        input.addEventListener('blur', async () => {    
-            const match = id.match(/wechat-\w+-(\d+)/);    
-            if (match) {    
-                const index = parseInt(match[1]);    
-                await this.updateWeChatCredential(index);    
-            }    
-        });    
+        // ✅ 通用的值变化检测逻辑      
+        let originalValue = input.value;          
+        input.addEventListener('blur', async (e) => {        
+            // ✅ 只在值真正改变时才更新    
+            if (e.target.value !== originalValue) {        
+                originalValue = e.target.value;        
+                
+                // ✅ 微信公众号凭证      
+                const wechatMatch = id.match(/wechat-\w+-(\d+)/);        
+                if (wechatMatch) {        
+                    const index = parseInt(wechatMatch[1]);        
+                    await this.updateWeChatCredential(index);        
+                    return;      
+                }      
+                
+                // ✅ 大模型API配置(只读字段不更新)  
+                const apiMatch = id.match(/api-(\w+)-(key-name|api-base)/);    
+                if (apiMatch) {    
+                    // KEY名称和API BASE是只读的,不需要更新    
+                    return;    
+                }  
+                
+                // ✅ 图片API配置      
+                const imgApiMatch = id.match(/img-api-(\w+)-(api-key|model)/);      
+                if (imgApiMatch) {      
+                    const [, provider, field] = imgApiMatch;      
+                    await this.updateImgAPIProvider(provider, field, e.target.value);      
+                    return;      
+                }  
+                
+                // ✅ 其他所有情况:直接调用updateConfig()  
+                // 这样新增的配置界面无需修改此方法  
+                console.warn(`未匹配的输入框ID: ${id}, 跳过更新`);  
+            }        
+        });        
         
-        group.appendChild(labelEl);    
-        group.appendChild(input);    
+        group.appendChild(labelEl);        
+        group.appendChild(input);        
         
-        return group;    
+        return group;        
     }
     
     // 更新群发选项联动逻辑  
@@ -1078,7 +1182,7 @@ class AIWriteXConfigManager {
         
         const badge = document.createElement('span');  
         badge.className = `provider-badge ${providerKey === currentAPIType ? 'active' : 'inactive'}`;  
-        badge.textContent = providerKey === currentAPIType ? '当前使用' : '未使用';  
+        badge.textContent = providerKey === currentAPIType ? '使用中' : '未使用';  
         
         titleGroup.appendChild(name);  
         titleGroup.appendChild(badge);  
@@ -1587,6 +1691,8 @@ class AIWriteXConfigManager {
         const configContent = document.querySelector('.config-content');  
         const targetPanel = document.getElementById(`config-${panelType}`);  
         
+        this.currentPanel = panelType; 
+
         // 关键:在任何DOM操作之前立即重置滚动位置  
         if (configContent) {  
             configContent.scrollTop = 0;  
@@ -1615,9 +1721,7 @@ class AIWriteXConfigManager {
         const activeNavItem = document.querySelector(`[data-config="${panelType}"]`)?.parentElement;  
         if (activeNavItem) {  
             activeNavItem.classList.add('active');  
-        }  
-        
-        this.currentPanel = panelType;  
+        }   
         
         this.populateUI();  
     }  
@@ -1792,35 +1896,300 @@ class AIWriteXConfigManager {
             console.error('加载模板列表失败:', error);  
             return [];  
         }  
-    }    
-    // 更新配置(仅内存,不保存文件)  
-    async updateConfig(updates) {      
-        try {      
-            const response = await fetch(this.apiEndpoint, {      
-                method: 'PATCH',      
-                headers: { 'Content-Type': 'application/json' },      
-                body: JSON.stringify({ config_data: updates })  
-            });      
-                
-            if (!response.ok) {      
-                throw new Error(`HTTP ${response.status}`);      
-            }      
-                
-            // 同步更新前端内存      
-            this.deepMerge(this.config, updates);  
+    }
+
+    // 填充图片API UI  
+    populateImgAPIUI() {  
+        const container = document.getElementById('img-api-providers-container');  
+        if (!container || !this.config.img_api) return;  
+        
+        const currentImgAPIType = this.config.img_api.api_type;  
+        
+        // 清空现有内容  
+        container.innerHTML = '';  
+        
+        // 定义提供商列表(固定两个:picsum和ali)  
+        const providers = [  
+            { key: 'picsum', display: 'Picsum(随机)' },  
+            { key: 'ali', display: '阿里' }  
+        ];  
+        
+        // 生成提供商卡片  
+        providers.forEach(provider => {  
+            const providerData = this.config.img_api[provider.key];  
+            if (providerData) {  
+                const card = this.createImgAPIProviderCard(  
+                    provider.key,   
+                    provider.display,   
+                    providerData,   
+                    currentImgAPIType  
+                );  
+                container.appendChild(card);  
+            }  
+        });  
+    }  
+    
+    // 创建图片API提供商卡片  
+    createImgAPIProviderCard(providerKey, providerDisplay, providerData, currentImgAPIType) {  
+        const card = document.createElement('div');  
+        card.className = 'api-provider-card';  
+        if (providerKey === currentImgAPIType) {  
+            card.classList.add('active');  
+        }  
+        
+        // 卡片头部  
+        const header = document.createElement('div');  
+        header.className = 'provider-header';  
+        
+        const titleGroup = document.createElement('div');  
+        titleGroup.className = 'provider-title-group';  
+        
+        const name = document.createElement('div');  
+        name.className = 'provider-name';  
+        name.textContent = providerDisplay;  
+        
+        const badge = document.createElement('span');  
+        badge.className = `provider-badge ${providerKey === currentImgAPIType ? 'active' : 'inactive'}`;  
+        badge.textContent = providerKey === currentImgAPIType ? '使用中' : '未使用';  
+        
+        titleGroup.appendChild(name);  
+        titleGroup.appendChild(badge);  
+        
+        const toggleBtn = document.createElement('button');  
+        toggleBtn.className = `provider-toggle-btn ${providerKey === currentImgAPIType ? 'active' : ''}`;  
+        toggleBtn.textContent = providerKey === currentImgAPIType ? '当前使用' : '设为当前';  
+        toggleBtn.disabled = providerKey === currentImgAPIType;  
+        toggleBtn.addEventListener('click', async () => {  
+            await this.setCurrentImgAPIProvider(providerKey);  
+        });  
+        
+        header.appendChild(titleGroup);  
+        header.appendChild(toggleBtn);  
+        
+        // 表单内容  
+        const form = document.createElement('div');  
+        form.className = 'provider-form';  
+        
+        // API KEY字段  
+        const apiKeyGroup = this.createFormGroup(  
+            'API KEY',  
+            'text',  
+            `img-api-${providerKey}-api-key`,  
+            providerData.api_key || '',  
+            providerKey === 'picsum'?"随机图片无需API KEY" : "请输入API KEY",  
+            false  
+        );  
+        apiKeyGroup.classList.add('form-group-half');  
+        
+        // 模型字段  
+        const modelGroup = this.createFormGroup(  
+            '模型',  
+            'text',  
+            `img-api-${providerKey}-model`,  
+            providerData.model || '',  
+            providerKey === 'picsum'?"随机图片无需模型" : "请输入模型名称",   
+            false  
+        );  
+        modelGroup.classList.add('form-group-half');  
+        
+        if (providerKey === 'picsum') {  
+            const inputs = [  
+                apiKeyGroup.querySelector('input'),  
+                modelGroup.querySelector('input')  
+            ];  
+            inputs.forEach(input => {  
+                if (input) {  
+                    input.disabled = true;  
+                    input.style.userSelect = 'none';  
+                    input.style.cursor = 'not-allowed';  
+                }  
+            });  
+        } else {  
+            // 阿里API的输入框绑定更新事件  
+            const apiKeyInput = apiKeyGroup.querySelector('input');  
+            const modelInput = modelGroup.querySelector('input');  
             
-            const saveBtn = document.getElementById('save-wechat-config');    
-            if (saveBtn && !saveBtn.classList.contains('has-changes')) {    
-                saveBtn.classList.add('has-changes');    
-                saveBtn.innerHTML = '💾 保存配置 <span style="color: var(--warning-color);">(有未保存更改)</span>';    
+            if (apiKeyInput) {  
+                apiKeyInput.addEventListener('blur', async () => {  
+                    await this.updateImgAPIProviderField(providerKey, 'api_key', apiKeyInput.value);  
+                });  
+            }  
+            
+            if (modelInput) {  
+                modelInput.addEventListener('blur', async () => {  
+                    await this.updateImgAPIProviderField(providerKey, 'model', modelInput.value);  
+                });  
+            }  
+        }  
+        
+        const row = document.createElement('div');  
+        row.className = 'form-row';  
+        row.appendChild(apiKeyGroup);  
+        row.appendChild(modelGroup);  
+        
+        form.appendChild(row);  
+        
+        // 组装卡片  
+        card.appendChild(header);  
+        card.appendChild(form);  
+        
+        return card;  
+    }
+    
+    // 切换当前图片API提供商  
+    async setCurrentImgAPIProvider(providerKey) {  
+        await this.updateConfig({  
+            img_api: {  
+                ...this.config.img_api,  
+                api_type: providerKey  
+            }  
+        });  
+        
+        // 刷新UI  
+        this.populateImgAPIUI();  
+        
+        window.app?.showNotification(  
+            `已切换到${providerKey === 'picsum' ? 'Picsum(随机)' : '阿里'}`,  
+            'success'  
+        );  
+    }  
+    
+    // 切换当前图片API提供商  
+    async setCurrentImgAPIProvider(providerKey) {  
+        await this.updateConfig({  
+            img_api: {  
+                ...this.config.img_api,  
+                api_type: providerKey  
+            }  
+        });  
+        
+        // 刷新UI  
+        this.populateImgAPIUI();  
+        
+        window.app?.showNotification(  
+            `已切换到${providerKey === 'picsum' ? 'Picsum(随机)' : '阿里'}`,  
+            'success'  
+        );  
+    }  
+    
+    // 更新图片API提供商字段  
+    async updateImgAPIProviderField(providerKey, field, value) {  
+        await this.updateConfig({  
+            img_api: {  
+                ...this.config.img_api,  
+                [providerKey]: {  
+                    ...this.config.img_api[providerKey],  
+                    [field]: value  
+                }  
+            }  
+        });  
+    }
+    // 保存图片API配置  
+    async saveImgAPIConfig() {  
+        // 收集所有提供商的配置  
+        const imgApiConfig = {  
+            api_type: this.config.img_api.api_type,  
+            picsum: {  
+                api_key: document.getElementById('img-api-picsum-api-key')?.value || '',  
+                model: document.getElementById('img-api-picsum-model')?.value || ''  
+            },  
+            ali: {  
+                api_key: document.getElementById('img-api-ali-api-key')?.value || '',  
+                model: document.getElementById('img-api-ali-model')?.value || ''  
+            }  
+        };  
+        
+        // 验证:如果选择阿里,必须填写API KEY  
+        if (imgApiConfig.api_type === 'ali' && !imgApiConfig.ali.api_key.trim()) {  
+            window.app?.showNotification('阿里API需要配置API KEY', 'error');  
+            return;  
+        }  
+        
+        // 更新配置  
+        await this.updateConfig({ img_api: imgApiConfig });  
+        
+        // 保存到文件  
+        const success = await this.saveConfig();  
+        
+        if (success) {  
+            // 清除未保存提示  
+            const saveBtn = document.getElementById('save-img-api-config');  
+            if (saveBtn) {  
+                saveBtn.classList.remove('has-changes');  
+                saveBtn.innerHTML = '<i class="icon-save"></i> 保存设置';  
+            }  
+        }  
+        
+        window.app?.showNotification(  
+            success ? '图片API配置已保存' : '保存图片API配置失败',  
+            success ? 'success' : 'error'  
+        );  
+    }  
+    
+    // 恢复默认图片API配置  
+    async resetImgAPIConfig() {  
+        window.dialogManager.showConfirm(  
+            '确定要恢复默认图片API配置吗？这将清除所有自定义设置。',  
+            async () => {  
+                try {  
+                    const response = await fetch(`${this.apiEndpoint}/default`);  
+                    if (!response.ok) throw new Error('获取默认配置失败');  
+                    
+                    const result = await response.json();  
+                    const defaultImgAPI = result.data.img_api;  
+                    
+                    await this.updateConfig({ img_api: defaultImgAPI });  
+                    this.populateImgAPIUI();  
+                    
+                    window.app?.showNotification('已恢复默认图片API配置', 'success');  
+                } catch (error) {  
+                    console.error('恢复默认配置失败:', error);  
+                    window.app?.showNotification('恢复默认配置失败', 'error');  
+                }  
+            }  
+        );  
+    }
+
+    // 更新配置(仅内存,不保存文件)  
+    async updateConfig(updates) {        
+        try {        
+            const response = await fetch(this.apiEndpoint, {        
+                method: 'PATCH',        
+                headers: { 'Content-Type': 'application/json' },        
+                body: JSON.stringify({ config_data: updates })    
+            });        
+                
+            if (!response.ok) {        
+                throw new Error(`HTTP ${response.status}`);        
+            }        
+                
+            // 同步更新前端内存        
+            this.deepMerge(this.config, updates);    
+            
+            const panelButtonMap = {  
+                'ui': 'save-ui-config',  
+                'base': 'save-base-config',  
+                'platforms': 'save-platforms-config',  
+                'wechat': 'save-wechat-config',  
+                'api': 'save-api-config',  
+                'img-api': 'save-img-api-config'  
+            };  
+            
+            const saveBtnId = panelButtonMap[this.currentPanel];  
+            if (saveBtnId) {  
+                const saveBtn = document.getElementById(saveBtnId);  
+                if (saveBtn && !saveBtn.classList.contains('has-changes')) {  
+                    saveBtn.classList.add('has-changes');  
+                    saveBtn.innerHTML = `<i class="icon-save"></i> 保存设置 <span style="color: var(--warning-color);">(有未保存更改)</span>`;  
+                }  
             }  
                 
-            return true;      
-        } catch (error) {      
-            console.error('更新配置失败:', error);      
-            return false;      
-        }      
-    } 
+            return true;        
+        } catch (error) {        
+            console.error('更新配置失败:', error);        
+            return false;        
+        }        
+    }
       
     // 保存配置到文件  
     async saveConfig() {  
