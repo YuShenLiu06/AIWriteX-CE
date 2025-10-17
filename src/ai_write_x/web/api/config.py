@@ -44,6 +44,7 @@ async def get_config():
             "article_format": config_dict.get("article_format", "html"),
             "format_publish": config_dict.get("format_publish", True),
             "dimensional_creative": config_dict.get("dimensional_creative", {}),
+            "aiforge_config": config.aiforge_config,
         }
 
         return {"status": "success", "data": config_data}
@@ -69,7 +70,13 @@ async def update_config_memory(request: ConfigUpdateRequest):
                     target[key] = value
 
         with config._lock:
+            if "aiforge_config" in config_data:
+                aiforge_config_update = config_data.pop("aiforge_config")
+                deep_merge(config.aiforge_config, aiforge_config_update)
+
+            # 处理config.yaml的配置
             deep_merge(config.config, config_data)
+
         return {"status": "success", "message": "配置已更新(仅内存)"}
     except Exception as e:
         log.print_log(f"更新内存配置失败: {str(e)}", "error")
@@ -82,8 +89,7 @@ async def save_config_to_file():
     try:
         config = Config.get_instance()
 
-        # 直接保存当前内存中的配置
-        if config.save_config(config.config):
+        if config.save_config(config.config, config.aiforge_config):
             return {"status": "success", "message": "配置已保存"}
         else:
             raise HTTPException(status_code=500, detail="配置保存失败")
@@ -97,7 +103,13 @@ async def get_default_config():
     """获取默认配置"""
     try:
         config = Config.get_instance()
-        return {"status": "success", "data": config.default_config}
+        return {
+            "status": "success",
+            "data": {
+                **config.default_config,
+                "aiforge_config": config.default_aiforge_config,
+            },
+        }
     except Exception as e:
         log.print_log(f"获取默认配置失败: {str(e)}", "error")
         raise HTTPException(status_code=500, detail=str(e))

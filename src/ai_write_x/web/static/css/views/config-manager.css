@@ -838,3 +838,20 @@ select.form-control {
     border-color: var(--primary-color);    
     box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);    
 }
+
+.form-group-third {  
+    flex: 0 0 calc(33.333% - 11px);  
+    min-width: 0;  
+}  
+  
+@media (max-width: 1200px) {  
+    .form-group-third {  
+        flex: 0 0 calc(50% - 8px); /* 中等屏幕显示两列 */  
+    }  
+}  
+  
+@media (max-width: 800px) {  
+    .form-group-third {  
+        flex: 0 0 100%; /* 小屏幕显示一列 */  
+    }  
+}

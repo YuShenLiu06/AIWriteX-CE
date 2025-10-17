@@ -187,10 +187,9 @@ extension_dir = "extensions"
 [[extensions.registered]]
 name = "custom_executor"
 type = "executor"
-config = {}
 
+[extensions.registered.config]
 
-# 示例
 [[extensions.registered]]
 name = "custom_data_processor"
 type = "executor"

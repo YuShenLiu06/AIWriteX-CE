@@ -465,7 +465,169 @@ class AIWriteXConfigManager {
             resetImgAPIConfigBtn.addEventListener('click', async () => {  
                 await this.resetImgAPIConfig();  
             });  
-        } 
+        }
+
+        // 保存AIForge配置  
+        const saveAIForgeConfigBtn = document.getElementById('save-aiforge-config');  
+        if (saveAIForgeConfigBtn) {  
+            saveAIForgeConfigBtn.addEventListener('click', async () => {  
+                const success = await this.saveConfig();  
+                
+                if (success) {  
+                    saveAIForgeConfigBtn.classList.remove('has-changes');  
+                    saveAIForgeConfigBtn.innerHTML = '<i class="icon-save"></i> 保存设置';  
+                }  
+                
+                window.app?.showNotification(  
+                    success ? 'AIForge配置已保存' : '保存AIForge配置失败',  
+                    success ? 'success' : 'error'  
+                );  
+            });  
+        }  
+        
+        // 恢复默认AIForge配置  
+        const resetAIForgeConfigBtn = document.getElementById('reset-aiforge-config');  
+        if (resetAIForgeConfigBtn) {  
+            resetAIForgeConfigBtn.addEventListener('click', async () => {  
+                const response = await fetch(`${this.apiEndpoint}/default`);  
+                if (response.ok) {  
+                    const result = await response.json();  
+                    const defaultAIForge = result.data.aiforge_config;  
+                    
+                    await this.updateConfig({ aiforge_config: defaultAIForge });  
+                    
+                    this.populateAIForgeUI();  
+                    
+                    window.app?.showNotification('已恢复默认AIForge配置', 'info');  
+                } else {  
+                    window.app?.showNotification('恢复默认配置失败', 'error');  
+                }  
+            });  
+        }
+
+        // ========== AIForge配置事件绑定 ==========  
+        
+        // 1. 通用配置 - 最大重试次数  
+        const aiforgeMaxRounds = document.getElementById('aiforge-max-rounds');  
+        if (aiforgeMaxRounds) {  
+            aiforgeMaxRounds.addEventListener('change', async (e) => {  
+                await this.updateConfig({  
+                    aiforge_config: {  
+                        ...this.config.aiforge_config,  
+                        max_rounds: parseInt(e.target.value)  
+                    }  
+                });  
+            });  
+        }  
+        
+        // 2. 通用配置 - 默认最大Tokens  
+        const aiforgeDefaultMaxTokens = document.getElementById('aiforge-default-max-tokens');  
+        if (aiforgeDefaultMaxTokens) {  
+            aiforgeDefaultMaxTokens.addEventListener('change', async (e) => {  
+                await this.updateConfig({  
+                    aiforge_config: {  
+                        ...this.config.aiforge_config,  
+                        max_tokens: parseInt(e.target.value)  // ✅ 改为 max_tokens  
+                    }  
+                });  
+            });  
+        }  
+        
+        // 3. 代码缓存配置 - 启用缓存  
+        const cacheEnabled = document.getElementById('cache-enabled');  
+        if (cacheEnabled) {  
+            cacheEnabled.addEventListener('change', async (e) => {  
+                await this.updateConfig({  
+                    aiforge_config: {  
+                        ...this.config.aiforge_config,  
+                        cache: {  // ✅ 改为 cache  
+                            ...this.config.aiforge_config.cache,  
+                            code: {  // ✅ 添加 code 层级  
+                                ...this.config.aiforge_config.cache.code,  
+                                enabled: e.target.checked  
+                            }  
+                        }  
+                    }  
+                });  
+            });  
+        }  
+        
+        // 4. 代码缓存配置 - 最大模块数  
+        const cacheMaxModules = document.getElementById('cache-max-modules');  
+        if (cacheMaxModules) {  
+            cacheMaxModules.addEventListener('change', async (e) => {  
+                await this.updateConfig({  
+                    aiforge_config: {  
+                        ...this.config.aiforge_config,  
+                        cache: {  // ✅ 改为 cache  
+                            ...this.config.aiforge_config.cache,  
+                            code: {  // ✅ 添加 code 层级  
+                                ...this.config.aiforge_config.cache.code,  
+                                max_modules: parseInt(e.target.value)  
+                            }  
+                        }  
+                    }  
+                });  
+            });  
+        }  
+        
+        // 5. 代码缓存配置 - 失败阈值  
+        const cacheFailureThreshold = document.getElementById('cache-failure-threshold');  
+        if (cacheFailureThreshold) {  
+            cacheFailureThreshold.addEventListener('change', async (e) => {  
+                await this.updateConfig({  
+                    aiforge_config: {  
+                        ...this.config.aiforge_config,  
+                        cache: {  // ✅ 改为 cache  
+                            ...this.config.aiforge_config.cache,  
+                            code: {  // ✅ 添加 code 层级  
+                                ...this.config.aiforge_config.cache.code,  
+                                failure_threshold: parseFloat(e.target.value)  // ✅ 使用 parseFloat  
+                            }  
+                        }  
+                    }  
+                });  
+            });  
+        }  
+        
+        // 6. 代码缓存配置 - 最大保存天数  
+        const cacheMaxAgeDays = document.getElementById('cache-max-save-days');  
+        if (cacheMaxAgeDays) {  
+            cacheMaxAgeDays.addEventListener('change', async (e) => {  
+                await this.updateConfig({  
+                    aiforge_config: {  
+                        ...this.config.aiforge_config,  
+                        cache: {  // ✅ 改为 cache  
+                            ...this.config.aiforge_config.cache,  
+                            code: {  // ✅ 添加 code 层级  
+                                ...this.config.aiforge_config.cache.code,  
+                                max_age_days: parseInt(e.target.value)  // ✅ 改为 max_age_days  
+                            }  
+                        }  
+                    }  
+                });  
+            });  
+        }  
+        
+        // 7. 代码缓存配置 - 清理间隔  
+        const cacheCleanupInterval = document.getElementById('cache-cleanup-interval');  
+        if (cacheCleanupInterval) {  
+            cacheCleanupInterval.addEventListener('change', async (e) => {  
+                await this.updateConfig({  
+                    aiforge_config: {  
+                        ...this.config.aiforge_config,  
+                        cache: {  // ✅ 改为 cache  
+                            ...this.config.aiforge_config.cache,  
+                            code: {  // ✅ 添加 code 层级  
+                                ...this.config.aiforge_config.cache.code,  
+                                cleanup_interval: parseInt(e.target.value)  // ✅ 改为 cleanup_interval  
+                            }  
+                        }  
+                    }  
+                });  
+            });  
+        }
+        
     }  
     
     populateUI() {  
@@ -592,6 +754,8 @@ class AIWriteXConfigManager {
         this.populateAPIUI();
 
         this.populateImgAPIUI();
+
+        this.populateAIForgeUI();
     }
 
     // 填充热搜平台UI  
@@ -742,9 +906,17 @@ class AIWriteXConfigManager {
                 const imgApiMatch = id.match(/img-api-(\w+)-(api-key|model)/);      
                 if (imgApiMatch) {      
                     const [, provider, field] = imgApiMatch;      
-                    await this.updateImgAPIProvider(provider, field, e.target.value);      
+                    await this.updateImgAPIProviderField(provider, field, e.target.value);      
                     return;      
-                }  
+                } 
+
+                // ✅ AIForge LLM配置  
+                const aiforgeMatch = id.match(/aiforge-(\w+)-(type|model|api-key|base-url|timeout|max-tokens)/);  
+                if (aiforgeMatch) {  
+                    const [, provider, field] = aiforgeMatch;  
+                    await this.updateAIForgeLLMProviderField(provider, field, e.target.value);  
+                    return;  
+                }
                 
                 // ✅ 其他所有情况:直接调用updateConfig()  
                 // 这样新增的配置界面无需修改此方法  
@@ -2147,6 +2319,276 @@ class AIWriteXConfigManager {
         );  
     }
 
+    // 填充AIForge配置UI  
+    populateAIForgeUI() {  
+        if (!this.config.aiforge_config) return;  
+        
+        const aiforgeConfig = this.config.aiforge_config;  
+        
+        // 填充通用配置  
+        const maxRoundsInput = document.getElementById('aiforge-max-rounds');  
+        if (maxRoundsInput && aiforgeConfig.max_rounds !== undefined) {  
+            maxRoundsInput.value = aiforgeConfig.max_rounds;  
+        }  
+        
+        const defaultMaxTokensInput = document.getElementById('aiforge-default-max-tokens');  
+        if (defaultMaxTokensInput && aiforgeConfig.max_tokens !== undefined) {  
+            defaultMaxTokensInput.value = aiforgeConfig.max_tokens;  
+        }  
+        
+        // 填充缓存配置  
+        if (aiforgeConfig.cache && aiforgeConfig.cache.code) {  
+            const cacheConfig = aiforgeConfig.cache.code;  
+            
+            const cacheEnabledCheckbox = document.getElementById('cache-enabled');  
+            if (cacheEnabledCheckbox && cacheConfig.enabled !== undefined) {  
+                cacheEnabledCheckbox.checked = cacheConfig.enabled;  
+            }  
+            
+            const maxModulesInput = document.getElementById('cache-max-modules');  
+            if (maxModulesInput && cacheConfig.max_modules !== undefined) {  
+                maxModulesInput.value = cacheConfig.max_modules;  
+            }  
+            
+            const failureThresholdInput = document.getElementById('cache-failure-threshold');  
+            if (failureThresholdInput && cacheConfig.failure_threshold !== undefined) {  
+                failureThresholdInput.value = cacheConfig.failure_threshold;  
+            }  
+            
+            const maxAgeDaysInput = document.getElementById('cache-max-save-days');  
+            if (maxAgeDaysInput && cacheConfig.max_age_days !== undefined) {  
+                maxAgeDaysInput.value = cacheConfig.max_age_days;  
+            }  
+            
+            const cleanupIntervalInput = document.getElementById('cache-cleanup-interval');  
+            if (cleanupIntervalInput && cacheConfig.cleanup_interval !== undefined) {  
+                cleanupIntervalInput.value = cacheConfig.cleanup_interval;  
+            }  
+        }  
+        
+        // 填充LLM提供商卡片  
+        this.populateAIForgeLLMUI();  
+    }
+
+    // 填充AIForge LLM提供商UI  
+    populateAIForgeLLMUI() {  
+        const container = document.getElementById('aiforge-llm-providers-container');  
+        if (!container || !this.config.aiforge_config) return;  
+        
+        const aiforgeConfig = this.config.aiforge_config;  
+        const currentProvider = aiforgeConfig.default_llm_provider;  
+        
+        // 清空现有内容  
+        container.innerHTML = '';  
+        
+        // 获取所有LLM提供商  
+        const providers = Object.keys(aiforgeConfig.llm).map(key => ({  
+            key: key,  
+            display: key.charAt(0).toUpperCase() + key.slice(1)  
+        }));  
+        
+        // 为每个提供商生成卡片  
+        providers.forEach(provider => {  
+            const providerData = aiforgeConfig.llm[provider.key];  
+            if (providerData) {  
+                const card = this.createAIForgeLLMProviderCard(  
+                    provider.key,  
+                    provider.display,  
+                    providerData,  
+                    currentProvider  
+                );  
+                container.appendChild(card);  
+            }  
+        });  
+    } 
+  
+    // 创建AIForge LLM提供商卡片  
+    createAIForgeLLMProviderCard(providerKey, providerDisplay, providerData, currentProvider) {  
+        const card = document.createElement('div');  
+        card.className = 'api-provider-card';  
+        if (providerKey === currentProvider) {  
+            card.classList.add('active');  
+        }  
+        
+        // ========== 卡片头部 ==========  
+        const header = document.createElement('div');  
+        header.className = 'provider-header';  
+        
+        const titleGroup = document.createElement('div');  
+        titleGroup.className = 'provider-title-group';  
+        
+        const name = document.createElement('div');  
+        name.className = 'provider-name';  
+        name.textContent = providerDisplay;  
+        
+        const badge = document.createElement('span');  
+        badge.className = `provider-badge ${providerKey === currentProvider ? 'active' : 'inactive'}`;  
+        badge.textContent = providerKey === currentProvider ? '使用中' : '未使用';  
+        
+        titleGroup.appendChild(name);  
+        titleGroup.appendChild(badge);  
+        
+        const toggleBtn = document.createElement('button');  
+        toggleBtn.className = `provider-toggle-btn ${providerKey === currentProvider ? 'active' : ''}`;  
+        toggleBtn.textContent = providerKey === currentProvider ? '当前使用' : '设为当前';  
+        toggleBtn.disabled = providerKey === currentProvider;  
+        toggleBtn.addEventListener('click', async () => {  
+            await this.setCurrentAIForgeLLMProvider(providerKey);  
+        });  
+        
+        header.appendChild(titleGroup);  
+        header.appendChild(toggleBtn);  
+        
+        // ========== 表单内容 ==========  
+        const form = document.createElement('div');  
+        form.className = 'provider-form';  
+        
+        // ✅ 第一行:类型、模型、API KEY(三个字段)  
+        const row1 = document.createElement('div');  
+        row1.className = 'form-row';  
+        
+        // 类型(只读)  
+        const typeGroup = this.createFormGroup(  
+            '类型',  
+            'text',  
+            `aiforge-${providerKey}-type`,  
+            providerData.type || '',  
+            '',  
+            false,  
+            false  
+        );  
+        typeGroup.classList.add('form-group-third');  
+        const typeInput = typeGroup.querySelector('input');  
+        if (typeInput) {  
+            typeInput.disabled = true;  
+            typeInput.style.userSelect = 'none';  
+            typeInput.style.cursor = 'not-allowed';  
+        }  
+        
+        // 模型  
+        const modelGroup = this.createFormGroup(  
+            '模型',  
+            'text',  
+            `aiforge-${providerKey}-model`,  
+            providerData.model || '',  
+            '使用的具体模型名称',  
+            true  
+        );  
+        modelGroup.classList.add('form-group-third');  
+        
+        // API KEY  
+        const apiKeyGroup = this.createFormGroup(  
+            'API KEY',  
+            'text',  
+            `aiforge-${providerKey}-api-key`,  
+            providerData.api_key || '',  
+            '模型提供商的API KEY',  
+            true  
+        );  
+        apiKeyGroup.classList.add('form-group-third');  
+        
+        row1.appendChild(typeGroup);  
+        row1.appendChild(modelGroup);  
+        row1.appendChild(apiKeyGroup);  
+        
+        // ✅ 第二行:Base URL、超时时间、最大Tokens(三个字段)  
+        const row2 = document.createElement('div');  
+        row2.className = 'form-row';  
+        
+        // Base URL  
+        const baseUrlGroup = this.createFormGroup(  
+            'Base URL',  
+            'text',  
+            `aiforge-${providerKey}-base-url`,  
+            providerData.base_url || '',  
+            'API的基础地址',  
+            true,
+            true
+        );  
+        baseUrlGroup.classList.add('form-group-third');  
+        
+        // 超时时间  
+        const timeoutGroup = this.createFormGroup(  
+            '超时时间(秒)',  
+            'number',  
+            `aiforge-${providerKey}-timeout`,  
+            providerData.timeout || 30,  
+            'API请求的超时时间'  
+        );  
+        timeoutGroup.classList.add('form-group-third');  
+        
+        // 最大Tokens  
+        const maxTokensGroup = this.createFormGroup(  
+            '最大Tokens',  
+            'number',  
+            `aiforge-${providerKey}-max-tokens`,  
+            providerData.max_tokens || 8192,  
+            '控制生成内容的长度'  
+        );  
+        maxTokensGroup.classList.add('form-group-third');  
+        
+        row2.appendChild(baseUrlGroup);  
+        row2.appendChild(timeoutGroup);  
+        row2.appendChild(maxTokensGroup);  
+        
+        // ========== 组装表单 ==========  
+        form.appendChild(row1);  
+        form.appendChild(row2);  
+        
+        // ========== 组装卡片 ==========  
+        card.appendChild(header);  
+        card.appendChild(form);  
+        
+        return card;  
+    }  
+    
+    // 切换当前AIForge LLM提供商  
+    async setCurrentAIForgeLLMProvider(providerKey) {  
+        await this.updateConfig({  
+            aiforge_config: {  
+                ...this.config.aiforge_config,  
+                default_llm_provider: providerKey  
+            }  
+        });  
+        
+        // 刷新UI  
+        this.populateAIForgeLLMUI();  
+        
+        window.app?.showNotification(  
+            `已切换到${providerKey}`,  
+            'success'  
+        );  
+    }
+
+    // 更新AIForge LLM提供商字段  
+    async updateAIForgeLLMProviderField(providerKey, field, value) {  
+        // 字段名映射  
+        const fieldMap = {  
+            'api-key': 'api_key',  
+            'base-url': 'base_url',  
+            'max-tokens': 'max_tokens'  
+        };  
+        const actualField = fieldMap[field] || field;  
+        
+        // 类型字段是只读的,不更新  
+        if (actualField === 'type') {  
+            return;  
+        }  
+        
+        await this.updateConfig({  
+            aiforge_config: {  
+                ...this.config.aiforge_config,  
+                llm: {  
+                    ...this.config.aiforge_config.llm,  
+                    [providerKey]: {  
+                        ...this.config.aiforge_config.llm[providerKey],  
+                        [actualField]: value  
+                    }  
+                }  
+            }  
+        });  
+    }
+
     // 更新配置(仅内存,不保存文件)  
     async updateConfig(updates) {        
         try {        
@@ -2169,7 +2611,8 @@ class AIWriteXConfigManager {
                 'platforms': 'save-platforms-config',  
                 'wechat': 'save-wechat-config',  
                 'api': 'save-api-config',  
-                'img-api': 'save-img-api-config'  
+                'img-api': 'save-img-api-config',
+                'aiforge': 'save-aiforge-config'
             };  
             
             const saveBtnId = panelButtonMap[this.currentPanel];  

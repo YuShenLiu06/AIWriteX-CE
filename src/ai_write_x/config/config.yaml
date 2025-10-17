@@ -35,9 +35,9 @@ platforms:
 publish_platform: wechat
 wechat:
   credentials:
-    - appid: ""
-      appsecret: ""
-      author: ""
+    - appid: ''
+      appsecret: ''
+      author: ''
       call_sendall: false
       sendall: true
       tag_id: 0
@@ -117,14 +117,14 @@ api:
 img_api:
   api_type: picsum
   ali:
-    api_key: ""
+    api_key: ''
     model: wanx2.0-t2i-turbo
   picsum:
-    api_key: ""
-    model: ""
+    api_key: ''
+    model: ''
 use_template: true
-template_category: ""
-template: ""
+template_category: ''
+template: ''
 use_compress: true
 aiforge_search_max_results: 10
 aiforge_search_min_results: 1
@@ -183,8 +183,8 @@ dimensional_creative:
     style:
       name: 文体风格
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: poetry
           value: 诗歌
@@ -229,8 +229,8 @@ dimensional_creative:
     culture:
       name: 文化视角
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: eastern_philosophy
           value: 东方哲学
@@ -275,8 +275,8 @@ dimensional_creative:
     time:
       name: 时空背景
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: ancient_china
           value: 春秋战国
@@ -321,8 +321,8 @@ dimensional_creative:
     personality:
       name: 人格角色
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: libai
           value: 李白
@@ -375,8 +375,8 @@ dimensional_creative:
     emotion:
       name: 情感调性
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: healing
           value: 治愈系
@@ -421,8 +421,8 @@ dimensional_creative:
     format:
       name: 表达格式
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: diary
           value: 日记体
@@ -467,8 +467,8 @@ dimensional_creative:
     scene:
       name: 场景环境
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: coffee_shop
           value: 咖啡馆
@@ -513,8 +513,8 @@ dimensional_creative:
     audience:
       name: 目标受众
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: gen_z
           value: Z世代
@@ -559,8 +559,8 @@ dimensional_creative:
     theme:
       name: 主题内容
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: growth
           value: 成长蜕变
@@ -605,8 +605,8 @@ dimensional_creative:
     technique:
       name: 表现技法
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: first_person
           value: 第一人称
@@ -651,8 +651,8 @@ dimensional_creative:
     language:
       name: 语言风格
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: classical
           value: 古典雅致
@@ -689,8 +689,8 @@ dimensional_creative:
     tone:
       name: 语调语气
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: serious
           value: 严肃庄重
@@ -727,8 +727,8 @@ dimensional_creative:
     perspective:
       name: 叙述视角
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: first_person
           value: 第一人称
@@ -761,8 +761,8 @@ dimensional_creative:
     structure:
       name: 文章结构
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: chronological
           value: 时间顺序
@@ -799,8 +799,8 @@ dimensional_creative:
     rhythm:
       name: 节奏韵律
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: fast
           value: 快节奏
