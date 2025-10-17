@@ -48,25 +48,39 @@ class AIWriteXConfigManager {
     
     bindEventListeners() {          
         // 主题选择器  
-        const themeSelector = document.getElementById('theme-selector');  
-        if (themeSelector) {  
-            themeSelector.addEventListener('change', (e) => {  
-                this.uiConfig.theme = e.target.value;  
-                if (window.themeManager) {  
-                    window.themeManager.applyTheme(e.target.value, false);  
+        const themeSelector = document.getElementById('theme-selector');    
+        if (themeSelector) {    
+            themeSelector.addEventListener('change', (e) => {    
+                this.uiConfig.theme = e.target.value;    
+                if (window.themeManager) {    
+                    window.themeManager.applyTheme(e.target.value, false);    
+                }    
+                
+                // ✅ 添加按钮状态变化逻辑  
+                const saveBtn = document.getElementById('save-ui-config');    
+                if (saveBtn && !saveBtn.classList.contains('has-changes')) {    
+                    saveBtn.classList.add('has-changes');    
+                    saveBtn.innerHTML = '<i class="icon-save"></i> 保存设置 <span style="color: var(--warning-color);">(有未保存更改)</span>';    
                 }  
-            });  
-        }  
+            });    
+        }    
         
-        // 窗口模式选择器  
-        const windowModeSelector = document.getElementById('window-mode-selector');  
-        if (windowModeSelector) {  
-            windowModeSelector.addEventListener('change', (e) => {  
-                this.uiConfig.windowMode = e.target.value;  
-                if (window.windowModeManager) {  
-                    window.windowModeManager.applyMode(e.target.value);  
+        // 窗口模式选择器    
+        const windowModeSelector = document.getElementById('window-mode-selector');    
+        if (windowModeSelector) {    
+            windowModeSelector.addEventListener('change', (e) => {    
+                this.uiConfig.windowMode = e.target.value;    
+                if (window.windowModeManager) {    
+                    window.windowModeManager.applyMode(e.target.value);    
+                }    
+                
+                // ✅ 添加按钮状态变化逻辑  
+                const saveBtn = document.getElementById('save-ui-config');    
+                if (saveBtn && !saveBtn.classList.contains('has-changes')) {    
+                    saveBtn.classList.add('has-changes');    
+                    saveBtn.innerHTML = '<i class="icon-save"></i> 保存设置 <span style="color: var(--warning-color);">(有未保存更改)</span>';    
                 }  
-            });  
+            });    
         }  
         
         // 保存按钮  
@@ -363,19 +377,7 @@ class AIWriteXConfigManager {
         // 注意:由于凭证是动态生成的,需要使用事件委托  
         
         const wechatContainer = document.getElementById('wechat-credentials-container');  
-        if (wechatContainer) {  
-            // 使用事件委托处理所有输入框的blur事件  
-            wechatContainer.addEventListener('blur', async (e) => {  
-                if (e.target.matches('input[id^="wechat-"]')) {  
-                    const id = e.target.id;  
-                    const match = id.match(/wechat-\w+-(\d+)/);  
-                    if (match) {  
-                        const index = parseInt(match[1]);  
-                        await this.updateWeChatCredential(index);  
-                    }  
-                }  
-            }, true);  
-            
+        if (wechatContainer) {            
             // 处理复选框的change事件  
             wechatContainer.addEventListener('change', async (e) => {  
                 if (e.target.matches('input[type="checkbox"][id^="wechat-"]')) {  
@@ -439,21 +441,6 @@ class AIWriteXConfigManager {
             });  
         }
 
-        // 使用事件委托处理动态生成的输入框  
-        const apiProvidersContainer = document.getElementById('api-providers-container');  
-        if (apiProvidersContainer) {  
-            apiProvidersContainer.addEventListener('blur', async (e) => {  
-                if (e.target.matches('input[id^="api-"]')) {  
-                    const id = e.target.id;  
-                    const match = id.match(/api-(\w+)-(\w+)/);  
-                    if (match) {  
-                        const [, provider, field] = match;  
-                        await this.updateAPIProviderField(provider, field, e.target.value);  
-                    }  
-                }  
-            }, true);  
-        }
-
         // 保存图片API配置  
         const saveImgAPIConfigBtn = document.getElementById('save-img-api-config');  
         if (saveImgAPIConfigBtn) {  
@@ -478,19 +465,7 @@ class AIWriteXConfigManager {
             resetImgAPIConfigBtn.addEventListener('click', async () => {  
                 await this.resetImgAPIConfig();  
             });  
-        }  
-        
-        // 监听图片API输入框变化,显示未保存提示  
-        const imgApiInputs = document.querySelectorAll('[id^="img-api-"]');  
-        imgApiInputs.forEach(input => {  
-            input.addEventListener('blur', async () => {  
-                const saveBtn = document.getElementById('save-img-api-config');  
-                if (saveBtn && !saveBtn.classList.contains('has-changes')) {  
-                    saveBtn.classList.add('has-changes');  
-                    saveBtn.innerHTML = '<i class="icon-save"></i> 保存设置 (有未保存更改)';  
-                }  
-            });  
-        });
+        } 
     }  
     
     populateUI() {  
@@ -745,7 +720,8 @@ class AIWriteXConfigManager {
         input.addEventListener('blur', async (e) => {        
             // ✅ 只在值真正改变时才更新    
             if (e.target.value !== originalValue) {        
-                originalValue = e.target.value;        
+                originalValue = e.target.value;
+                e.stopPropagation();        
                 
                 // ✅ 微信公众号凭证      
                 const wechatMatch = id.match(/wechat-\w+-(\d+)/);        
@@ -773,7 +749,9 @@ class AIWriteXConfigManager {
                 // ✅ 其他所有情况:直接调用updateConfig()  
                 // 这样新增的配置界面无需修改此方法  
                 console.warn(`未匹配的输入框ID: ${id}, 跳过更新`);  
-            }        
+            } else {
+                e.stopPropagation();
+            }       
         });        
         
         group.appendChild(labelEl);        
@@ -1228,6 +1206,41 @@ class AIWriteXConfigManager {
         );  
         apiBaseGroup.classList.add('form-group-half');  
         
+        /*
+        const keyNameGroup = this.createFormGroup(    
+            'KEY名称',    
+            'text',    
+            `api-${providerKey}-key-name`,    
+            providerData.key || '',    
+            '',    
+            false,    
+            false
+        );    
+        keyNameGroup.classList.add('form-group-half');  
+        const keyNameInput = keyNameGroup.querySelector('input');  
+        if (keyNameInput) {  
+            keyNameInput.disabled = true;  
+            keyNameInput.style.userSelect = 'none';  
+            keyNameInput.style.cursor = 'not-allowed';  
+        }  
+        
+        const apiBaseGroup = this.createFormGroup(    
+            'API BASE',    
+            'text',    
+            `api-${providerKey}-api-base`,    
+            providerData.api_base || '',    
+            '',    
+            false,    
+            false  
+        );    
+        apiBaseGroup.classList.add('form-group-half');  
+        const apiBaseInput = apiBaseGroup.querySelector('input');  
+        if (apiBaseInput) {  
+            apiBaseInput.disabled = true;  
+            apiBaseInput.style.userSelect = 'none';  
+            apiBaseInput.style.cursor = 'not-allowed';  
+        }
+         */
         row1.appendChild(keyNameGroup);  
         row1.appendChild(apiBaseGroup);  
         
@@ -2004,23 +2017,7 @@ class AIWriteXConfigManager {
                     input.style.cursor = 'not-allowed';  
                 }  
             });  
-        } else {  
-            // 阿里API的输入框绑定更新事件  
-            const apiKeyInput = apiKeyGroup.querySelector('input');  
-            const modelInput = modelGroup.querySelector('input');  
-            
-            if (apiKeyInput) {  
-                apiKeyInput.addEventListener('blur', async () => {  
-                    await this.updateImgAPIProviderField(providerKey, 'api_key', apiKeyInput.value);  
-                });  
-            }  
-            
-            if (modelInput) {  
-                modelInput.addEventListener('blur', async () => {  
-                    await this.updateImgAPIProviderField(providerKey, 'model', modelInput.value);  
-                });  
-            }  
-        }  
+        }
         
         const row = document.createElement('div');  
         row.className = 'form-row';  
