@@ -290,18 +290,6 @@ class AIWriteXApp {
         }  
         
         this.currentView = viewName;  
-        
-        // 根据视图加载相应数据  
-        switch (viewName) {  
-            case 'creative-workshop':  
-                this.loadDimensionalConfig();  
-                break;  
-            case 'article-manager':  
-                this.loadArticles();  
-                break;  
-            case 'config-manager':  
-                break;  
-        }  
     }
       
     async startGeneration() {  

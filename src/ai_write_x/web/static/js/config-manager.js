@@ -708,71 +708,76 @@ class AIWriteXConfigManager {
         }
 
         // 启用维度化创意复选框  
-        const creativeEnabledCheckbox = document.getElementById('creative-enabled');  
-        if (creativeEnabledCheckbox) {  
-            creativeEnabledCheckbox.addEventListener('change', async (e) => {  
-                const enabled = e.target.checked;  
+        const creativeEnabledCheckbox = document.getElementById('creative-enabled');    
+        if (creativeEnabledCheckbox) {    
+            creativeEnabledCheckbox.addEventListener('change', async (e) => {    
+                const enabled = e.target.checked;    
                 
-                // ✅ 问题1:禁用/启用所有维度控件  
-                document.querySelectorAll('.dimension-checkbox, .dimension-select, .dimension-custom-input').forEach(el => {  
-                    el.disabled = !enabled;  
-                });  
+                this.updateCreativeControlsState();    
                 
-                // 禁用/启用其他全局控件  
-                const intensitySlider = document.getElementById('creative-intensity');  
-                const preserveCheckbox = document.getElementById('preserve-core-info');  
-                const experimentalCheckbox = document.getElementById('allow-experimental');  
-                const autoSelectionCheckbox = document.getElementById('auto-dimension-selection');  
-                const maxDimensionsInput = document.getElementById('max-dimensions');  
-                const thresholdSlider = document.getElementById('compatibility-threshold');  
+                await this.updateConfig({    
+                    dimensional_creative: {    
+                        ...this.config.dimensional_creative,    
+                        enabled: enabled    
+                    }    
+                });    
+            });    
+        }  
+        
+        // 自动选择维度复选框    
+        const autoSelectionCheckbox = document.getElementById('auto-dimension-selection');    
+        if (autoSelectionCheckbox) {    
+            autoSelectionCheckbox.addEventListener('change', async (e) => {    
+                const auto = e.target.checked;    
                 
-                if (intensitySlider) intensitySlider.disabled = !enabled;  
-                if (preserveCheckbox) preserveCheckbox.disabled = !enabled;  
-                if (experimentalCheckbox) experimentalCheckbox.disabled = !enabled;  
-                if (autoSelectionCheckbox) autoSelectionCheckbox.disabled = !enabled;  
+                this.updateCreativeControlsState();    
                 
-                // 自动选择参数根据自动选择状态决定  
-                const autoSelection = autoSelectionCheckbox ? autoSelectionCheckbox.checked : false;  
-                if (maxDimensionsInput) maxDimensionsInput.disabled = !enabled || !autoSelection;  
-                if (thresholdSlider) thresholdSlider.disabled = !enabled || !autoSelection;  
+                await this.updateConfig({    
+                    dimensional_creative: {    
+                        ...this.config.dimensional_creative,    
+                        auto_dimension_selection: auto    
+                    }    
+                });    
+            });    
+        }
+
+        // 保存创意配置按钮  
+        const saveCreativeConfigBtn = document.getElementById('save-creative-config');  
+        if (saveCreativeConfigBtn) {  
+            saveCreativeConfigBtn.addEventListener('click', async () => {  
+                const success = await this.saveConfig();  
                 
-                await this.updateConfig({  
-                    dimensional_creative: {  
-                        ...this.config.dimensional_creative,  
-                        enabled: enabled  
-                    }  
-                });  
+                if (success) {  
+                    saveCreativeConfigBtn.classList.remove('has-changes');  
+                    saveCreativeConfigBtn.innerHTML = '<i class="icon-save"></i> 保存设置';  
+                }  
+                
+                window.app?.showNotification(  
+                    success ? '创意配置已保存' : '保存创意配置失败',  
+                    success ? 'success' : 'error'  
+                );  
             });  
         }  
         
-        // 自动选择维度复选框  
-        const autoSelectionCheckbox = document.getElementById('auto-dimension-selection');  
-        if (autoSelectionCheckbox) {  
-            autoSelectionCheckbox.addEventListener('change', async (e) => {  
-                const auto = e.target.checked;  
-                const globalEnabled = document.getElementById('creative-enabled').checked;  
-                
-                // ✅ 问题1:自动选择时禁用所有手动维度控件  
-                document.querySelectorAll('.dimension-checkbox, .dimension-select, .dimension-custom-input').forEach(el => {  
-                    el.disabled = !globalEnabled || auto;  
-                });  
-                
-                // 显示/隐藏自动选择参数  
-                const maxDimensionsInput = document.getElementById('max-dimensions');  
-                const thresholdSlider = document.getElementById('compatibility-threshold');  
-                
-                if (maxDimensionsInput) maxDimensionsInput.disabled = !auto;  
-                if (thresholdSlider) thresholdSlider.disabled = !auto;  
-                
-                await this.updateConfig({  
-                    dimensional_creative: {  
-                        ...this.config.dimensional_creative,  
-                        auto_dimension_selection: auto  
-                    }  
-                });  
+        // 恢复默认创意配置按钮  
+        const resetCreativeConfigBtn = document.getElementById('reset-creative-config');  
+        if (resetCreativeConfigBtn) {  
+            resetCreativeConfigBtn.addEventListener('click', async () => {  
+                const response = await fetch(`${this.apiEndpoint}/default`);  
+                if (response.ok) {  
+                    const result = await response.json();  
+                    const defaultCreative = result.data.dimensional_creative;  
+                    
+                    await this.updateConfig({ dimensional_creative: defaultCreative });  
+                    
+                    this.populateCreativeUI();  
+                    
+                    window.app?.showNotification('已恢复默认创意配置', 'info');  
+                } else {  
+                    window.app?.showNotification('恢复默认配置失败', 'error');  
+                }  
             });  
         }
-        
     }  
     
     populateUI() {  
@@ -902,7 +907,7 @@ class AIWriteXConfigManager {
 
         this.populateAIForgeUI();
 
-        this.populateDimensionGroups();
+        this.populateCreativeUI();
     }
 
     // 填充热搜平台UI  
@@ -2751,8 +2756,19 @@ class AIWriteXConfigManager {
         const intensitySlider = document.getElementById('creative-intensity');  
         if (intensitySlider) {  
             intensitySlider.value = creativeConfig.creative_intensity || 1.0;  
-            this.updateSliderValue(intensitySlider);  
-        }  
+            this.updateSliderValue(intensitySlider);
+            intensitySlider.addEventListener('input', (e) => {  
+                this.updateSliderValue(e.target);  
+                
+                // 更新配置  
+                this.updateConfig({  
+                    dimensional_creative: {  
+                        ...this.config.dimensional_creative,  
+                        creative_intensity: parseFloat(e.target.value)  
+                    }  
+                });  
+            }); 
+        }
         
         const preserveCheckbox = document.getElementById('preserve-core-info');  
         if (preserveCheckbox) {  
@@ -2772,7 +2788,18 @@ class AIWriteXConfigManager {
         const thresholdSlider = document.getElementById('compatibility-threshold');  
         if (thresholdSlider) {  
             thresholdSlider.value = creativeConfig.compatibility_threshold || 0.6;  
-            this.updateSliderValue(thresholdSlider);  
+            this.updateSliderValue(thresholdSlider);
+            thresholdSlider.addEventListener('input', (e) => {  
+                this.updateSliderValue(e.target);  
+                
+                // 更新配置  
+                this.updateConfig({  
+                    dimensional_creative: {  
+                        ...this.config.dimensional_creative,  
+                        compatibility_threshold: parseFloat(e.target.value)  
+                    }  
+                });  
+            });
         }  
         
         const experimentalCheckbox = document.getElementById('allow-experimental');  
@@ -2782,10 +2809,43 @@ class AIWriteXConfigManager {
         
         // 生成维度分组卡片  
         this.populateDimensionGroups();  
+
+        const globalEnabled = creativeConfig.enabled || false;  
+        const autoSelection = creativeConfig.auto_dimension_selection || false;  
+        const enabledDimensions = creativeConfig.enabled_dimensions || {};  
+        
+        // 更新全局控件  
+        if (intensitySlider) intensitySlider.disabled = !globalEnabled;  
+        if (preserveCheckbox) preserveCheckbox.disabled = !globalEnabled;  
+        if (experimentalCheckbox) experimentalCheckbox.disabled = !globalEnabled;  
+        if (autoSelectionCheckbox) autoSelectionCheckbox.disabled = !globalEnabled;  
+        if (maxDimensionsInput) maxDimensionsInput.disabled = !globalEnabled || !autoSelection;  
+        if (thresholdSlider) thresholdSlider.disabled = !globalEnabled || !autoSelection;  
+        
+        // 更新所有维度控件  
+        Object.keys(enabledDimensions).forEach(dimensionKey => {  
+            const checkbox = document.getElementById(`dimension-${dimensionKey}-enabled`);  
+            const select = document.getElementById(`dimension-${dimensionKey}-select`);  
+            const customInput = document.getElementById(`dimension-${dimensionKey}-custom`);  
+            const isEnabled = enabledDimensions[dimensionKey];  
+            
+            if (checkbox) {  
+                checkbox.disabled = !globalEnabled;  
+            }  
+            if (select) {  
+                select.disabled = !globalEnabled || autoSelection || !isEnabled;  
+            }  
+            if (customInput) {  
+                const selectValue = select?.value;  
+                customInput.disabled = !globalEnabled || !isEnabled || selectValue !== 'custom';  
+            }  
+        });  
+
+        this.updateCreativeControlsState(); 
     }
 
     // 生成维度分组卡片  
-    populateDimensionGroups() {  
+     populateDimensionGroups() {  
         const container = document.getElementById('dimension-groups-container');  
         if (!container || !this.config.dimensional_creative) return;  
         
@@ -2808,6 +2868,72 @@ class AIWriteXConfigManager {
                 globalEnabled  
             );  
             container.appendChild(card);  
+        });  
+    }
+
+    // 更新创意配置所有控件的禁用状态    
+    updateCreativeControlsState() {  
+        const globalEnabled = document.getElementById('creative-enabled')?.checked || false;  
+        const autoSelection = document.getElementById('auto-dimension-selection')?.checked || false;  
+        
+        // 更新全局控件  
+        const intensitySlider = document.getElementById('creative-intensity');  
+        const preserveCheckbox = document.getElementById('preserve-core-info');  
+        const experimentalCheckbox = document.getElementById('allow-experimental');  
+        const maxDimensionsInput = document.getElementById('max-dimensions');  
+        const thresholdSlider = document.getElementById('compatibility-threshold');  
+        
+        if (intensitySlider) intensitySlider.disabled = !globalEnabled;  
+        if (preserveCheckbox) preserveCheckbox.disabled = !globalEnabled;  
+        if (experimentalCheckbox) experimentalCheckbox.disabled = !globalEnabled;  
+        if (maxDimensionsInput) maxDimensionsInput.disabled = !globalEnabled || !autoSelection;  
+        if (thresholdSlider) thresholdSlider.disabled = !globalEnabled || !autoSelection;  
+        
+        Object.entries(this.DIMENSION_GROUPS).forEach(([groupKey, groupData]) => {  
+            // 统计该分组中已启用的维度数量  
+            let enabledCount = 0;  
+            groupData.dimensions.forEach(dimensionKey => {  
+                const checkbox = document.getElementById(`dimension-${dimensionKey}-enabled`);  
+                if (checkbox && checkbox.checked) {  
+                    enabledCount++;  
+                }  
+            });  
+            
+            // 查找该分组的徽章元素并更新  
+            const cards = document.querySelectorAll('.dimension-group-card');  
+            cards.forEach(card => {  
+                const cardName = card.querySelector('.dimension-group-name')?.textContent;  
+                if (cardName === groupData.name) {  
+                    const badge = card.querySelector('.dimension-count-badge');  
+                    if (badge) {  
+                        badge.textContent = `${enabledCount}/${groupData.dimensions.length}`;  
+                    }  
+                }  
+            });  
+        });  
+        
+        // 更新所有维度控件的禁用状态  
+        Object.entries(this.DIMENSION_GROUPS).forEach(([groupKey, groupData]) => {  
+            groupData.dimensions.forEach(dimensionKey => {  
+                const checkbox = document.getElementById(`dimension-${dimensionKey}-enabled`);  
+                const select = document.getElementById(`dimension-${dimensionKey}-select`);  
+                const customInput = document.getElementById(`dimension-${dimensionKey}-custom`);  
+                
+                if (checkbox) {  
+                    checkbox.disabled = !globalEnabled || autoSelection;  
+                }  
+                
+                if (select) {  
+                    const isEnabled = checkbox?.checked || false;  
+                    select.disabled = !globalEnabled || autoSelection || !isEnabled;  
+                }  
+                
+                if (customInput) {  
+                    const isEnabled = checkbox?.checked || false;  
+                    const selectValue = select?.value;  
+                    customInput.disabled = !globalEnabled || !isEnabled || selectValue !== 'custom';  
+                }  
+            });  
         });  
     }
 
@@ -2862,9 +2988,9 @@ class AIWriteXConfigManager {
             const dimensionRow = this.createDimensionRow(  
                 dimensionKey,  
                 dimensionData,  
-                enabledDimensions[dimensionKey] || false,  
-                autoSelection,  
-                globalEnabled  
+                enabledDimensions[dimensionKey] || false,
+                globalEnabled,
+                autoSelection  
             );  
             content.appendChild(dimensionRow);  
         });  
@@ -2886,7 +3012,7 @@ class AIWriteXConfigManager {
         const row = document.createElement('div');  
         row.className = 'dimension-row';  
         
-        // ========== 维度启用复选框 ==========  
+        // ========== 维度启用复选框(使用统一的checkbox-label样式) ==========  
         const checkboxLabel = document.createElement('label');  
         checkboxLabel.className = 'checkbox-label';  
         
@@ -2894,7 +3020,6 @@ class AIWriteXConfigManager {
         checkbox.type = 'checkbox';  
         checkbox.id = `dimension-${dimensionKey}-enabled`;  
         checkbox.checked = isEnabled;  
-        // ✅ 问题1:全局禁用或自动选择时禁用复选框  
         checkbox.disabled = !globalEnabled || autoSelection;  
         
         const checkboxCustom = document.createElement('span');  
@@ -2904,32 +3029,35 @@ class AIWriteXConfigManager {
         checkboxLabel.appendChild(checkboxCustom);  
         
         // 绑定复选框事件  
-        checkbox.addEventListener('change', async (e) => {  
-            const newEnabled = e.target.checked;  
+        checkbox.addEventListener('change', async (e) => {    
+            const newEnabled = e.target.checked;    
             
-            // 更新下拉框和自定义输入框的禁用状态  
-            const select = document.getElementById(`dimension-${dimensionKey}-select`);  
-            const customInput = document.getElementById(`dimension-${dimensionKey}-custom`);  
+            const currentGlobalEnabled = document.getElementById('creative-enabled')?.checked || false;    
+            const currentAutoSelection = document.getElementById('auto-dimension-selection')?.checked || false;    
             
-            if (select) {  
-                // ✅ 问题2:维度未启用时禁用下拉框  
-                select.disabled = !globalEnabled || !newEnabled || autoSelection;  
-            }  
+            // 更新下拉框和自定义输入框的禁用状态    
+            const select = document.getElementById(`dimension-${dimensionKey}-select`);    
+            const customInput = document.getElementById(`dimension-${dimensionKey}-custom`);    
             
-            if (customInput) {  
-                // ✅ 问题3:维度未启用或未选择"自定义"时禁用输入框  
-                customInput.disabled = !globalEnabled || !newEnabled || select.value !== 'custom';  
-            }  
+            if (select) {    
+                select.disabled = !currentGlobalEnabled || currentAutoSelection || !newEnabled;    
+            }    
             
-            await this.updateConfig({  
-                dimensional_creative: {  
-                    ...this.config.dimensional_creative,  
-                    enabled_dimensions: {  
-                        ...this.config.dimensional_creative.enabled_dimensions,  
-                        [dimensionKey]: newEnabled  
-                    }  
-                }  
-            });  
+            if (customInput) {    
+                const selectValue = select?.value;    
+                customInput.disabled = !currentGlobalEnabled || !newEnabled || selectValue !== 'custom';    
+            }    
+            
+            await this.updateConfig({    
+                dimensional_creative: {    
+                    ...this.config.dimensional_creative,    
+                    enabled_dimensions: {    
+                        ...this.config.dimensional_creative.enabled_dimensions,    
+                        [dimensionKey]: newEnabled    
+                    }    
+                }    
+            });
+            this.updateCreativeControlsState();   
         });  
         
         // ========== 维度名称标签 ==========  
@@ -2942,7 +3070,6 @@ class AIWriteXConfigManager {
         const select = document.createElement('select');  
         select.id = `dimension-${dimensionKey}-select`;  
         select.className = 'dimension-select';  
-        // ✅ 问题2:全局禁用、自动选择或维度未启用时禁用下拉框  
         select.disabled = !globalEnabled || autoSelection || !isEnabled;  
         
         // 添加"自动选择"选项  
@@ -2976,7 +3103,7 @@ class AIWriteXConfigManager {
             const customInput = document.getElementById(`dimension-${dimensionKey}-custom`);  
             
             if (customInput) {  
-                // ✅ 问题3:只有选择"自定义"时才启用对应的输入框  
+                // 只有选择"自定义"时才启用对应的输入框  
                 customInput.disabled = selectedValue !== 'custom';  
                 
                 // 如果不是自定义,清空输入框  
@@ -2993,7 +3120,7 @@ class AIWriteXConfigManager {
                         [dimensionKey]: {  
                             ...this.config.dimensional_creative.dimension_options[dimensionKey],  
                             selected_option: selectedValue,  
-                            custom_input: selectedValue === 'custom' ? customInput.value : ''  
+                            custom_input: selectedValue === 'custom' ? (customInput ? customInput.value : '') : ''  
                         }  
                     }  
                 }  
@@ -3008,7 +3135,6 @@ class AIWriteXConfigManager {
         customInput.placeholder = '输入自定义内容...';  
         customInput.value = dimensionData.custom_input || '';  
         
-        // ✅ 问题3:只有全局启用、维度启用且选择了"自定义"时才启用输入框  
         customInput.disabled = !globalEnabled || !isEnabled || select.value !== 'custom';  
         
         // 绑定自定义输入框事件(使用值变化检测)  
@@ -3058,6 +3184,13 @@ class AIWriteXConfigManager {
         });  
     }
 
+    updateSliderValue(slider) {  
+        const value = slider.value;  
+        const valueDisplay = slider.parentElement.querySelector('.slider-value');  
+        if (valueDisplay) {  
+            valueDisplay.textContent = value;  
+        }  
+    }
 
     // 更新配置(仅内存,不保存文件)  
     async updateConfig(updates) {        
@@ -3082,7 +3215,8 @@ class AIWriteXConfigManager {
                 'wechat': 'save-wechat-config',  
                 'api': 'save-api-config',  
                 'img-api': 'save-img-api-config',
-                'aiforge': 'save-aiforge-config'
+                'aiforge': 'save-aiforge-config',
+                'creative': 'save-creative-config'
             };  
             
             const saveBtnId = panelButtonMap[this.currentPanel];  
