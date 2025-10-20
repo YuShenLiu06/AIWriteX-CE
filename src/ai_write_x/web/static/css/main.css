@@ -58,7 +58,12 @@ body {
 #config-manager-view.view-content {  
     overflow: hidden;  
     padding: 0;  
-}  
+} 
+
+#template-manager-view.view-content {  
+    overflow: hidden;  
+    padding: 0;  
+}
   
 .view-content.show {  
     display: block;  

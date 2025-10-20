@@ -1,140 +1,401 @@
 /* 模板管理视图样式 */  
-.template-manager {  
-    display: flex;  
+#template-manager-view {  
     height: 100%;  
-    gap: 20px;  
+    display: flex;  
+    flex-direction: column;  
+    overflow: hidden;  
 }  
   
-.template-tree {  
-    flex: 0 0 300px;  
+.template-manager-layout {  
+    display: grid;  
+    grid-template-columns: 200px 1fr;  
+    gap: 0;  
+    flex: 1;  
+    min-height: 0;  
+    overflow: hidden;  
+}  
+  
+/* 左侧分类树 */  
+.template-sidebar {  
     background: var(--surface-color);  
-    border: 1px solid var(--border-color);  
-    border-radius: 8px;  
+    border-right: 1px solid var(--border-color);  
+    padding: 16px;  
     overflow-y: auto;  
 }  
   
-.template-tree-header {  
-    padding: 16px;  
+.sidebar-header {  
+    display: flex;  
+    justify-content: space-between;  
+    align-items: center;  
+    margin-bottom: 16px;  
+    padding-bottom: 12px;  
     border-bottom: 1px solid var(--border-color);  
-    background: var(--background-color);  
 }  
   
-.template-tree-title {  
-    font-size: 16px;  
+.sidebar-header h3 {  
+    font-size: 14px;  
     font-weight: 600;  
     color: var(--text-primary);  
+    margin: 0;  
 }  
   
-.template-category {  
-    padding: 8px 16px;  
+.sidebar-header .btn-icon {  
+    width: 28px;  
+    height: 28px;  
+    padding: 0;  
+    display: flex;  
+    align-items: center;  
+    justify-content: center;  
+    border-radius: 4px;  
+    background: transparent;  
+    border: 1px solid var(--border-color);  
     cursor: pointer;  
-    border-bottom: 1px solid var(--border-color);  
-    transition: background-color 0.2s ease;  
+    transition: all 0.2s;  
 }  
   
-.template-category:hover {  
-    background: var(--background-color);  
+.sidebar-header .btn-icon:hover {  
+    background: var(--primary-color);  
+    border-color: var(--primary-color);  
+    color: white;  
 }  
   
-.template-category.active {  
-    background: rgba(var(--primary-color-rgb), 0.1);  
-    color: var(--primary-color);  
-}  
-  
-.template-category-name {  
-    font-weight: 500;  
+/* 分类项 */  
+.category-item {  
+    display: flex;  
+    align-items: center;  
+    gap: 8px;  
+    padding: 8px 12px;  
+    border-radius: 6px;  
+    cursor: pointer;  
+    transition: all 0.2s;  
+    font-size: 13px;  
+    color: var(--text-secondary);  
     margin-bottom: 4px;  
 }  
   
-.template-list {  
-    padding-left: 20px;  
-}  
-  
-.template-item {  
-    padding: 6px 12px;  
-    cursor: pointer;  
-    font-size: 14px;  
-    color: var(--text-secondary);  
-    transition: all 0.2s ease;  
-}  
-  
-.template-item:hover {  
-    background: var(--background-color);  
+.category-item:hover {  
+    background: var(--hover-color);  
     color: var(--text-primary);  
 }  
   
-.template-item.selected {  
+.category-item.active {  
     background: var(--primary-color);  
     color: white;  
 }  
   
-.template-details {  
-    flex: 1;  
-    background: var(--surface-color);  
-    border: 1px solid var(--border-color);  
-    border-radius: 8px;  
-    display: flex;  
-    flex-direction: column;  
+.category-icon {  
+    font-size: 16px;  
 }  
   
-.template-details-header {  
-    padding: 16px;  
-    border-bottom: 1px solid var(--border-color);  
+.category-count {  
+    margin-left: auto;  
+    font-size: 11px;  
+    padding: 2px 6px;  
+    border-radius: 10px;  
+    background: rgba(0,0,0,0.1);  
+}  
+  
+.category-item.active .category-count {  
+    background: rgba(255,255,255,0.2);  
+}  
+  
+/* 主内容区包装器 */  
+.template-main-wrapper {  
+    display: flex;  
+    flex-direction: column;  
+    min-height: 0;  
+    overflow: hidden;  
+}   
+  
+/* 工具栏固定,不滚动 */  
+.template-toolbar {  
+    flex-shrink: 0;  
     display: flex;  
     justify-content: space-between;  
     align-items: center;  
+    padding: 16px 20px;  
+    background: var(--surface-color);  
+    border-bottom: 1px solid var(--border-color);  
+    gap: 16px;  
 }  
   
-.template-details-title {  
-    font-size: 18px;  
-    font-weight: 600;  
-    color: var(--text-primary);  
-}  
-  
-.template-actions {  
-    display: flex;  
-    gap: 8px;  
-}  
-  
-.template-content {  
+/* 滚动容器 - 参考config-content */  
+.template-main {  
     flex: 1;  
-    padding: 16px;  
     overflow-y: auto;  
+    padding: 0;  
+    min-height: 0;  
+    max-height: calc(100% - 2px);  
+}    
+  
+/* 自定义滚动条样式 */  
+.template-main::-webkit-scrollbar {  
+    width: 8px;  
 }  
   
-.template-preview {  
+.template-main::-webkit-scrollbar-track {  
+    background: var(--background-color);  
+    border-radius: 4px;  
+}  
+  
+.template-main::-webkit-scrollbar-thumb {  
+    background: var(--border-color);  
+    border-radius: 4px;  
+}  
+  
+.template-main::-webkit-scrollbar-thumb:hover {  
+    background: var(--secondary-color);  
+}  
+  
+/* 搜索框 */  
+.search-box {  
+    position: relative;  
+    flex: 1;  
+    max-width: 400px;  
+}  
+  
+.search-icon {  
+    position: absolute;  
+    left: 12px;  
+    top: 50%;  
+    transform: translateY(-50%);  
+    color: var(--text-tertiary);  
+    pointer-events: none;  
+}  
+  
+.search-box input {  
+    width: 100%;  
+    padding: 8px 12px 8px 40px;  
+    border: 1px solid var(--border-color);  
+    border-radius: 6px;  
+    font-size: 14px;  
+    background: var(--background-color);  
+    color: var(--text-primary);  
+    transition: all 0.2s;  
+}  
+  
+.search-box input:focus {  
+    outline: none;  
+    border-color: var(--primary-color);  
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);  
+}  
+  
+/* 工具栏操作区 */  
+.toolbar-actions {  
+    display: flex;  
+    gap: 12px;  
+    align-items: center;  
+}  
+  
+/* 视图切换按钮 */  
+.view-toggle {  
+    display: flex;  
+    gap: 4px;  
     background: var(--background-color);  
     border: 1px solid var(--border-color);  
     border-radius: 6px;  
-    padding: 16px;  
-    font-family: monospace;  
-    font-size: 14px;  
-    line-height: 1.5;  
-    white-space: pre-wrap;  
-    overflow-x: auto;  
+    padding: 2px;  
 }  
   
-.template-meta {  
+.view-btn {  
+    padding: 6px 10px;  
+    border: none;  
+    background: transparent;  
+    border-radius: 4px;  
+    cursor: pointer;  
+    color: var(--text-secondary);  
+    transition: all 0.2s;  
+}  
+  
+.view-btn:hover {  
+    background: var(--hover-color);  
+    color: var(--text-primary);  
+}  
+  
+.view-btn.active {  
+    background: var(--primary-color);  
+    color: white;  
+}  
+  
+/* 模板网格*/  
+.template-grid {  
+    padding: 20px 20px 50px 20px; 
     display: grid;  
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));  
-    gap: 16px;  
-    margin-bottom: 20px;  
-}  
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));  
+    gap: 20px;  
+    align-content: start;  
+}   
   
-.template-meta-item {  
+/* 模板卡片 */  
+.template-card {  
+    background: var(--surface-color);  
+    border: 1px solid var(--border-color);  
+    border-radius: 8px;  
+    overflow: hidden;  
+    transition: all 0.2s;  
+    cursor: pointer;  
     display: flex;  
     flex-direction: column;  
-    gap: 4px;  
 }  
   
-.template-meta-label {  
-    font-size: 12px;  
-    color: var(--text-secondary);  
-    text-transform: uppercase;  
-    font-weight: 500;  
+.template-card:hover {  
+    transform: translateY(-2px);  
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);  
+    border-color: var(--primary-color);  
 }  
   
-.template-meta-value {  
+/* 卡片预览 - 彻底隐藏滚动条 */  
+.card-preview {  
+    height: 160px;  
+    background: #f5f5f5;  
+    position: relative;  
+    overflow: hidden !important;  
+}  
+  
+.card-preview iframe {  
+    width: 200%;  
+    height: 200%;  
+    border: none;  
+    pointer-events: none;  
+    transform: scale(0.5);  
+    transform-origin: top left;  
+    overflow: hidden !important;  
+    scrollbar-width: none;  
+    -ms-overflow-style: none;  
+}  
+  
+.card-preview iframe::-webkit-scrollbar {  
+    display: none !important;  
+    width: 0 !important;  
+    height: 0 !important;  
+}  
+  
+/* 卡片内容 */  
+.card-content {  
+    padding: 12px;  
+    flex: 1;  
+}  
+  
+.card-title {  
     font-size: 14px;  
+    font-weight: 500;  
     color: var(--text-primary);  
+    margin: 0 0 8px 0;  
+    overflow: hidden;  
+    text-overflow: ellipsis;  
+    white-space: nowrap;  
+}  
+  
+.card-meta {  
+    display: flex;  
+    gap: 8px;  
+    font-size: 12px;  
+    color: var(--text-tertiary);  
+}  
+  
+.category-badge {  
+    padding: 2px 8px;  
+    background: var(--primary-color);  
+    color: white;  
+    border-radius: 4px;  
+    font-size: 11px;  
+}  
+  
+.size-info {  
+    color: var(--text-tertiary);  
+}  
+  
+/* 卡片操作按钮 */  
+.card-actions {  
+    display: flex;  
+    gap: 4px;  
+    padding: 8px 12px;  
+    border-top: 1px solid var(--border-color);  
+}  
+  
+.card-actions .btn-icon {  
+    flex: 1;  
+    padding: 6px;  
+    font-size: 14px;  
+    border: none;  
+    background: transparent;  
+    border-radius: 4px;  
+    cursor: pointer;  
+    color: var(--text-secondary);  
+    transition: all 0.2s;  
+    display: flex;  
+    align-items: center;  
+    justify-content: center;  
+}  
+  
+.card-actions .btn-icon:hover {  
+    background: var(--hover-color);  
+    color: var(--text-primary);  
+}  
+  
+/* 列表视图 */  
+.template-grid.list-view {  
+    grid-template-columns: 1fr;  
+}  
+  
+.template-grid.list-view .template-card {  
+    flex-direction: row;  
+    height: 80px;  
+}  
+  
+.template-grid.list-view .card-preview {  
+    width: 120px;  
+    height: 100%;  
+}  
+  
+.template-grid.list-view .card-content {  
+    flex: 1;  
+    display: flex;  
+    align-items: center;  
+    justify-content: space-between;  
+}  
+  
+.template-grid.list-view .card-actions {  
+    border-top: none;  
+    border-left: 1px solid var(--border-color);  
+    flex-direction: column;  
+    width: auto;  
+}  
+  
+/* 空状态 */  
+.empty-state {  
+    text-align: center;  
+    padding: 60px 20px;  
+    color: var(--text-tertiary);  
+    font-size: 14px;  
+}  
+  
+/* 按钮样式 */  
+.btn-primary {  
+    display: flex;  
+    align-items: center;  
+    gap: 8px;  
+    padding: 8px 16px;  
+    background: var(--primary-color);  
+    color: white;  
+    border: none;  
+    border-radius: 6px;  
+    font-size: 14px;  
+    font-weight: 500;  
+    cursor: pointer;  
+    transition: all 0.2s;  
+}  
+  
+.btn-primary:hover {  
+    background: var(--primary-hover-color);  
+    transform: translateY(-1px);  
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);  
+}  
+  
+.btn-primary svg {  
+    fill: none;  
+    stroke: currentColor;  
+    stroke-width: 2;  
+    stroke-linecap: round;  
+    stroke-linejoin: round;  
 }
