@@ -42,6 +42,11 @@ class CategoryRename(BaseModel):
     new_name: str
 
 
+class TemplateRename(BaseModel):
+    old_path: str
+    new_name: str
+
+
 @router.get("/categories")
 async def list_categories():
     """获取所有分类"""
@@ -110,6 +115,20 @@ async def delete_category(category_name: str, force: bool = False):
 
     shutil.rmtree(category_path)
     return {"status": "success", "message": "分类已删除"}
+
+
+@router.get("/default-template-categories")
+async def get_default_template_categories():
+    """获取系统默认模板分类"""
+    try:
+        from src.ai_write_x.config.config import DEFAULT_TEMPLATE_CATEGORIES
+
+        # 返回中文名称列表
+        categories = list(DEFAULT_TEMPLATE_CATEGORIES.values())
+
+        return {"status": "success", "data": categories}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/")
@@ -212,6 +231,25 @@ async def create_template(template: TemplateCreate):
 
     file_path.write_text(template.content, encoding="utf-8")
     return {"status": "success", "message": "模板已创建", "path": str(file_path)}
+
+
+@router.post("/rename")
+async def rename_template(rename_data: TemplateRename):
+    """重命名模板"""
+    source = Path(rename_data.old_path)
+    if not source.exists():
+        raise HTTPException(status_code=404, detail="模板不存在")
+
+    # 获取目标路径(同一目录下,只改文件名)
+    target_path = source.parent / f"{rename_data.new_name}.html"
+
+    if target_path.exists():
+        raise HTTPException(status_code=409, detail="目标文件名已存在")
+
+    # 重命名文件
+    source.rename(target_path)
+
+    return {"status": "success", "message": "模板已重命名", "path": str(target_path)}
 
 
 @router.post("/copy")

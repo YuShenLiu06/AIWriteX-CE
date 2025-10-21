@@ -3,7 +3,9 @@
     /* 统一的布局变量 */    
     --sidebar-width: 200px;    
     --header-height: 60px;    
-    --footer-height: 40px;    
+    --footer-height: 40px;
+    --content-bottom-padding: 20px; 
+    --sidebar-bottom-padding: 0;
 }    
     
 /* 基础重置 */    

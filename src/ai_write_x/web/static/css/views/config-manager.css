@@ -12,7 +12,7 @@
     min-height: 0;  
     gap: 0px;  
     overflow: hidden;  
-    max-height: calc(100vh - var(--header-height) - var(--footer-height) - 20px);  
+    max-height: calc(100vh - var(--header-height) - var(--footer-height));  
 }  
   
 .config-content {  
@@ -42,7 +42,7 @@
 }  
   
 .config-panel {  
-    padding: 10px 15px 50px 15px;  
+    padding: 10px 15px var(--content-bottom-padding) 15px; 
     opacity: 0;  
     transition: opacity 0.2s ease;  
     display: none;  

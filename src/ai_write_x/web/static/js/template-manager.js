@@ -10,36 +10,54 @@ class TemplateManager {
         this.init();
     }  
   
-    async init() {  
-        if (this.initialized) {  
-            // 如果已经初始化,只刷新数据,不重新渲染    
-            await this.loadCategories();    
-            await this.loadTemplates(this.currentCategory);    
-            this.renderCategoryTree();  
+    async init() {    
+        if (this.initialized) {    
+            await this.loadCategories();      
+            await this.loadTemplates(this.currentCategory);      
+            this.renderCategoryTree();    
             
-            // 重新激活 Observer  
-            if (this.observer) {  
-                const cards = document.querySelectorAll('.template-card');  
-                cards.forEach(card => {  
-                    if (card.querySelector('iframe[data-loaded="true"]')) {  
-                        // 已加载的卡片不需要重新观察  
-                        return;  
-                    }  
-                    this.observer.observe(card);  
-                });  
-            }
-            this.updateAddTemplateButtonState();
-            return;    
+            if (this.observer) {    
+                const cards = document.querySelectorAll('.template-card');    
+                cards.forEach(card => {    
+                    if (card.querySelector('iframe[data-loaded="true"]')) {    
+                        return;    
+                    }    
+                    this.observer.observe(card);    
+                });    
+            }  
+            this.updateAddTemplateButtonState();  
+            return;      
         }  
         
-        await this.loadCategories();    
-        await this.loadTemplates();    
-        this.setupIntersectionObserver();    
-        this.bindEvents();    
-        this.renderCategoryTree();    
-        this.renderTemplateGrid();    
-        this.initialized = true;
-        this.updateAddTemplateButtonState();
+        await this.loadDefaultCategories();  
+        await this.loadCategories();      
+        await this.loadTemplates();      
+        this.setupIntersectionObserver();      
+        this.bindEvents();      
+        this.renderCategoryTree();      
+        this.renderTemplateGrid();      
+        this.initialized = true;  
+        this.updateAddTemplateButtonState();  
+    }  
+    
+    // 从后端加载默认分类  
+    async loadDefaultCategories() {  
+        try {  
+            const response = await fetch('/api/templates/default-template-categories');  
+            if (response.ok) {  
+                const result = await response.json();  
+                this.defaultCategories = result.data || [];  
+            } else {  
+                this.defaultCategories = [];  
+            }  
+        } catch (error) {  
+            console.error('加载默认分类失败:', error);  
+            this.defaultCategories = [];  
+        }  
+    } 
+    
+    isDefaultCategory(categoryName) {  
+        return this.defaultCategories.includes(categoryName);  
     }
   
     async loadCategories() {  
@@ -135,47 +153,53 @@ class TemplateManager {
     }
 
     showCategoryContextMenu(e, categoryName) {  
-        const existingMenu = document.querySelector('.category-context-menu');  
-        if (existingMenu) {  
-            existingMenu.remove();  
+        // 检查是否为系统内置分类  
+        if (this.isDefaultCategory(categoryName)) {  
+            e.preventDefault();  
+            return; // 直接返回,不显示菜单  
         }  
         
-        // 创建菜单  
-        const menu = document.createElement('div');  
-        menu.className = 'category-context-menu';  
-        menu.style.left = `${e.pageX}px`;  
-        menu.style.top = `${e.pageY}px`;  
+        const existingMenu = document.querySelector('.category-context-menu');    
+        if (existingMenu) {    
+            existingMenu.remove();    
+        }    
         
-        // 编辑选项  
-        const editItem = document.createElement('div');  
-        editItem.className = 'context-menu-item';  
-        editItem.innerHTML = '<span>✏️</span> 编辑分类';  
-        editItem.addEventListener('click', () => {  
-            menu.remove();  
-            this.editCategory(categoryName);  
-        });  
+        // 创建菜单    
+        const menu = document.createElement('div');    
+        menu.className = 'category-context-menu';    
+        menu.style.left = `${e.pageX}px`;    
+        menu.style.top = `${e.pageY}px`;    
         
-        // 删除选项  
-        const deleteItem = document.createElement('div');  
-        deleteItem.className = 'context-menu-item context-menu-item-danger';  
-        deleteItem.innerHTML = '<span>🗑️</span> 删除分类';  
-        deleteItem.addEventListener('click', () => {  
-            menu.remove();  
-            this.deleteCategory(categoryName);  
-        });  
+        // 编辑选项    
+        const editItem = document.createElement('div');    
+        editItem.className = 'context-menu-item';    
+        editItem.innerHTML = '<span>✏️</span> 编辑分类';    
+        editItem.addEventListener('click', () => {    
+            menu.remove();    
+            this.editCategory(categoryName);    
+        });    
         
-        menu.appendChild(editItem);  
-        menu.appendChild(deleteItem);  
-        document.body.appendChild(menu);  
+        // 删除选项    
+        const deleteItem = document.createElement('div');    
+        deleteItem.className = 'context-menu-item context-menu-item-danger';    
+        deleteItem.innerHTML = '<span>🗑️</span> 删除分类';    
+        deleteItem.addEventListener('click', () => {    
+            menu.remove();    
+            this.deleteCategory(categoryName);    
+        });    
         
-        // 点击外部关闭菜单  
-        setTimeout(() => {  
-            const closeMenu = () => {  
-                menu.remove();  
-                document.removeEventListener('click', closeMenu);  
-            };  
-            document.addEventListener('click', closeMenu);  
-        }, 0);  
+        menu.appendChild(editItem);    
+        menu.appendChild(deleteItem);    
+        document.body.appendChild(menu);    
+        
+        // 点击外部关闭菜单    
+        setTimeout(() => {    
+            const closeMenu = () => {    
+                menu.remove();    
+                document.removeEventListener('click', closeMenu);    
+            };    
+            document.addEventListener('click', closeMenu);    
+        }, 0);    
     }
 
     async editCategory(oldCategoryName) {    
@@ -377,18 +401,17 @@ class TemplateManager {
                     </div>    
                 </div> 
                 <div class="card-actions">  
-                    <button class="btn-icon" data-action="preview" title="预览">  
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">  
-                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>  
-                            <circle cx="12" cy="12" r="3"/>  
-                        </svg>  
-                    </button>  
                     <button class="btn-icon" data-action="edit" title="编辑">  
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">  
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>  
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>  
                         </svg>  
-                    </button>  
+                    </button> 
+                    <button class="btn-icon" data-action="rename" title="重命名">  
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">  
+                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>  
+                        </svg>  
+                    </button> 
                     <button class="btn-icon" data-action="copy" title="复制">  
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">  
                             <rect x="9" y="9" width="13" height="13" rx="2" ry="2"/>  
@@ -474,25 +497,63 @@ class TemplateManager {
         });  
     }  
   
-    async handleCardAction(action, template) {  
+    async handleCardAction(action, template) {    
         switch(action) {  
-            case 'preview':  
-                this.previewTemplate(template);  
+            case 'rename':  // 新增  
+                await this.renameTemplate(template);  
                 break;  
-            case 'edit':  
-                await this.editTemplate(template);  
-                break;  
-            case 'copy':  
-                await this.copyTemplate(template);  
-                break;  
-            case 'delete':  
-                await this.deleteTemplate(template);  
-                break;  
-        }  
+            case 'preview':    
+                this.previewTemplate(template);    
+                break;    
+            case 'edit':    
+                await this.editTemplate(template);    
+                break;    
+            case 'copy':    
+                await this.copyTemplate(template);    
+                break;    
+            case 'delete':    
+                await this.deleteTemplate(template);    
+                break;    
+        }    
+    }  
+    
+    // 重命名方法  
+    async renameTemplate(template) {  
+        window.dialogManager.showInput(  
+            '重命名模板',  
+            '请输入新的模板名称:',  
+            template.name,  
+            async (newName) => {  
+                if (!newName || newName === template.name) return;  
+                
+                try {  
+                    const response = await fetch('/api/templates/rename', {  
+                        method: 'POST',  
+                        headers: { 'Content-Type': 'application/json' },  
+                        body: JSON.stringify({  
+                            old_path: template.path,  
+                            new_name: newName  
+                        })  
+                    });  
+                    
+                    if (response.ok) {  
+                        await this.loadCategories();  
+                        await this.loadTemplates(this.currentCategory);  
+                        this.renderCategoryTree();  
+                        this.renderTemplateGrid();  
+                        window.app?.showNotification('模板已重命名', 'success');  
+                    } else {  
+                        const error = await response.json();  
+                        window.dialogManager.showAlert('重命名失败: ' + (error.detail || '未知错误'), 'error');  
+                    }  
+                } catch (error) {  
+                    window.dialogManager.showAlert('重命名失败: ' + error.message, 'error');  
+                }  
+            }  
+        );  
     }  
   
     previewTemplate(template) {  
-        // 使用全局preview-panel,参考现有实现  
         fetch(`/api/templates/content/${encodeURIComponent(template.path)}`)  
             .then(res => res.text())  
             .then(html => {  
@@ -502,7 +563,7 @@ class TemplateManager {
             })  
             .catch(err => {  
                 console.error('预览失败:', err);  
-                alert('预览失败: ' + err.message);  
+                window.dialogManager.showAlert('预览失败: ' + err.message, 'error');  
             });  
     }  
   
@@ -534,55 +595,64 @@ class TemplateManager {
     }  
   
     async copyTemplate(template) {  
-        const newName = prompt('输入新模板名称:', template.name + '_copy');  
-        if (!newName) return;  
-  
-        try {  
-            const response = await fetch('/api/templates/copy', {  
-                method: 'POST',  
-                headers: { 'Content-Type': 'application/json' },  
-                body: JSON.stringify({  
-                    source_path: template.path,  
-                    new_name: newName,  
-                    target_category: template.category  
-                })  
-            });  
-  
-            if (response.ok) {  
-                await this.loadTemplates(this.currentCategory);  
-                this.renderTemplateGrid();  
-                window.app?.showNotification('模板已复制', 'success');  
-            } else {  
-                const error = await response.json();  
-                alert('复制失败: ' + error.detail);  
+        window.dialogManager.showInput(  
+            '复制模板',  
+            '请输入新模板名称:',  
+            template.name + '_copy',  
+            async (newName) => {  
+                if (!newName) return;  
+    
+                try {  
+                    const response = await fetch('/api/templates/copy', {  
+                        method: 'POST',  
+                        headers: { 'Content-Type': 'application/json' },  
+                        body: JSON.stringify({  
+                            source_path: template.path,  
+                            new_name: newName,  
+                            target_category: template.category  
+                        })  
+                    });  
+    
+                    if (response.ok) {  
+                        await this.loadTemplates(this.currentCategory);  
+                        this.renderTemplateGrid();  
+                        window.app?.showNotification('模板已复制', 'success');  
+                    } else {  
+                        const error = await response.json();  
+                        window.dialogManager.showAlert('复制失败: ' + (error.detail || '未知错误'), 'error');  
+                    }  
+                } catch (error) {  
+                    window.dialogManager.showAlert('复制失败: ' + error.message, 'error');  
+                }  
             }  
-        } catch (error) {  
-            alert('复制失败: ' + error.message);  
-        }  
-    }  
+        );  
+    } 
   
     async deleteTemplate(template) {  
-        if (!confirm(`确认删除模板"${template.name}"?`)) return;  
-          
-        try {  
-            const response = await fetch(`/api/templates/${encodeURIComponent(template.path)}`, {  
-                method: 'DELETE'  
-            });  
-              
-            if (response.ok) {  
-                await this.loadCategories();  
-                await this.loadTemplates(this.currentCategory);  
-                this.renderCategoryTree();  
-                this.renderTemplateGrid();  
-                window.app?.showNotification('模板已删除', 'success');  
-            } else {  
-                const error = await response.json();  
-                alert('删除失败: ' + error.detail);  
+        window.dialogManager.showConfirm(  
+            `确认删除模板"${template.name}"?`,  
+            async () => {  
+                try {  
+                    const response = await fetch(`/api/templates/${encodeURIComponent(template.path)}`, {  
+                        method: 'DELETE'  
+                    });  
+                    
+                    if (response.ok) {  
+                        await this.loadCategories();  
+                        await this.loadTemplates(this.currentCategory);  
+                        this.renderCategoryTree();  
+                        this.renderTemplateGrid();  
+                        window.app?.showNotification('模板已删除', 'success');  
+                    } else {  
+                        const error = await response.json();  
+                        window.dialogManager.showAlert('删除失败: ' + (error.detail || '未知错误'), 'error');  
+                    }  
+                } catch (error) {  
+                    window.dialogManager.showAlert('删除失败: ' + error.message, 'error');  
+                }  
             }  
-        } catch (error) {  
-            alert('删除失败: ' + error.message);  
-        }  
-    }  
+        );  
+    } 
   
     switchLayout(layout) {  
         this.currentLayout = layout;        

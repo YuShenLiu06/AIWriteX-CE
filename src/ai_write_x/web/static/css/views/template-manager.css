@@ -1,40 +1,43 @@
 /* 模板管理视图样式 */  
 .template-manager-layout {      
-    display: flex;  /* 改为 flex */  
-    flex-direction: row;  /* 水平排列 */  
+    display: flex;
+    flex-direction: row;  
     gap: 0;      
     flex: 1;      
     min-height: 0;      
     overflow: hidden;  
-    max-height: calc(100vh - var(--header-height) - var(--footer-height) - 20px);    
-}  
-  
-.template-sidebar {  
-    width: 200px;  /* 固定宽度 */  
-    flex-shrink: 0;  /* 不收缩 */  
-    background: var(--surface-color);    
-    border-right: 1px solid var(--border-color);    
-    padding: 16px;    
-    overflow-y: auto;    
-}  
+    max-height: calc(100vh - var(--header-height) - var(--footer-height));  
+}   
   
 .template-main-wrapper {      
     display: flex;      
     flex-direction: column;      
-    flex: 1;  /* 占据剩余空间 */  
+    flex: 1;
     min-height: 0;      
     overflow: hidden;  
 }
 
 /* 左侧分类树 */  
 .template-sidebar {  
+    width: 200px;  
+    flex-shrink: 0;  
     background: var(--surface-color);  
     border-right: 1px solid var(--border-color);  
-    padding: 16px;  
+    padding: 16px 16px var(--sidebar-bottom-padding) 16px; 
     overflow-y: auto;  
+    height: 100%;  
+    display: flex;  
+    flex-direction: column;  
+}   
+
+.category-tree {  
+    flex: 1;  
+    overflow-y: auto;  
+    min-height: 0;  
 }  
-  
+
 .sidebar-header {  
+    flex-shrink: 0;  
     display: flex;  
     justify-content: space-between;  
     align-items: center;  
@@ -273,10 +276,10 @@
   
 /* 模板网格*/  
 .template-grid {  
-    padding: 10px 15px 50px 15px;  
+    padding: 10px 15px var(--content-bottom-padding) 15px; 
     display: grid;  
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));  
-    gap: 20px; 
+    gap: 20px;  
     align-content: start;  
 }   
   
