@@ -1,20 +1,31 @@
 /* 模板管理视图样式 */  
-#template-manager-view {  
-    height: 100%;  
-    display: flex;  
-    flex-direction: column;  
+.template-manager-layout {      
+    display: flex;  /* 改为 flex */  
+    flex-direction: row;  /* 水平排列 */  
+    gap: 0;      
+    flex: 1;      
+    min-height: 0;      
     overflow: hidden;  
+    max-height: calc(100vh - var(--header-height) - var(--footer-height) - 20px);    
 }  
   
-.template-manager-layout {  
-    display: grid;  
-    grid-template-columns: 200px 1fr;  
-    gap: 0;  
-    flex: 1;  
-    min-height: 0;  
-    overflow: hidden;  
+.template-sidebar {  
+    width: 200px;  /* 固定宽度 */  
+    flex-shrink: 0;  /* 不收缩 */  
+    background: var(--surface-color);    
+    border-right: 1px solid var(--border-color);    
+    padding: 16px;    
+    overflow-y: auto;    
 }  
   
+.template-main-wrapper {      
+    display: flex;      
+    flex-direction: column;      
+    flex: 1;  /* 占据剩余空间 */  
+    min-height: 0;      
+    overflow: hidden;  
+}
+
 /* 左侧分类树 */  
 .template-sidebar {  
     background: var(--surface-color);  
@@ -97,35 +108,27 @@
   
 .category-item.active .category-count {  
     background: rgba(255,255,255,0.2);  
-}  
-  
-/* 主内容区包装器 */  
-.template-main-wrapper {  
-    display: flex;  
-    flex-direction: column;  
-    min-height: 0;  
-    overflow: hidden;  
-}   
+}    
   
 /* 工具栏固定,不滚动 */  
-.template-toolbar {  
-    flex-shrink: 0;  
-    display: flex;  
-    justify-content: space-between;  
-    align-items: center;  
-    padding: 16px 20px;  
-    background: var(--surface-color);  
-    border-bottom: 1px solid var(--border-color);  
-    gap: 16px;  
+.template-toolbar {    
+    flex-shrink: 0;    
+    display: flex;    
+    justify-content: space-between;    
+    align-items: center;    
+    padding: 16px 20px;    
+    background: var(--surface-color);    
+    border-bottom: 1px solid var(--border-color);    
+    gap: 16px;    
 }  
   
-/* 滚动容器 - 参考config-content */  
-.template-main {  
-    flex: 1;  
-    overflow-y: auto;  
-    padding: 0;  
-    min-height: 0;  
-    max-height: calc(100% - 2px);  
+/* 滚动容器 */  
+.template-main {    
+    flex: 1;    
+    overflow-y: auto;    
+    padding: 0;    
+    min-height: 0;    
+    max-height: calc(100% - 2px);    
 }    
   
 /* 自定义滚动条样式 */  
@@ -218,13 +221,13 @@
 }  
   
 /* 模板网格*/  
-.template-grid {  
-    padding: 20px 20px 50px 20px; 
-    display: grid;  
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));  
-    gap: 20px;  
-    align-content: start;  
-}   
+.template-grid {    
+    padding: 10px 15px 50px 15px; 
+    display: grid;    
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));    
+    gap: 20px;    
+    align-content: start;    
+}  
   
 /* 模板卡片 */  
 .template-card {  
@@ -260,14 +263,19 @@
     transform: scale(0.5);  
     transform-origin: top left;  
     overflow: hidden !important;  
-    scrollbar-width: none;  
-    -ms-overflow-style: none;  
+    scrollbar-width: none !important;  
+    -ms-overflow-style: none !important;  
 }  
   
 .card-preview iframe::-webkit-scrollbar {  
     display: none !important;  
     width: 0 !important;  
     height: 0 !important;  
+}  
+  
+/* 确保iframe内部的body也不显示滚动条 */  
+.card-preview iframe body {  
+    overflow: hidden !important;  
 }  
   
 /* 卡片内容 */  

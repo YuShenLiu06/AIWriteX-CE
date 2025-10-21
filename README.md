@@ -8,14 +8,9 @@
 > **心动不如行动？** 👉 [马上开始](#-快速开始)  
 > **喜欢这个项目？** ⭐ 点个 Star 支持一下吧！  
 
-<div style="display: flex; justify-content: space-between;">
-  <img src="image/preview/left.jpg" width="51%">
-  <img src="image/preview/right.jpg" width="48%">
-</div>
+<img src="image/preview/preview.jpg" width="100%">
 
 > **全新界面预览（开发中）** ⭐ 欢迎 Star 关注项目！  
-
-<img src="image/preview/preview.jpg" width="100%">
 
 ## 💎 基本功能
 - **自动获取热门话题**：从各大平台实时抓取热门话题，确保文章标题及内容紧跟潮流

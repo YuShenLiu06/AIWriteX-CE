@@ -90,23 +90,25 @@
     color: var(--text-primary);  
 }  
   
-.preview-content {  
-    flex: 1;  
-    overflow-y: auto;  
+.preview-content {    
+    flex: 1;    
+    overflow-y: auto;    
     padding: 0;  
+    background: transparent;
 }  
   
-.preview-area {  
-    min-height: 100%;  
-    padding: 20px;  
-    background: var(--background-color);  
+.preview-area {    
+    min-height: 100%;    
+    padding: 0;    
+    background: transparent;  
 }  
   
-.preview-placeholder {  
-    color: var(--text-secondary);  
-    text-align: center;  
-    margin-top: 50%;  
+.preview-placeholder {    
+    color: var(--text-tertiary);    
+    text-align: center;    
+    margin-top: 50%;    
     font-style: italic;  
+    opacity: 0.6;
 }  
   
 .preview-footer {  
@@ -261,4 +263,9 @@
     .trigger-icon {  
         font-size: 16px;  
     }  
+}
+
+[data-theme="light"] .preview-placeholder,  
+[data-theme="dark"] .preview-placeholder {  
+    background: transparent;  
 }

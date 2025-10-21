@@ -114,7 +114,7 @@ class TemplateManager {
         grid.innerHTML = this.templates.map(template => `  
             <div class="template-card" data-template-path="${template.path}">  
                 <div class="card-preview">  
-                    <iframe sandbox="allow-same-origin"   
+                    <iframe sandbox="allow-same-origin allow-scripts"   
                             loading="lazy"  
                             data-template-path="${template.path}"></iframe>  
                 </div>    
@@ -170,7 +170,18 @@ class TemplateManager {
                     throw new Error(`HTTP ${response.status}`);  
                 }  
                 const html = await response.text();  
-                iframe.srcdoc = html;  
+                const styledHtml = `  
+                    <style>  
+                        body {   
+                            overflow: hidden !important;   
+                            margin: 0;  
+                        }  
+                        ::-webkit-scrollbar { display: none !important; }  
+                        * { scrollbar-width: none !important; }  
+                    </style>  
+                    ${html}  
+                `;  
+                iframe.srcdoc = styledHtml;
             } catch (error) {  
                 console.error('加载模板预览失败:', templatePath, error);  
                 iframe.srcdoc = '<div style="padding: 20px; color: red;">加载失败</div>';  
