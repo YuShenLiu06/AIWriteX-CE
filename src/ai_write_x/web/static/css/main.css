@@ -63,6 +63,8 @@ body {
 #template-manager-view.view-content {  
     overflow: hidden;  
     padding: 0;  
+    content-visibility: auto;  
+    contain-intrinsic-size: 0 800px;  
 }
   
 .view-content.show {  

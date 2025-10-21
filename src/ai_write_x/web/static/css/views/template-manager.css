@@ -100,11 +100,18 @@
   
 .category-count {  
     margin-left: auto;  
-    font-size: 11px;  
-    padding: 2px 6px;  
-    border-radius: 10px;  
+    font-size: 10px;
+    min-width: 18px;  
+    height: 18px;
+    padding: 0 5px; 
+    border-radius: 9px;
     background: rgba(0,0,0,0.1);  
-}  
+    display: inline-flex;  
+    align-items: center;  
+    justify-content: center;  
+    line-height: 1;  
+    font-weight: 500;
+}
   
 .category-item.active .category-count {  
     background: rgba(255,255,255,0.2);  
@@ -221,13 +228,13 @@
 }  
   
 /* 模板网格*/  
-.template-grid {    
-    padding: 10px 15px 50px 15px; 
-    display: grid;    
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));    
-    gap: 20px;    
-    align-content: start;    
-}  
+.template-grid {  
+    padding: 10px 15px 50px 15px;  
+    display: grid;  
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));  
+    gap: 20px; 
+    align-content: start;  
+}   
   
 /* 模板卡片 */  
 .template-card {  
@@ -239,6 +246,8 @@
     cursor: pointer;  
     display: flex;  
     flex-direction: column;  
+    content-visibility: auto;  
+    contain-intrinsic-size: 0 300px;  
 }  
   
 .template-card:hover {  
@@ -277,28 +286,50 @@
 .card-preview iframe body {  
     overflow: hidden !important;  
 }  
+
+.preview-loading {  
+    position: absolute;  
+    top: 50%;  
+    left: 50%;  
+    transform: translate(-50%, -50%);  
+    color: var(--text-tertiary);  
+    font-size: 12px;  
+    pointer-events: none;  
+}  
   
+.card-preview iframe[data-loaded="true"] + .preview-loading {  
+    display: none;  
+}
+
 /* 卡片内容 */  
 .card-content {  
-    padding: 12px;  
-    flex: 1;  
+    padding: 10px 12px;
+    display: flex;  
+    flex-direction: column;  
+    gap: 6px;  
 }  
   
 .card-title {  
-    font-size: 14px;  
+    font-size: 14px; 
     font-weight: 500;  
     color: var(--text-primary);  
-    margin: 0 0 8px 0;  
+    margin: 0;  
     overflow: hidden;  
     text-overflow: ellipsis;  
     white-space: nowrap;  
+    -webkit-font-smoothing: antialiased; 
+    -moz-osx-font-smoothing: grayscale;  
+    text-rendering: optimizeLegibility;  
 }  
   
 .card-meta {  
     display: flex;  
-    gap: 8px;  
-    font-size: 12px;  
+    align-items: center;  
+    gap: 6px;  
+    font-size: 12px;
     color: var(--text-tertiary);  
+    -webkit-font-smoothing: antialiased;  
+    -moz-osx-font-smoothing: grayscale;  
 }  
   
 .category-badge {  
@@ -306,12 +337,16 @@
     background: var(--primary-color);  
     color: white;  
     border-radius: 4px;  
-    font-size: 11px;  
+    font-size: 11px; 
+    line-height: 1.4;  
+    font-weight: 500;
 }  
   
-.size-info {  
+.size-info,  
+.time-info {  
     color: var(--text-tertiary);  
-}  
+    font-size: 11px; 
+}
   
 /* 卡片操作按钮 */  
 .card-actions {  
@@ -348,27 +383,52 @@
   
 .template-grid.list-view .template-card {  
     flex-direction: row;  
-    height: 80px;  
+    height: 72px; 
+    align-items: center;  
 }  
   
 .template-grid.list-view .card-preview {  
-    width: 120px;  
-    height: 100%;  
+    width: 108px;
+    height: 68px; 
+    flex-shrink: 0;  
 }  
   
 .template-grid.list-view .card-content {  
     flex: 1;  
     display: flex;  
-    align-items: center;  
-    justify-content: space-between;  
+    flex-direction: column;  
+    justify-content: center;  
+    padding: 10px 12px; 
+    gap: 6px;
+    min-width: 0;  
+} 
+  
+.template-grid.list-view .card-title {  
+    font-size: 14px;
+    font-weight: 500;  
+}  
+  
+.template-grid.list-view .card-meta {  
+    display: flex;  
+    gap: 6px;  
+    font-size: 12px;
 }  
   
 .template-grid.list-view .card-actions {  
     border-top: none;  
     border-left: 1px solid var(--border-color);  
-    flex-direction: column;  
+    flex-direction: row;
     width: auto;  
+    padding: 0 8px;  
+    gap: 4px;  
+    flex-shrink: 0;  
 }  
+  
+.template-grid.list-view .card-actions .btn-icon {  
+    padding: 8px;  
+    width: 32px;  
+    height: 32px;  
+}
   
 /* 空状态 */  
 .empty-state {  

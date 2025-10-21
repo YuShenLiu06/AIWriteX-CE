@@ -3,18 +3,42 @@ class TemplateManager {
         this.templates = [];  
         this.categories = [];  
         this.currentTemplate = null;  
-        this.currentLayout = 'grid'; // 'grid' or 'list'  
-        this.currentCategory = null;  
-        this.init();  
+        this.currentLayout = 'grid';
+        this.currentCategory = null;
+        this.observer = null;
+        this.initialized = false;
+        this.init();
     }  
   
     async init() {  
-        await this.loadCategories();  
-        await this.loadTemplates();  
-        this.bindEvents();  
-        this.renderCategoryTree();  
-        this.renderTemplateGrid();  
-    }  
+        if (this.initialized) {  
+            // 如果已经初始化,只刷新数据,不重新渲染    
+            await this.loadCategories();    
+            await this.loadTemplates(this.currentCategory);    
+            this.renderCategoryTree();  
+            
+            // 重新激活 Observer  
+            if (this.observer) {  
+                const cards = document.querySelectorAll('.template-card');  
+                cards.forEach(card => {  
+                    if (card.querySelector('iframe[data-loaded="true"]')) {  
+                        // 已加载的卡片不需要重新观察  
+                        return;  
+                    }  
+                    this.observer.observe(card);  
+                });  
+            }  
+            return;    
+        }  
+        
+        await this.loadCategories();    
+        await this.loadTemplates();    
+        this.setupIntersectionObserver();    
+        this.bindEvents();    
+        this.renderCategoryTree();    
+        this.renderTemplateGrid();    
+        this.initialized = true;  
+    }
   
     async loadCategories() {  
         const response = await fetch('/api/templates/categories');  
@@ -99,6 +123,32 @@ class TemplateManager {
         `;  
     }  
   
+    setupIntersectionObserver() {  
+        // 清理旧的observer  
+        if (this.observer) {  
+            this.observer.disconnect();  
+            this.observer = null;  
+        }  
+    
+        // 创建新的observer  
+        this.observer = new IntersectionObserver((entries) => {  
+            entries.forEach(entry => {  
+                if (entry.isIntersecting) {  
+                    const card = entry.target;  
+                    const iframe = card.querySelector('iframe[data-template-path]');  
+                    if (iframe && iframe.dataset.loaded !== 'true') {  
+                        this.loadSinglePreview(iframe);  
+                        this.observer.unobserve(card);  
+                    }  
+                }  
+            });  
+        }, {  
+            root: document.querySelector('.template-main'),  
+            rootMargin: '200px',  
+            threshold: 0.01  
+        });  
+    }
+  
     renderTemplateGrid() {  
         const grid = document.getElementById('template-grid');  
         if (!grid) return;  
@@ -108,24 +158,41 @@ class TemplateManager {
         if (this.templates.length === 0) {  
             grid.innerHTML = '<div class="empty-state">暂无模板</div>';  
             return;  
-        }  
+        }
+        const formatTime = (timeStr) => {  
+            const date = new Date(timeStr);  
+            const today = new Date();  
+            const diffDays = Math.floor((today - date) / (1000 * 60 * 60 * 24));  
+            
+            if (diffDays === 0) return '今天';  
+            if (diffDays === 1) return '昨天';  
+            if (diffDays < 7) return `${diffDays}天前`;  
+            return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });  
+        }; 
+
           
-        // 先渲染卡片结构  
+        // 渲染卡片结构,但不立即加载iframe内容  
         grid.innerHTML = this.templates.map(template => `  
             <div class="template-card" data-template-path="${template.path}">  
                 <div class="card-preview">  
-                    <iframe sandbox="allow-same-origin allow-scripts"   
+                    <iframe sandbox="allow-same-origin  allow-scripts"   
                             loading="lazy"  
-                            data-template-path="${template.path}"></iframe>  
-                </div>    
+                            data-template-path="${template.path}"  
+                            data-loaded="false"></iframe>  
+                    <div class="preview-loading">加载中...</div>  
+                </div>  
                 <div class="card-content">  
                     <h4 class="card-title">${template.name}</h4>  
                     <div class="card-meta">  
                         <span class="category-badge">${template.category}</span>  
+                        <span class="meta-divider">•</span>  
                         <span class="size-info">${template.size}</span>  
+                        <span class="meta-divider">•</span>  
+                        <span class="time-info">${formatTime(template.create_time)}</span>  
                     </div>  
                 </div>  
                 <div class="card-actions">  
+                    <!-- 操作按钮保持不变 -->  
                     <button class="btn-icon" data-action="preview" title="预览">  
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">  
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>  
@@ -154,40 +221,43 @@ class TemplateManager {
             </div>  
         `).join('');  
           
-        // 异步加载预览内容  
-        this.loadPreviewContents();  
         this.bindCardEvents();  
+          
+        // 观察所有卡片,实现懒加载  
+        const cards = grid.querySelectorAll('.template-card');  
+        cards.forEach(card => this.observer.observe(card));  
     }  
-      
-    async loadPreviewContents() {  
-        const iframes = document.querySelectorAll('.card-preview iframe[data-template-path]');  
-        
-        for (const iframe of iframes) {  
-            const templatePath = iframe.dataset.templatePath;  
-            try {  
-                const response = await fetch(`/api/templates/content/${encodeURIComponent(templatePath)}`);  
-                if (!response.ok) {  
-                    throw new Error(`HTTP ${response.status}`);  
-                }  
-                const html = await response.text();  
-                const styledHtml = `  
-                    <style>  
-                        body {   
-                            overflow: hidden !important;   
-                            margin: 0;  
-                        }  
-                        ::-webkit-scrollbar { display: none !important; }  
-                        * { scrollbar-width: none !important; }  
-                    </style>  
-                    ${html}  
-                `;  
-                iframe.srcdoc = styledHtml;
-            } catch (error) {  
-                console.error('加载模板预览失败:', templatePath, error);  
-                iframe.srcdoc = '<div style="padding: 20px; color: red;">加载失败</div>';  
+  
+    async loadSinglePreview(iframe) {  
+        const templatePath = iframe.dataset.templatePath;  
+        const loadingEl = iframe.parentElement.querySelector('.preview-loading');  
+          
+        try {  
+            const response = await fetch(`/api/templates/content/${encodeURIComponent(templatePath)}`);  
+            if (!response.ok) {  
+                throw new Error(`HTTP ${response.status}`);  
             }  
+            const html = await response.text();  
+            const styledHtml = `  
+                <style>  
+                    body {   
+                        overflow: hidden !important;   
+                        margin: 0;  
+                    }  
+                    ::-webkit-scrollbar { display: none !important; }  
+                    * { scrollbar-width: none !important; }  
+                </style>  
+                ${html}  
+            `;  
+            iframe.srcdoc = styledHtml;  
+            iframe.dataset.loaded = 'true';  
+            if (loadingEl) loadingEl.style.display = 'none';  
+        } catch (error) {  
+            console.error('加载模板预览失败:', templatePath, error);  
+            iframe.srcdoc = '<div style="padding: 20px; color: red;">加载失败</div>';  
+            if (loadingEl) loadingEl.textContent = '加载失败';  
         }  
-    }  
+    } 
   
     bindCardEvents() {  
         const grid = document.getElementById('template-grid');  
@@ -423,4 +493,4 @@ class TemplateManager {
 }  
   
 // 初始化  
-window.templateManager = new TemplateManager();
+// window.templateManager = new TemplateManager();

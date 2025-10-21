@@ -245,7 +245,12 @@ class AIWriteXApp {
             targetView.style.display = 'block';  
             requestAnimationFrame(() => {  
                 targetView.classList.add('active');  
-            });  
+            });
+            
+            // 延迟初始化模板管理器  
+            if (viewName === 'template-manager' && !window.templateManager) {  
+                window.templateManager = new TemplateManager();  
+            } 
         }  
         
         // 关键修改:如果切换到配置管理视图,默认激活界面设置子菜单  
