@@ -37,6 +37,81 @@ class CategoryCreate(BaseModel):
     name: str
 
 
+class CategoryRename(BaseModel):
+    old_name: str
+    new_name: str
+
+
+@router.get("/categories")
+async def list_categories():
+    """获取所有分类"""
+    template_dir = PathManager.get_template_dir()
+    categories = []
+
+    for item in template_dir.iterdir():
+        if item.is_dir():
+            template_count = len(list(item.glob("*.html")))
+            categories.append(
+                {"name": item.name, "path": str(item), "template_count": template_count}
+            )
+
+    return {"status": "success", "data": categories}
+
+
+@router.post("/categories")
+async def create_category(category: CategoryCreate):
+    """创建新分类"""
+    template_dir = PathManager.get_template_dir()
+    category_path = template_dir / category.name
+
+    if category_path.exists():
+        raise HTTPException(status_code=409, detail="分类已存在")
+
+    category_path.mkdir(parents=True, exist_ok=True)
+    return {"status": "success", "message": "分类已创建"}
+
+
+@router.put("/categories/{category_name}")
+async def rename_category(category_name: str, rename_data: CategoryRename):
+    """重命名分类"""
+    template_dir = PathManager.get_template_dir()
+    old_path = template_dir / category_name
+    new_path = template_dir / rename_data.new_name
+
+    if not old_path.exists():
+        raise HTTPException(status_code=404, detail="分类不存在")
+
+    if new_path.exists():
+        raise HTTPException(status_code=409, detail="目标分类名已存在")
+
+    # 重命名目录
+    old_path.rename(new_path)
+
+    return {
+        "status": "success",
+        "message": "分类已重命名",
+        "old_name": category_name,
+        "new_name": rename_data.new_name,
+    }
+
+
+@router.delete("/categories/{category_name}")
+async def delete_category(category_name: str, force: bool = False):
+    """删除分类"""
+    template_dir = PathManager.get_template_dir()
+    category_path = template_dir / category_name
+
+    if not category_path.exists():
+        raise HTTPException(status_code=404, detail="分类不存在")
+
+    templates = list(category_path.glob("*.html"))
+    if templates and not force:
+        raise HTTPException(status_code=400, detail=f"分类包含{len(templates)}个模板,无法删除")
+
+    shutil.rmtree(category_path)
+    return {"status": "success", "message": "分类已删除"}
+
+
 @router.get("/")
 async def list_templates(category: str = None):
     """获取模板列表"""
@@ -169,49 +244,3 @@ async def move_template(move_data: TemplateMove):
     target_path = target_dir / source.name
     shutil.move(str(source), str(target_path))
     return {"status": "success", "path": str(target_path)}
-
-
-@router.get("/categories")
-async def list_categories():
-    """获取所有分类"""
-    template_dir = PathManager.get_template_dir()
-    categories = []
-
-    for item in template_dir.iterdir():
-        if item.is_dir():
-            template_count = len(list(item.glob("*.html")))
-            categories.append(
-                {"name": item.name, "path": str(item), "template_count": template_count}
-            )
-
-    return {"status": "success", "data": categories}
-
-
-@router.post("/categories")
-async def create_category(category: CategoryCreate):
-    """创建新分类"""
-    template_dir = PathManager.get_template_dir()
-    category_path = template_dir / category.name
-
-    if category_path.exists():
-        raise HTTPException(status_code=409, detail="分类已存在")
-
-    category_path.mkdir(parents=True, exist_ok=True)
-    return {"status": "success", "message": "分类已创建"}
-
-
-@router.delete("/categories/{category_name}")
-async def delete_category(category_name: str, force: bool = False):
-    """删除分类"""
-    template_dir = PathManager.get_template_dir()
-    category_path = template_dir / category_name
-
-    if not category_path.exists():
-        raise HTTPException(status_code=404, detail="分类不存在")
-
-    templates = list(category_path.glob("*.html"))
-    if templates and not force:
-        raise HTTPException(status_code=400, detail=f"分类包含{len(templates)}个模板,无法删除")
-
-    shutil.rmtree(category_path)
-    return {"status": "success", "message": "分类已删除"}

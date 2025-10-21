@@ -2,7 +2,8 @@
 [data-theme="dark"] {  
     --primary-color: #3b82f6;  
     --primary-color-rgb: 59, 130, 246;  
-    --primary-hover: #2563eb;  
+    --primary-hover: #2563eb;
+    --primary-hover-color: #2563eb;
     --secondary-color: #94a3b8;  
     --success-color: #22c55e;  
     --warning-color: #fbbf24;  

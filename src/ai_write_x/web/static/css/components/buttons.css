@@ -15,23 +15,22 @@
 }  
   
 .btn-primary {  
-    padding: 8px 16px;  
-    background: var(--primary-color);  
-    color: white;  
-    border: none;  
-    border-radius: 6px;  
-    font-size: 13px;  
-    cursor: pointer;  
-    transition: all 0.2s;  
-    display: flex;  
-    align-items: center;  
-    gap: 6px;  
+    background: var(--primary-color);    
+    color: white;    
 }  
   
 .btn-primary:hover {  
-    background: var(--primary-hover-color);  
+    background: var(--primary-hover-color, #1d4ed8); 
     transform: translateY(-1px);  
     box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);  
+}  
+  
+.btn-primary svg {  
+    fill: none;  
+    stroke: currentColor;  
+    stroke-width: 2;  
+    stroke-linecap: round;  
+    stroke-linejoin: round;  
 }
   
 .btn-secondary {  
@@ -40,6 +39,7 @@
 }  
   
 .btn-secondary:hover {  
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
     background: #475569;  
 }  
   

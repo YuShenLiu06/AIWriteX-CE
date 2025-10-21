@@ -82,8 +82,17 @@
     font-size: 13px;  
     color: var(--text-secondary);  
     margin-bottom: 4px;  
-}  
-  
+    min-width: 0;
+}   
+
+.category-name {  
+    flex: 1; 
+    overflow: hidden;  
+    text-overflow: ellipsis; 
+    white-space: nowrap;
+    min-width: 0; 
+}
+
 .category-item:hover {  
     background: var(--hover-color);  
     color: var(--text-primary);  
@@ -116,7 +125,41 @@
 .category-item.active .category-count {  
     background: rgba(255,255,255,0.2);  
 }    
+
+/* 分类右键菜单 */  
+.category-context-menu {  
+    position: fixed;  
+    background: var(--surface-color);  
+    border: 1px solid var(--border-color);  
+    border-radius: 6px;  
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);  
+    z-index: 10000;  
+    min-width: 140px;  
+    padding: 4px 0;  
+}  
   
+.category-context-menu .context-menu-item {  
+    padding: 10px 16px;  
+    cursor: pointer;  
+    transition: background 0.2s;  
+    display: flex;  
+    align-items: center;  
+    gap: 8px;  
+    font-size: 14px;  
+}  
+  
+.category-context-menu .context-menu-item:hover {  
+    background: var(--background-color);  
+}  
+  
+.category-context-menu .context-menu-item-danger {  
+    color: #ef4444;  
+}  
+  
+.category-context-menu .context-menu-item-danger:hover {  
+    background: rgba(239, 68, 68, 0.1);  
+}
+
 /* 工具栏固定,不滚动 */  
 .template-toolbar {    
     flex-shrink: 0;    
@@ -214,7 +257,7 @@
     border-radius: 4px;  
     cursor: pointer;  
     color: var(--text-secondary);  
-    transition: all 0.2s;  
+    transition: all 0.05s;
 }  
   
 .view-btn:hover {  
@@ -225,7 +268,8 @@
 .view-btn.active {  
     background: var(--primary-color);  
     color: white;  
-}  
+    transition: none; 
+} 
   
 /* 模板网格*/  
 .template-grid {  
@@ -302,25 +346,28 @@
 }
 
 /* 卡片内容 */  
-.card-content {  
-    padding: 10px 12px;
-    display: flex;  
-    flex-direction: column;  
+.card-content {    
+    padding: 10px 12px;  
+    display: flex;    
+    flex-direction: column;    
     gap: 6px;  
+    min-width: 0;  
+    overflow: hidden;
 }  
   
-.card-title {  
-    font-size: 14px; 
-    font-weight: 500;  
-    color: var(--text-primary);  
-    margin: 0;  
-    overflow: hidden;  
-    text-overflow: ellipsis;  
+.card-title {    
+    font-size: 14px;   
+    font-weight: 500;    
+    color: var(--text-primary);    
+    margin: 0;    
+    overflow: hidden;    
+    text-overflow: ellipsis;    
     white-space: nowrap;  
-    -webkit-font-smoothing: antialiased; 
-    -moz-osx-font-smoothing: grayscale;  
-    text-rendering: optimizeLegibility;  
-}  
+    max-width: 100%;
+    -webkit-font-smoothing: antialiased;   
+    -moz-osx-font-smoothing: grayscale;    
+    text-rendering: optimizeLegibility;    
+} 
   
 .card-meta {  
     display: flex;  
@@ -332,20 +379,31 @@
     -moz-osx-font-smoothing: grayscale;  
 }  
   
-.category-badge {  
-    padding: 2px 8px;  
-    background: var(--primary-color);  
-    color: white;  
-    border-radius: 4px;  
-    font-size: 11px; 
-    line-height: 1.4;  
-    font-weight: 500;
-}  
+.category-badge {    
+    padding: 2px 8px;    
+    background: var(--primary-color);    
+    color: white;    
+    border-radius: 4px;    
+    font-size: 11px;   
+    line-height: 1.4;    
+    font-weight: 500;  
+    display: inline-block;   
+    max-width: 120px;
+    overflow: hidden;  
+    text-overflow: ellipsis;  
+    white-space: nowrap;  
+    vertical-align: middle;
+}
   
 .size-info,  
 .time-info {  
     color: var(--text-tertiary);  
     font-size: 11px; 
+}
+
+.meta-divider {  
+    color: var(--text-tertiary);
+    opacity: 0.6;
 }
   
 /* 卡片操作按钮 */  
@@ -393,21 +451,35 @@
     flex-shrink: 0;  
 }  
   
-.template-grid.list-view .card-content {  
-    flex: 1;  
-    display: flex;  
-    flex-direction: column;  
-    justify-content: center;  
-    padding: 10px 12px; 
-    gap: 6px;
-    min-width: 0;  
-} 
+.template-grid.list-view .card-content {    
+    flex: 1;      
+    display: flex;      
+    flex-direction: column;      
+    justify-content: center;      
+    padding: 10px 12px;     
+    gap: 6px;    
+    min-width: 0;
+    overflow: hidden;
+}
   
-.template-grid.list-view .card-title {  
-    font-size: 14px;
-    font-weight: 500;  
-}  
-  
+.template-grid.list-view .card-title {    
+    font-size: 14px;    
+    font-weight: 500;    
+    color: var(--text-primary);    
+    margin: 0;    
+    overflow: hidden !important; 
+    text-overflow: ellipsis !important;       
+    white-space: nowrap !important;           
+    min-width: 0;    
+    -webkit-font-smoothing: antialiased;    
+    -moz-osx-font-smoothing: grayscale;    
+    text-rendering: optimizeLegibility;    
+}
+
+.template-grid.list-view .category-badge {  
+    max-width: 250px;  
+}
+
 .template-grid.list-view .card-meta {  
     display: flex;  
     gap: 6px;  
@@ -432,38 +504,141 @@
   
 /* 空状态 */  
 .empty-state {  
+    grid-column: 1 / -1;  
     text-align: center;  
     padding: 60px 20px;  
     color: var(--text-tertiary);  
     font-size: 14px;  
-}  
+} 
+
+/* ========== 响应式设计 ========== */  
   
-/* 按钮样式 */  
-.btn-primary {  
-    display: flex;  
-    align-items: center;  
-    gap: 8px;  
-    padding: 8px 16px;  
-    background: var(--primary-color);  
-    color: white;  
-    border: none;  
-    border-radius: 6px;  
-    font-size: 14px;  
-    font-weight: 500;  
-    cursor: pointer;  
-    transition: all 0.2s;  
-}  
-  
-.btn-primary:hover {  
-    background: var(--primary-hover-color);  
-    transform: translateY(-1px);  
-    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);  
-}  
-  
-.btn-primary svg {  
-    fill: none;  
-    stroke: currentColor;  
-    stroke-width: 2;  
-    stroke-linecap: round;  
-    stroke-linejoin: round;  
+/* 中等屏幕 (1400px - 1920px) */    
+@media (min-width: 1400px) and (max-width: 1920px) {    
+    /* 网格视图 */    
+    .template-grid {    
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));    
+        gap: 20px;    
+    }  
+      
+    /* 分类徽章宽度增加 */  
+    .category-badge {  
+        max-width: 140px;  /* 从120px增加到140px (+17%) */  
+    }  
+}    
+    
+/* 大屏幕 (1920px - 2560px) */    
+@media (min-width: 1920px) and (max-width: 2560px) {    
+    /* 网格视图 */    
+    .template-grid {    
+        grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));    
+        gap: 24px;    
+    }    
+        
+    .card-preview {    
+        height: 180px;    
+    }    
+        
+    .card-title {    
+        font-size: 15px;    
+    }    
+        
+    .card-meta {    
+        font-size: 13px;    
+    }  
+      
+    /* 分类徽章宽度增加 */  
+    .category-badge {  
+        max-width: 160px;  /* 从120px增加到160px (+33%) */  
+    }  
+        
+    /* 列表视图 */    
+    .template-grid.list-view .template-card {    
+        height: 84px;    
+    }    
+        
+    .template-grid.list-view .card-preview {    
+        width: 126px;    
+        height: 80px;    
+    }    
+        
+    .template-grid.list-view .card-title {    
+        font-size: 15px;    
+    }    
+        
+    .template-grid.list-view .card-meta {    
+        font-size: 13px;    
+    }    
+        
+    .template-grid.list-view .card-content {    
+        padding: 10px 14px;    
+    }  
+      
+    /* 列表视图的分类徽章可以更宽 */  
+    .template-grid.list-view .category-badge {  
+        max-width: 200px;  /* 列表视图有更多空间 */  
+    }  
+}    
+    
+/* 超大屏幕 (>2560px): 4K显示器 */    
+@media (min-width: 2560px) {    
+    /* 网格视图 */    
+    .template-grid {    
+        grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));    
+        gap: 28px;    
+    }    
+        
+    .card-preview {    
+        height: 200px;    
+    }    
+        
+    .card-title {    
+        font-size: 16px;    
+    }    
+        
+    .card-meta {    
+        font-size: 14px;    
+    }    
+        
+    .card-content {    
+        padding: 14px;    
+    }  
+      
+    /* 分类徽章宽度增加 */  
+    .category-badge {  
+        max-width: 180px;  /* 从120px增加到180px (+50%) */  
+    }  
+        
+    /* 列表视图 */    
+    .template-grid.list-view .template-card {    
+        height: 96px;    
+    }    
+        
+    .template-grid.list-view .card-preview {    
+        width: 144px;    
+        height: 92px;    
+    }    
+        
+    .template-grid.list-view .card-title {    
+        font-size: 16px;    
+    }    
+        
+    .template-grid.list-view .card-meta {    
+        font-size: 14px;    
+    }    
+        
+    .template-grid.list-view .card-content {    
+        padding: 12px 16px;    
+        gap: 8px;    
+    }    
+        
+    .template-grid.list-view .card-actions .btn-icon {    
+        width: 36px;    
+        height: 36px;    
+    }  
+      
+    /* 列表视图的分类徽章几乎不需要限制 */  
+    .template-grid.list-view .category-badge {  
+        max-width: 250px;  /* 或者直接移除限制: max-width: none; */  
+    }  
 }

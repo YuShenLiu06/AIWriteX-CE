@@ -27,7 +27,8 @@ class TemplateManager {
                     }  
                     this.observer.observe(card);  
                 });  
-            }  
+            }
+            this.updateAddTemplateButtonState();
             return;    
         }  
         
@@ -37,7 +38,8 @@ class TemplateManager {
         this.bindEvents();    
         this.renderCategoryTree();    
         this.renderTemplateGrid();    
-        this.initialized = true;  
+        this.initialized = true;
+        this.updateAddTemplateButtonState();
     }
   
     async loadCategories() {  
@@ -104,25 +106,208 @@ class TemplateManager {
     renderCategoryTree() {  
         const tree = document.getElementById('category-tree');  
         if (!tree) return;  
-          
+        
         const allCount = this.templates.length;  
         tree.innerHTML = `  
             <div class="category-item ${!this.currentCategory ? 'active' : ''}" data-category="">  
                 <span class="category-icon">📁</span>  
-                <span class="category-name">全部模板</span>  
+                <span class="category-name" title="全部模板">全部模板</span>  
                 <span class="category-count">${allCount}</span>  
             </div>  
             ${this.categories.map(cat => `  
                 <div class="category-item ${this.currentCategory === cat.name ? 'active' : ''}"   
-                     data-category="${cat.name}">  
+                    data-category="${cat.name}">  
                     <span class="category-icon">📂</span>  
-                    <span class="category-name">${cat.name}</span>  
+                    <span class="category-name" title="${cat.name}">${cat.name}</span>  
                     <span class="category-count">${cat.template_count}</span>  
                 </div>  
             `).join('')}  
         `;  
-    }  
-  
+        
+        // 绑定右键菜单事件  
+        tree.querySelectorAll('.category-item[data-category]:not([data-category=""])').forEach(item => {  
+            item.addEventListener('contextmenu', (e) => {  
+                e.preventDefault();  
+                const categoryName = item.dataset.category;  
+                this.showCategoryContextMenu(e, categoryName);  
+            });  
+        });  
+    }
+
+    showCategoryContextMenu(e, categoryName) {  
+        const existingMenu = document.querySelector('.category-context-menu');  
+        if (existingMenu) {  
+            existingMenu.remove();  
+        }  
+        
+        // 创建菜单  
+        const menu = document.createElement('div');  
+        menu.className = 'category-context-menu';  
+        menu.style.left = `${e.pageX}px`;  
+        menu.style.top = `${e.pageY}px`;  
+        
+        // 编辑选项  
+        const editItem = document.createElement('div');  
+        editItem.className = 'context-menu-item';  
+        editItem.innerHTML = '<span>✏️</span> 编辑分类';  
+        editItem.addEventListener('click', () => {  
+            menu.remove();  
+            this.editCategory(categoryName);  
+        });  
+        
+        // 删除选项  
+        const deleteItem = document.createElement('div');  
+        deleteItem.className = 'context-menu-item context-menu-item-danger';  
+        deleteItem.innerHTML = '<span>🗑️</span> 删除分类';  
+        deleteItem.addEventListener('click', () => {  
+            menu.remove();  
+            this.deleteCategory(categoryName);  
+        });  
+        
+        menu.appendChild(editItem);  
+        menu.appendChild(deleteItem);  
+        document.body.appendChild(menu);  
+        
+        // 点击外部关闭菜单  
+        setTimeout(() => {  
+            const closeMenu = () => {  
+                menu.remove();  
+                document.removeEventListener('click', closeMenu);  
+            };  
+            document.addEventListener('click', closeMenu);  
+        }, 0);  
+    }
+
+    async editCategory(oldCategoryName) {    
+        window.dialogManager.showInput(    
+            '编辑分类',    
+            '请输入新的分类名称:',    
+            oldCategoryName,    
+            async (newName) => {    
+                if (!newName || newName === oldCategoryName) {    
+                    return;    
+                }    
+                
+                // 检查新名称是否已存在    
+                if (this.categories.some(cat => cat.name === newName)) {    
+                    window.dialogManager.showAlert('分类名称已存在', 'error');    
+                    return;    
+                }    
+                
+                try {    
+                    const response = await fetch(`/api/templates/categories/${encodeURIComponent(oldCategoryName)}`, {    
+                        method: 'PUT',    
+                        headers: { 'Content-Type': 'application/json' },    
+                        body: JSON.stringify({   
+                            old_name: oldCategoryName,  // 添加这一行  
+                            new_name: newName   
+                        })    
+                    });    
+    
+                    if (response.ok) {    
+                        await this.updateConfigIfNeeded(oldCategoryName, newName);    
+                        await this.loadCategories();    
+                        this.renderCategoryTree();    
+                        
+                        if (this.currentCategory === oldCategoryName) {    
+                            await this.selectCategory(newName);    
+                        }    
+                        
+                        window.app?.showNotification('分类已重命名', 'success');    
+                    } else {    
+                        const error = await response.json();  
+                        const errorMessage = typeof error.detail === 'string'   
+                            ? error.detail   
+                            : JSON.stringify(error.detail);  
+                        window.dialogManager.showAlert('重命名失败: ' + errorMessage, 'error');    
+                    }    
+                } catch (error) {    
+                    window.dialogManager.showAlert('重命名失败: ' + error.message, 'error');    
+                }    
+            }    
+        );    
+    }
+
+    async deleteCategory(categoryName) {    
+        const category = this.categories.find(cat => cat.name === categoryName);    
+        const templateCount = category ? category.template_count : 0;    
+        
+        const message = templateCount > 0    
+            ? `确认删除分类 "${categoryName}" 及其包含的 ${templateCount} 个模板?\n\n此操作不可撤销!`    
+            : `确认删除空分类 "${categoryName}"?`;    
+        
+        window.dialogManager.showConfirm(    
+            message,    
+            async () => {    
+                try {    
+                    const response = await fetch(`/api/templates/categories/${encodeURIComponent(categoryName)}?force=true`, {    
+                        method: 'DELETE'    
+                    });    
+    
+                    if (response.ok) {    
+                        await this.updateConfigIfNeeded(categoryName, null);    
+                        await this.loadCategories();    
+                        await this.loadTemplates();    
+                        this.renderCategoryTree();    
+                        this.renderTemplateGrid();    
+                        
+                        if (this.currentCategory === categoryName) {    
+                            await this.selectCategory(null);    
+                        }    
+                        
+                        window.app?.showNotification('分类已删除', 'success');    
+                    } else {    
+                        const error = await response.json();  
+                        const errorMessage = typeof error.detail === 'string'   
+                            ? error.detail   
+                            : JSON.stringify(error.detail);  
+                        window.dialogManager.showAlert('删除失败: ' + errorMessage, 'error');    
+                    }    
+                } catch (error) {    
+                    console.error('删除分类失败:', error);  
+                    window.dialogManager.showAlert('删除失败: ' + error.message, 'error');    
+                }    
+            }    
+        );    
+    }
+
+    async updateConfigIfNeeded(oldCategoryName, newCategoryName) {  
+        try {  
+            // 获取当前配置  
+            const configResponse = await fetch('/api/config/');  
+            if (!configResponse.ok) return;  
+            
+            const configData = await configResponse.json();  
+            const currentCategory = configData.data?.template_category;  
+            
+            // 如果当前配置的分类就是被修改/删除的分类  
+            if (currentCategory === oldCategoryName) {  
+                // 更新配置  
+                const updateResponse = await fetch('/api/config/', {  
+                    method: 'PATCH',  
+                    headers: { 'Content-Type': 'application/json' },  
+                    body: JSON.stringify({  
+                        template_category: newCategoryName || ''  // 删除时设为空字符串  
+                    })  
+                });  
+                
+                if (updateResponse.ok) {  
+                    // 持久化到磁盘  
+                    await fetch('/api/config/', { method: 'POST' });  
+                    
+                    if (newCategoryName) {  
+                        window.app?.showNotification(`配置已自动更新为新分类: ${newCategoryName}`, 'info');  
+                    } else {  
+                        window.app?.showNotification('配置中的分类设置已清空', 'info');  
+                    }  
+                }  
+            }  
+        } catch (error) {  
+            console.error('更新配置失败:', error);  
+            // 配置更新失败不影响分类操作本身  
+        }  
+    }
+
     setupIntersectionObserver() {  
         // 清理旧的observer  
         if (this.observer) {  
@@ -173,26 +358,25 @@ class TemplateManager {
           
         // 渲染卡片结构,但不立即加载iframe内容  
         grid.innerHTML = this.templates.map(template => `  
-            <div class="template-card" data-template-path="${template.path}">  
-                <div class="card-preview">  
-                    <iframe sandbox="allow-same-origin  allow-scripts"   
-                            loading="lazy"  
-                            data-template-path="${template.path}"  
-                            data-loaded="false"></iframe>  
-                    <div class="preview-loading">加载中...</div>  
-                </div>  
-                <div class="card-content">  
-                    <h4 class="card-title">${template.name}</h4>  
-                    <div class="card-meta">  
-                        <span class="category-badge">${template.category}</span>  
-                        <span class="meta-divider">•</span>  
-                        <span class="size-info">${template.size}</span>  
-                        <span class="meta-divider">•</span>  
-                        <span class="time-info">${formatTime(template.create_time)}</span>  
-                    </div>  
-                </div>  
+            <div class="template-card" data-template-path="${template.path}">    
+                <div class="card-preview">    
+                    <iframe sandbox="allow-same-origin allow-scripts"     
+                            loading="lazy"    
+                            data-template-path="${template.path}"    
+                            data-loaded="false"></iframe>    
+                    <div class="preview-loading">加载中...</div>    
+                </div>    
+                <div class="card-content">    
+                    <h4 class="card-title" title="${template.name}">${template.name}</h4>    
+                    <div class="card-meta">    
+                        <span class="category-badge" title="${template.category}">${template.category}</span>  
+                        <span class="meta-divider">•</span>    
+                        <span class="size-info">${template.size}</span>    
+                        <span class="meta-divider">•</span>    
+                        <span class="time-info">${formatTime(template.create_time)}</span>    
+                    </div>    
+                </div> 
                 <div class="card-actions">  
-                    <!-- 操作按钮保持不变 -->  
                     <button class="btn-icon" data-action="preview" title="预览">  
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">  
                             <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>  
@@ -401,24 +585,47 @@ class TemplateManager {
     }  
   
     switchLayout(layout) {  
-        this.currentLayout = layout;  
-          
-        // 更新按钮状态  
+        this.currentLayout = layout;        
         document.querySelectorAll('.view-toggle .view-btn').forEach(btn => {  
-            btn.classList.toggle('active', btn.dataset.layout === layout);  
+            if (btn.dataset.layout === layout) {  
+                btn.classList.add('active');  
+            } else {  
+                btn.classList.remove('active');  
+            }  
         });  
-          
+        
         // 重新渲染  
         this.renderTemplateGrid();  
-    }  
+    }
   
     async selectCategory(category) {  
-        this.currentCategory = category || null;  
-        await this.loadTemplates(this.currentCategory);  
-        this.renderCategoryTree();  
+        this.currentCategory = category || null;    
+        await this.loadTemplates(this.currentCategory);    
+        this.renderCategoryTree();    
         this.renderTemplateGrid();  
+        
+        // 更新新建模板按钮状态  
+        this.updateAddTemplateButtonState();  
     }  
   
+    updateAddTemplateButtonState() {  
+        const addTemplateBtn = document.getElementById('add-template');  
+        if (!addTemplateBtn) return;  
+        
+        // 当选中"全部模板"(currentCategory为null)时禁用按钮  
+        if (this.currentCategory === null) {  
+            addTemplateBtn.disabled = true;  
+            addTemplateBtn.style.opacity = '0.5';  
+            addTemplateBtn.style.cursor = 'not-allowed';  
+            addTemplateBtn.title = '请先选择一个分类';  
+        } else {  
+            addTemplateBtn.disabled = false;  
+            addTemplateBtn.style.opacity = '1';  
+            addTemplateBtn.style.cursor = 'pointer';  
+            addTemplateBtn.title = '新建模板';  
+        }  
+    }
+
     filterTemplates(searchText) {  
         const filtered = this.templates.filter(template =>   
             template.name.toLowerCase().includes(searchText.toLowerCase())  
@@ -435,60 +642,82 @@ class TemplateManager {
     }  
   
     async showCreateTemplateDialog() {  
-        const name = prompt('输入模板名称:');  
-        if (!name) return;  
-  
-        const category = prompt('输入分类名称:', this.currentCategory || '');  
-        if (!category) return;  
-  
-        try {  
-            const response = await fetch('/api/templates/', {  
-                method: 'POST',  
-                headers: { 'Content-Type': 'application/json' },  
-                body: JSON.stringify({  
-                    name: name,  
-                    category: category,  
-                    content: ''  
-                })  
-            });  
-  
-            if (response.ok) {  
-                await this.loadCategories();  
-                await this.loadTemplates(this.currentCategory);  
-                this.renderCategoryTree();  
-                this.renderTemplateGrid();  
-                window.app?.showNotification('模板已创建', 'success');  
-            } else {  
-                const error = await response.json();  
-                alert('创建失败: ' + error.detail);  
-            }  
-        } catch (error) {  
-            alert('创建失败: ' + error.message);  
+        // 如果没有选中分类,不应该执行到这里(按钮已禁用)  
+        if (!this.currentCategory) {  
+            window.dialogManager.showAlert('请先选择一个分类', 'error');  
+            return;  
         }  
-    }  
+        
+        window.dialogManager.showInput(  
+            '新建模板',  
+            '请输入模板名称:',
+            '',  
+            async (name) => {  
+                if (!name) return;  
+                
+                try {  
+                    const response = await fetch('/api/templates/', {  
+                        method: 'POST',  
+                        headers: { 'Content-Type': 'application/json' },  
+                        body: JSON.stringify({  
+                            name: name,  
+                            category: this.currentCategory,  // 使用当前选中的分类  
+                            content: ''  
+                        })  
+                    });  
+    
+                    if (response.ok) {  
+                        await this.loadCategories();  
+                        await this.loadTemplates(this.currentCategory);  
+                        this.renderCategoryTree();  
+                        this.renderTemplateGrid();  
+                        window.app?.showNotification('模板已创建', 'success');  
+                    } else {  
+                        const error = await response.json();  
+                        window.dialogManager.showAlert('创建失败: ' + error.detail, 'error');  
+                    }  
+                } catch (error) {  
+                    window.dialogManager.showAlert('创建失败: ' + error.message, 'error');  
+                }  
+            }  
+        );  
+    }
   
     async showCreateCategoryDialog() {  
-        const name = prompt('输入分类名称:');  
-        if (!name) return;  
-  
-        try {  
-            const response = await fetch('/api/templates/categories', {  
-                method: 'POST',  
-                headers: { 'Content-Type': 'application/json' },  
-                body: JSON.stringify({ name: name })  
-            });  
-  
-            if (response.ok) {  
-                await this.loadCategories();  
-                this.renderCategoryTree();  
-                window.app?.showNotification('分类已创建', 'success');  
-            } else {  
-                const error = await response.json();  
-                alert('创建失败: ' + error.detail);  
+        window.dialogManager.showInput(  
+            '新建分类',  
+            '请输入分类名称:',  
+            '',  
+            async (name) => {  
+                if (!name) {  
+                    window.dialogManager.showAlert('分类名称不能为空', 'error');  
+                    return;  
+                }  
+                
+                try {  
+                    const response = await fetch('/api/templates/categories', {  
+                        method: 'POST',  
+                        headers: { 'Content-Type': 'application/json' },  
+                        body: JSON.stringify({ name: name })  
+                    });  
+    
+                    if (response.ok) {  
+                        await this.loadCategories();  
+                        this.renderCategoryTree();  
+                        
+                        // 自动切换到新创建的分类  
+                        await this.selectCategory(name);  
+                        
+                        window.app?.showNotification('分类已创建', 'success');  
+                    } else {  
+                        const error = await response.json();  
+                        window.dialogManager.showAlert('创建失败: ' + error.detail, 'error');  
+                    }  
+                } catch (error) {  
+                    window.dialogManager.showAlert('创建失败: ' + error.message, 'error');  
+                }  
             }  
-        } catch (error) {  
-            alert('创建失败: ' + error.message);  
-        }  
+        );  
     }  
 }  
   

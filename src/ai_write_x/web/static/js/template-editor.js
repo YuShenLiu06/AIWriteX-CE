@@ -24,7 +24,7 @@ class TemplateEditor {
                 }  
             });  
               
-            // 实时预览  
+            // 内容预览  
             this.editor.onDidChangeModelContent(() => {  
                 this.updatePreview();  
             });  

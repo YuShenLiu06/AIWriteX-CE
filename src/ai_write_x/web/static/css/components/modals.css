@@ -119,7 +119,54 @@
 .dialog-footer .btn {  
     min-width: 80px;  
 }  
+
+/* 输入弹窗 */  
+.custom-input-dialog {  
+    position: fixed;  
+    top: 50%;  
+    left: 50%;  
+    transform: translate(-50%, -50%);  
+    background: var(--surface-color);  
+    border-radius: 8px;  
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);  
+    z-index: 9999;  
+    min-width: 400px;  
+    max-width: 500px;  
+    animation: modalSlideIn 0.3s ease;  
+}  
   
+/* 提示弹窗 */  
+.custom-alert-dialog {  
+    position: fixed;  
+    top: 50%;  
+    left: 50%;  
+    transform: translate(-50%, -50%);  
+    background: var(--surface-color);  
+    border-radius: 8px;  
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);  
+    z-index: 9999;  
+    min-width: 400px;  
+    max-width: 500px;  
+    animation: modalSlideIn 0.3s ease;  
+} 
+  
+.custom-input-dialog .dialog-input {  
+    width: 100%;  
+    padding: 10px 12px;  
+    border: 1px solid var(--border-color);  
+    border-radius: 6px;  
+    font-size: 14px;  
+    margin-top: 10px;  
+    background: var(--background-color);  
+    color: var(--text-primary);  
+}  
+  
+.custom-input-dialog .dialog-input:focus {  
+    outline: none;  
+    border-color: var(--primary-color);  
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);  
+}
+
 /* 动画 */  
 @keyframes modalFadeIn {  
     from { opacity: 0; }  

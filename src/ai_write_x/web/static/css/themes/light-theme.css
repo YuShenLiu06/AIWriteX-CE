@@ -2,7 +2,8 @@
 :root,  
 [data-theme="light"] {  
     --primary-color: #2563eb;  
-    --primary-hover: #1d4ed8;  
+    --primary-hover: #1d4ed8;
+    --primary-hover-color: #1d4ed8;
     --primary-color-rgb: 37, 99, 235;  
     --secondary-color: #64748b;  
     --success-color: #10b981;  
