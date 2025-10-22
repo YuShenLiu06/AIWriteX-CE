@@ -51,7 +51,6 @@ class TemplateManager {
                 this.defaultCategories = [];  
             }  
         } catch (error) {  
-            console.error('加载默认分类失败:', error);  
             this.defaultCategories = [];  
         }  
     } 
@@ -100,7 +99,7 @@ class TemplateManager {
             });  
         }  
           
-        // 视图切换 - 使用更具体的选择器避免冲突  
+        // 视图切换 
         document.querySelectorAll('.view-toggle .view-btn').forEach(btn => {  
             btn.addEventListener('click', (e) => {  
                 e.preventDefault();  
@@ -118,9 +117,32 @@ class TemplateManager {
                     this.selectCategory(categoryItem.dataset.category);  
                 }  
             });  
-        }  
+        }
+
+        // 快捷键刷新 (F5 或 Ctrl+R) - 隐藏功能  
+        document.addEventListener('keydown', (e) => {  
+            const templateView = document.getElementById('template-manager-view');  
+            if (templateView && templateView.style.display !== 'none') {  
+                if (e.key === 'F5' || ((e.ctrlKey || e.metaKey) && e.key === 'r')) {  
+                    e.preventDefault();  
+                    this.refreshTemplates();  
+                }  
+            }  
+        }); 
     }  
   
+    async refreshTemplates() {  
+        try {  
+            await this.loadCategories();  
+            await this.loadTemplates(this.currentCategory);  
+            this.renderCategoryTree();  
+            this.renderTemplateGrid();  
+            window.app?.showNotification('已刷新模板列表', 'success');  
+        } catch (error) {  
+            window.app?.showNotification('刷新失败: ' + error.message, 'error');  
+        }  
+    }
+
     renderCategoryTree() {  
         const tree = document.getElementById('category-tree');  
         if (!tree) return;  
@@ -150,6 +172,94 @@ class TemplateManager {
                 this.showCategoryContextMenu(e, categoryName);  
             });  
         });  
+        
+        // 绑定拖拽接收事件  
+        this.bindCategoryDropEvents();  
+    }
+
+    bindCategoryDropEvents() {  
+        const tree = document.getElementById('category-tree');  
+        if (!tree) return;  
+        
+        // 为所有分类项(除了"全部模板")绑定拖拽接收事件  
+        tree.querySelectorAll('.category-item[data-category]:not([data-category=""])').forEach(item => {  
+            // 拖拽悬停  
+            item.addEventListener('dragover', (e) => {  
+                e.preventDefault();  
+                e.dataTransfer.dropEffect = 'move';  
+                
+                // 获取源分类  
+                const sourceCategory = e.dataTransfer.getData('template-category');  
+                const targetCategory = item.dataset.category;  
+                
+                // 如果是同一分类,显示禁止图标  
+                if (sourceCategory === targetCategory) {  
+                    e.dataTransfer.dropEffect = 'none';  
+                    item.classList.remove('drag-over');  
+                } else {  
+                    item.classList.add('drag-over');  
+                }  
+            });  
+            
+            // 拖拽离开  
+            item.addEventListener('dragleave', (e) => {  
+                item.classList.remove('drag-over');  
+            });  
+            
+            // 拖拽放下  
+            item.addEventListener('drop', async (e) => {  
+                e.preventDefault();  
+                item.classList.remove('drag-over');  
+                
+                const sourcePath = e.dataTransfer.getData('template-path');  
+                const templateName = e.dataTransfer.getData('template-name');  
+                const sourceCategory = e.dataTransfer.getData('template-category');  
+                const targetCategory = item.dataset.category;  
+                
+                // 如果是同一分类,不执行操作  
+                if (sourceCategory === targetCategory) {  
+                    return;  
+                }  
+                
+                // 弹出确认对话框  
+                this.showMoveConfirmDialog(sourcePath, templateName, sourceCategory, targetCategory);  
+            });  
+        });  
+    }
+
+    showMoveConfirmDialog(sourcePath, templateName, sourceCategory, targetCategory) {  
+        const message = `确认将模板 "${templateName}" 从 "${sourceCategory}" 移动到 "${targetCategory}"?`;  
+        
+        window.dialogManager.showConfirm(  
+            message,  
+            async () => {  
+                try {  
+                    const response = await fetch('/api/templates/move', {  
+                        method: 'PUT',  
+                        headers: { 'Content-Type': 'application/json' },  
+                        body: JSON.stringify({  
+                            source_path: sourcePath,  
+                            target_category: targetCategory  
+                        })  
+                    });  
+                    
+                    if (response.ok) {  
+                        // 刷新数据  
+                        await this.loadCategories();  
+                        await this.loadTemplates(this.currentCategory);  
+                        this.renderCategoryTree();  
+                        this.renderTemplateGrid();  
+                        
+                        window.app?.showNotification(`模板已移动到 "${targetCategory}"`, 'success');  
+                    } else {  
+                        const error = await response.json();  
+                        window.dialogManager.showAlert('移动失败: ' + (error.detail || '未知错误'), 'error');  
+                    }  
+                } catch (error) {  
+                    window.dialogManager.showAlert('移动失败: ' + error.message, 'error');  
+                }  
+            }  
+        );  
     }
 
     showCategoryContextMenu(e, categoryName) {  
@@ -288,7 +398,6 @@ class TemplateManager {
                         window.dialogManager.showAlert('删除失败: ' + errorMessage, 'error');    
                     }    
                 } catch (error) {    
-                    console.error('删除分类失败:', error);  
                     window.dialogManager.showAlert('删除失败: ' + error.message, 'error');    
                 }    
             }    
@@ -327,7 +436,6 @@ class TemplateManager {
                 }  
             }  
         } catch (error) {  
-            console.error('更新配置失败:', error);  
             // 配置更新失败不影响分类操作本身  
         }  
     }
@@ -361,13 +469,14 @@ class TemplateManager {
     renderTemplateGrid() {  
         const grid = document.getElementById('template-grid');  
         if (!grid) return;  
-          
+        
         grid.className = this.currentLayout === 'grid' ? 'template-grid' : 'template-grid list-view';  
-          
+        
         if (this.templates.length === 0) {  
             grid.innerHTML = '<div class="empty-state">暂无模板</div>';  
             return;  
-        }
+        }  
+        
         const formatTime = (timeStr) => {  
             const date = new Date(timeStr);  
             const today = new Date();  
@@ -377,40 +486,44 @@ class TemplateManager {
             if (diffDays === 1) return '昨天';  
             if (diffDays < 7) return `${diffDays}天前`;  
             return date.toLocaleDateString('zh-CN', { month: '2-digit', day: '2-digit' });  
-        }; 
-
-          
-        // 渲染卡片结构,但不立即加载iframe内容  
+        };  
+        
+        // 渲染卡片结构,添加 draggable 属性  
         grid.innerHTML = this.templates.map(template => `  
-            <div class="template-card" data-template-path="${template.path}">    
-                <div class="card-preview">    
-                    <iframe sandbox="allow-same-origin allow-scripts"     
-                            loading="lazy"    
-                            data-template-path="${template.path}"    
-                            data-loaded="false"></iframe>    
-                    <div class="preview-loading">加载中...</div>    
-                </div>    
-                <div class="card-content">    
-                    <h4 class="card-title" title="${template.name}">${template.name}</h4>    
-                    <div class="card-meta">    
+            <div class="template-card"   
+                data-template-path="${template.path}"  
+                data-template-name="${template.name}"  
+                data-template-category="${template.category}"  
+                draggable="true">  
+                <div class="card-preview">  
+                    <iframe sandbox="allow-same-origin allow-scripts"   
+                            loading="lazy"  
+                            data-template-path="${template.path}"  
+                            data-loaded="false"></iframe>  
+                    <div class="preview-loading">加载中...</div>  
+                </div>  
+                <div class="card-content">  
+                    <h4 class="card-title" title="${template.name}">${template.name}</h4>  
+                    <div class="card-meta">  
                         <span class="category-badge" title="${template.category}">${template.category}</span>  
-                        <span class="meta-divider">•</span>    
-                        <span class="size-info">${template.size}</span>    
-                        <span class="meta-divider">•</span>    
-                        <span class="time-info">${formatTime(template.create_time)}</span>    
-                    </div>    
-                </div> 
+                        <span class="meta-divider">•</span>  
+                        <span class="size-info">${template.size}</span>  
+                        <span class="meta-divider">•</span>  
+                        <span class="time-info">${formatTime(template.create_time)}</span>  
+                    </div>  
+                </div>  
                 <div class="card-actions">  
                     <button class="btn-icon" data-action="edit" title="编辑">  
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">  
                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>  
                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>  
                         </svg>  
-                    </button> 
-                    <button class="btn-icon" data-action="rename" title="重命名">  
-                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">  
-                            <path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"/>  
-                        </svg>  
+                    </button>  
+                    <button class="btn-icon" data-action="rename" title="重命名">    
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">    
+                            <path d="M4 7h16M4 12h10M4 17h10"/>  
+                            <path d="M20 17l-4-4 4-4"/>  
+                        </svg>    
                     </button> 
                     <button class="btn-icon" data-action="copy" title="复制">  
                         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">  
@@ -427,13 +540,14 @@ class TemplateManager {
                 </div>  
             </div>  
         `).join('');  
-          
+        
         this.bindCardEvents();  
-          
+        this.bindDragEvents(); // 新增:绑定拖拽事件  
+        
         // 观察所有卡片,实现懒加载  
         const cards = grid.querySelectorAll('.template-card');  
         cards.forEach(card => this.observer.observe(card));  
-    }  
+    }
   
     async loadSinglePreview(iframe) {  
         const templatePath = iframe.dataset.templatePath;  
@@ -460,7 +574,6 @@ class TemplateManager {
             iframe.dataset.loaded = 'true';  
             if (loadingEl) loadingEl.style.display = 'none';  
         } catch (error) {  
-            console.error('加载模板预览失败:', templatePath, error);  
             iframe.srcdoc = '<div style="padding: 20px; color: red;">加载失败</div>';  
             if (loadingEl) loadingEl.textContent = '加载失败';  
         }  
@@ -495,8 +608,38 @@ class TemplateManager {
                 });  
             });  
         });  
-    }  
-  
+    }
+
+    bindDragEvents() {  
+        const grid = document.getElementById('template-grid');  
+        if (!grid) return;  
+        
+        // 为所有模板卡片绑定拖拽开始事件  
+        grid.querySelectorAll('.template-card').forEach(card => {  
+            card.addEventListener('dragstart', (e) => {  
+                const templatePath = card.dataset.templatePath;  
+                const templateName = card.dataset.templateName;  
+                const templateCategory = card.dataset.templateCategory;  
+                
+                // 存储拖拽数据  
+                e.dataTransfer.effectAllowed = 'move';  
+                e.dataTransfer.setData('template-path', templatePath);  
+                e.dataTransfer.setData('template-name', templateName);  
+                e.dataTransfer.setData('template-category', templateCategory);  
+                
+                // 添加拖拽样式  
+                card.classList.add('dragging');  
+                card.style.opacity = '0.5';  
+            });  
+            
+            card.addEventListener('dragend', (e) => {  
+                // 移除拖拽样式  
+                card.classList.remove('dragging');  
+                card.style.opacity = '1';  
+            });  
+        });  
+    }
+
     async handleCardAction(action, template) {    
         switch(action) {  
             case 'rename':  // 新增  
@@ -562,7 +705,6 @@ class TemplateManager {
                 }  
             })  
             .catch(err => {  
-                console.error('预览失败:', err);  
                 window.dialogManager.showAlert('预览失败: ' + err.message, 'error');  
             });  
     }  
