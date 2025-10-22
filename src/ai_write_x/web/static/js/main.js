@@ -155,8 +155,17 @@ class AIWriteXApp {
         };  
           
         this.ws.onmessage = (event) => {  
-            const data = JSON.parse(event.data);  
-            this.addLogEntry(data);  
+            // 忽略心跳响应  
+            if (event.data === 'pong') {  
+                return;  
+            }  
+            
+            try {  
+                const data = JSON.parse(event.data);  
+                this.addLogEntry(data);  
+            } catch (error) {  
+                //console.warn('无法解析 WebSocket 消息:', event.data);  
+            }  
         };  
           
         this.ws.onclose = () => {  

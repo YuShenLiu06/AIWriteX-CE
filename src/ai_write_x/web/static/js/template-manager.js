@@ -710,31 +710,17 @@ class TemplateManager {
     }  
   
     async editTemplate(template) {  
-        // 使用Monaco Editor或简单的文本编辑器  
-        const content = await fetch(`/api/templates/content/${encodeURIComponent(template.path)}`)  
-            .then(res => res.text());  
-          
-        // 显示编辑对话框  
-        const newContent = prompt('编辑模板内容:', content);  
-        if (newContent !== null && newContent !== content) {  
-            try {  
-                const response = await fetch(`/api/templates/content/${encodeURIComponent(template.path)}`, {  
-                    method: 'PUT',  
-                    headers: { 'Content-Type': 'application/json' },  
-                    body: JSON.stringify({ content: newContent })  
-                });  
-                  
-                if (response.ok) {  
-                    window.app?.showNotification('模板已保存', 'success');  
-                } else {  
-                    const error = await response.json();  
-                    alert('保存失败: ' + error.detail);  
-                }  
-            } catch (error) {  
-                alert('保存失败: ' + error.message);  
+        try {  
+            // 确保编辑器实例存在  
+            if (!window.templateEditorDialog) {  
+                window.templateEditorDialog = new TemplateEditorDialog();  
             }  
+            await window.templateEditorDialog.open(template.path, template.name);  
+        } catch (error) {  
+            console.error('打开编辑器失败:', error);  
+            window.dialogManager?.showAlert('打开编辑器失败: ' + error.message, 'error');  
         }  
-    }  
+    }
   
     async copyTemplate(template) {  
         window.dialogManager.showInput(  

@@ -10,6 +10,8 @@ from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.gzip import GZipMiddleware
+
 import uvicorn
 
 from src.ai_write_x.config.config import Config
@@ -60,6 +62,7 @@ templates_path = web_path / "templates"
 
 # 挂载静态文件
 app.mount("/static", StaticFiles(directory=str(static_path)), name="static")
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 
 # 模板引擎
 templates = Jinja2Templates(directory=str(templates_path))
