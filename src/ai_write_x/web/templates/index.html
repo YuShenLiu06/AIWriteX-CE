@@ -29,12 +29,13 @@
     <link rel="stylesheet" href="/static/lib/grapesjs/css/grapes.min.css"> 
     <link rel="stylesheet" href="/static/lib/grapesjs/css/grapesjs-preset-webpage.min.css">
 
-    <!-- 视图样式文件  -->  
-    <link rel="stylesheet" href="/static/css/views/shared-manager.css">  
-    <link rel="stylesheet" href="/static/css/views/creative-workshop.css">  
-    <link rel="stylesheet" href="/static/css/views/article-manager.css">  
-    <link rel="stylesheet" href="/static/css/views/template-manager.css">  
-    <link rel="stylesheet" href="/static/css/views/config-manager.css">  
+    <!-- 视图样式文件  -->
+    <link rel="stylesheet" href="/static/css/views/shared-manager.css">
+    <link rel="stylesheet" href="/static/css/views/creative-workshop.css">
+    <link rel="stylesheet" href="/static/css/views/article-manager.css">
+    <link rel="stylesheet" href="/static/css/views/template-manager.css">
+    <link rel="stylesheet" href="/static/css/views/config-manager.css">
+    <link rel="stylesheet" href="/static/css/views/knowledge-manager.css">  
 </head>  
   
 <body class="window-mode-standard" data-window-mode="standard">  
@@ -49,9 +50,10 @@
         <div class="app-main">  
             <main class="content-area">  
                 <!-- 组件化的视图 -->  
-                {% include 'components/views/creative-workshop.html' %}  
-                {% include 'components/views/article-manager.html' %}  
-                {% include 'components/views/template-manager.html' %}  
+                {% include 'components/views/creative-workshop.html' %}
+                {% include 'components/views/article-manager.html' %}
+                {% include 'components/views/template-manager.html' %}
+                {% include 'components/views/knowledge-manager.html' %}
                 {% include 'components/views/config-manager/config-manager.html' %}
             </main>  
         </div>  
@@ -73,13 +75,12 @@
     <script src="/static/lib/monaco/vs/loader.js"></script>  
     <script src="/static/js/dialog.js"></script>  
     <script src="/static/js/preview-panel.js"></script>
-    <script src="/static/js/update-checker.js"></script>
-    <script src="/static/js/footer-marquee.js"></script>  
     <script src="/static/js/main.js"></script>  
     <script src="/static/js/progress-manager.js"></script> 
     <script src="/static/js/creative-workshop.js"></script> 
     <script src="/static/js/article-manager.js"></script>  
     <script src="/static/js/template-manager.js"></script>  
+    <script src="/static/js/knowledge-manager.js"></script>
     <script src="/static/js/content-editor.js"></script>  
     <script src="/static/js/config-manager.js"></script>  
     <script src="/static/js/theme-manager.js"></script>  

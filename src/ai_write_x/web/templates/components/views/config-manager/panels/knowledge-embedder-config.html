@@ -1,0 +1,123 @@
+<div id="config-knowledge-embedder" class="config-panel">
+    <div class="config-header">
+        <div class="header-content">
+            <div>
+                <h2>向量嵌入设置</h2>
+                <p class="config-description">设置知识库向量模型、API 参数和索引管理选项</p>
+            </div>
+        </div>
+    </div>
+
+    <div class="config-form">
+        <div class="api-provider-card active">
+            <div class="provider-header">
+                <div class="provider-title-group">
+                    <span class="provider-name">向量模型配置</span>
+                    <span class="provider-badge active" id="knowledge-embedder-status">当前配置</span>
+                </div>
+                <label class="checkbox-label">
+                    <input type="checkbox" id="knowledge-enabled" checked>
+                    <span class="checkbox-custom"></span>
+                    <span>启用知识库</span>
+                </label>
+            </div>
+
+            <div class="provider-form">
+                <div class="form-row">
+                    <div class="form-group form-group-half">
+                        <label for="knowledge-embedder-provider">嵌入提供商<span class="required"> *</span></label>
+                        <select id="knowledge-embedder-provider" class="form-control">
+                            <option value="openai">OpenAI</option>
+                            <option value="voyageai">VoyageAI（推荐 Claude 用户）</option>
+                            <option value="ollama">Ollama（本地部署）</option>
+                            <option value="google-generativeai">Google Gemini</option>
+                            <option value="azure">Azure OpenAI</option>
+                        </select>
+                    </div>
+                    <div class="form-group form-group-half">
+                        <label for="knowledge-embedder-base-url">API Base URL</label>
+                        <input type="text" id="knowledge-embedder-base-url" class="form-control" placeholder="如: https://api.openai.com/v1">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group form-group-half" id="embedder-api-key-group">
+                        <label>API KEY<span class="required"> *</span></label>
+                        <div id="embedder-api-key-select"></div>
+                    </div>
+                    <div class="form-group form-group-half">
+                        <label>嵌入模型<span class="required"> *</span></label>
+                        <div id="embedder-model-select"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="api-provider-card">
+            <div class="provider-header">
+                <div class="provider-title-group">
+                    <span class="provider-name">知识库管理</span>
+                    <span class="provider-badge inactive" id="knowledge-index-status">暂无数据</span>
+                </div>
+            </div>
+
+            <div class="provider-form">
+                <div class="form-row">
+                    <div class="form-group form-group-third">
+                        <label>图片数量</label>
+                        <input type="text" id="image-count" class="form-control" value="-" readonly>
+                    </div>
+                    <div class="form-group form-group-third">
+                        <label>图片知识条目</label>
+                        <input type="text" id="image-knowledge-count" class="form-control" value="-" readonly>
+                    </div>
+                    <div class="form-group form-group-third">
+                        <label>文本知识条目</label>
+                        <input type="text" id="text-knowledge-count" class="form-control" value="-" readonly>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group form-group-half">
+                        <label>总知识条目</label>
+                        <input type="text" id="knowledge-count" class="form-control" value="-" readonly>
+                    </div>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group form-group-half">
+                        <button type="button" class="btn btn-secondary" id="refresh-knowledge-btn">
+                            刷新知识库
+                        </button>
+                    </div>
+                    <div class="form-group form-group-half">
+                        <button type="button" class="btn btn-secondary" id="open-image-manager-btn">
+                            打开知识库管理
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="config-notice">
+            <svg class="notice-icon" viewBox="0 0 24 24">
+                <circle cx="12" cy="12" r="10"/>
+                <line x1="12" y1="16" x2="12" y2="12"/>
+                <line x1="12" y1="8" x2="12.01" y2="8"/>
+            </svg>
+            <div class="notice-content">
+                <strong>设置说明:</strong>
+                <ul>
+                    <li>OpenAI、VoyageAI、Azure 等云端服务通常需要填写 API Key。</li>
+                    <li>Ollama 适合本地部署场景，通常无需 API Key，但需要配置 Base URL。</li>
+                    <li>修改设置仅当前运行有效，永久生效需保存设置。</li>
+                    <li>刷新知识库会基于当前向量配置重建图片与文本知识索引。</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="config-actions">
+        <button type="button" class="btn btn-primary" id="save-embedder-config">
+            保存设置
+        </button>
+    </div>
+</div>

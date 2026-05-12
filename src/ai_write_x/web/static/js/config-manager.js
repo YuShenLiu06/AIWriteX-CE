@@ -42,42 +42,62 @@ class AIWriteXConfigManager {
         this.init();   
     }    
         
-    async init() {    
-        try {    
-            // 1. 从后端加载 UI 配置    
-            const uiResponse = await fetch('/api/config/ui-config');    
-            if (uiResponse.ok) {    
-                const uiConfig = await uiResponse.json();    
-                localStorage.setItem('aiwritex_ui_config', JSON.stringify(uiConfig));    
-                this.uiConfig = uiConfig;    
-            }    
-            
-            // 2. 加载业务配置    
-            await this.loadConfig();    
-            
-            // 2.5. 加载动态选项数据(新增)  
-            await this.loadDynamicOptions();  
-            
-            // 3. 绑定事件监听器(只绑定一次)    
-            this.bindEventListeners();    
-            
-            // 4. 填充UI(只负责填充值,不绑定事件)    
-            this.populateUI();    
-            this.showConfigPanel(this.currentPanel);    
+    async init() {
+        try {
+            // 1. 从后端加载 UI 配置
+            try {
+                const uiResponse = await fetch('/api/config/ui-config');
+                if (uiResponse.ok) {
+                    const uiConfig = await uiResponse.json();
+                    localStorage.setItem('aiwritex_ui_config', JSON.stringify(uiConfig));
+                    this.uiConfig = uiConfig;
+                }
+            } catch (e) {
+                console.error('加载UI配置失败:', e);
+            }
+
+            // 2. 加载业务配置
+            try {
+                await this.loadConfig();
+            } catch (e) {
+                console.error('加载业务配置失败:', e);
+            }
+
+            // 2.5. 加载动态选项数据
+            try {
+                await this.loadDynamicOptions();
+            } catch (e) {
+                console.error('加载动态选项失败:', e);
+            }
+
+            // 3. 绑定事件监听器(只绑定一次)
+            this.bindEventListeners();
+
+            // 4. 填充UI(只负责填充值,不绑定事件)
+            try {
+                this.populateUI();
+            } catch (e) {
+                console.error('填充UI失败:', e);
+            }
+
+            this.showConfigPanel(this.currentPanel);
             this.toggleGrapesJSTheme(this.uiConfig.designTheme || 'follow-system');
 
-            // 5. 通知主题管理器和窗口模式管理器    
-            if (window.themeManager) {    
-                window.themeManager.onConfigLoaded();    
-            }    
-            if (window.windowModeManager) {    
-                window.windowModeManager.onConfigLoaded();    
-            }    
-            
-            // 6. 最后绑定导航事件(确保DOM已加载)    
-            this.bindConfigNavigation();    
-        } catch (error) {    
-        }    
+            // 5. 通知主题管理器和窗口模式管理器
+            if (window.themeManager) {
+                window.themeManager.onConfigLoaded();
+            }
+            if (window.windowModeManager) {
+                window.windowModeManager.onConfigLoaded();
+            }
+
+            // 6. 最后绑定导航事件(确保DOM已加载)
+            this.bindConfigNavigation();
+        } catch (error) {
+            console.error('ConfigManager初始化失败:', error);
+            // 即使整体失败，也尝试显示默认面板
+            this.showConfigPanel(this.currentPanel || 'ui');
+        }
     }  
     
     bindEventListeners() {          
@@ -865,8 +885,65 @@ class AIWriteXConfigManager {
                 });  
             }  
         });
-    }  
-    
+
+        // 向量嵌入配置 - 提供商变更事件
+        const embedderProviderSelect = document.getElementById('knowledge-embedder-provider');
+        if (embedderProviderSelect) {
+            embedderProviderSelect.addEventListener('change', (e) => {
+                this.handleEmbedderProviderChange(e.target.value);
+
+                const saveBtn = document.getElementById('save-embedder-config');
+                if (saveBtn && !saveBtn.classList.contains('has-changes')) {
+                    saveBtn.classList.add('has-changes');
+                    saveBtn.innerHTML = '保存设置 <span style="color: var(--warning-color);">(有未保存更改)</span>';
+                }
+            });
+        }
+
+        // 向量嵌入配置 - 保存按钮
+        const saveEmbedderConfigBtn = document.getElementById('save-embedder-config');
+        if (saveEmbedderConfigBtn) {
+            saveEmbedderConfigBtn.addEventListener('click', async () => {
+                await this.saveEmbedderConfig();
+            });
+        }
+
+        // 向量嵌入配置 - 刷新知识库按钮
+        const refreshKnowledgeBtn = document.getElementById('refresh-knowledge-btn');
+        if (refreshKnowledgeBtn) {
+            refreshKnowledgeBtn.addEventListener('click', async () => {
+                await this.refreshKnowledge();
+            });
+        }
+
+        // 向量嵌入配置 - 打开图片管理按钮
+        const openImageManagerBtn = document.getElementById('open-image-manager-btn');
+        if (openImageManagerBtn) {
+            openImageManagerBtn.addEventListener('click', () => {
+                this.openImageManager();
+            });
+        }
+
+        // 向量嵌入配置 - 输入框变化监听
+        const embedderInputs = [
+            'knowledge-enabled', 'knowledge-embedder-api-key',
+            'knowledge-embedder-model', 'knowledge-embedder-base-url'
+        ];
+
+        embedderInputs.forEach(inputId => {
+            const input = document.getElementById(inputId);
+            if (input) {
+                input.addEventListener('input', () => {
+                    const saveBtn = document.getElementById('save-embedder-config');
+                    if (saveBtn && !saveBtn.classList.contains('has-changes')) {
+                        saveBtn.classList.add('has-changes');
+                        saveBtn.innerHTML = '保存设置 <span style="color: var(--warning-color);">(有未保存更改)</span>';
+                    }
+                });
+            }
+        });
+    }
+
     // 加载页面设计配置到UI(续)  
     populatePageDesignUI() {    
         if (!this.config.page_design) {    
@@ -1163,11 +1240,349 @@ class AIWriteXConfigManager {
 
         this.populateCreativeUI();
 
-        // 添加页面设计UI填充  
-        this.populatePageDesignUI();  
+        // 添加页面设计UI填充
+        this.populatePageDesignUI();
+
+        // ========== 填充向量嵌入配置 ==========
+        this.populateEmbedderUI();
     }
 
-    // 填充热搜平台UI  
+    // 填充向量嵌入配置UI
+    populateEmbedderUI() {
+        if (!this.config.knowledge) return;
+
+        const knowledge = this.config.knowledge;
+        const embedder = knowledge.embedder || {};
+
+        // 启用知识库开关
+        const knowledgeEnabled = document.getElementById('knowledge-enabled');
+        if (knowledgeEnabled) knowledgeEnabled.checked = knowledge.enabled !== false;
+        this.bindKnowledgeEmbedderStatus();
+
+        // 嵌入提供商
+        const providerSelect = document.getElementById('knowledge-embedder-provider');
+        if (providerSelect) {
+            providerSelect.value = embedder.provider || 'openai';
+        }
+
+        // Base URL
+        const baseUrlInput = document.getElementById('knowledge-embedder-base-url');
+        if (baseUrlInput) baseUrlInput.value = embedder.base_url || '';
+
+        // API Key editable-select（兼容数组格式）
+        const apiKeys = this._normalizeToArray(embedder.api_key);
+        const keyIndex = Math.min(embedder.key_index || 0, apiKeys.length - 1);
+        this._embedderApiKeys = [...apiKeys];
+        this._buildEmbedderEditableSelect(
+            'embedder-api-key-select',
+            apiKeys,
+            apiKeys[keyIndex] || '',
+            '输入 API Key'
+        );
+
+        // 模型 editable-select（兼容数组格式）
+        const models = this._normalizeToArray(embedder.model);
+        const modelIndex = Math.min(embedder.model_index || 0, models.length - 1);
+        this._embedderModels = [...models];
+        this._buildEmbedderEditableSelect(
+            'embedder-model-select',
+            models,
+            models[modelIndex] || '',
+            '如: text-embedding-3-small'
+        );
+    }
+
+    /** 将单值或数组统一为数组 */
+    _normalizeToArray(value) {
+        if (Array.isArray(value)) return value.filter(v => v && v.trim());
+        return value && value.trim() ? [value] : [];
+    }
+
+    /** 为 embedder 配置构建 editable-select 组件 */
+    _buildEmbedderEditableSelect(containerId, values, currentValue, placeholder) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+
+        const selectDiv = document.createElement('div');
+        selectDiv.className = 'editable-select';
+
+        const display = document.createElement('div');
+        display.className = 'select-display';
+        display.textContent = currentValue || '-- 点击添加 --';
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'select-dropdown';
+        dropdown.style.display = 'none';
+
+        const self = this;
+
+        const renderOptions = () => {
+            dropdown.innerHTML = '';
+            const addOption = document.createElement('div');
+            addOption.className = 'select-option select-option-add';
+            addOption.textContent = '-- 点击添加 --';
+            addOption.addEventListener('click', (e) => {
+                e.stopPropagation();
+                showAddInput();
+            });
+            dropdown.appendChild(addOption);
+
+            values.forEach((item) => {
+                if (!item || !item.trim()) return;
+                const option = document.createElement('div');
+                option.className = 'select-option';
+                if (item === currentValue) option.style.fontWeight = 'bold';
+                option.textContent = item;
+                option.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    display.textContent = item;
+                    dropdown.style.display = 'none';
+                    self._markEmbedderChanged();
+                });
+                option.addEventListener('contextmenu', (e) => {
+                    e.preventDefault();
+                    if (values.length <= 1) return;
+                    const idx = values.indexOf(item);
+                    if (idx > -1) {
+                        values.splice(idx, 1);
+                        if (containerId === 'embedder-api-key-select') {
+                            self._embedderApiKeys = [...values];
+                        } else {
+                            self._embedderModels = [...values];
+                        }
+                        if (display.textContent === item) {
+                            display.textContent = values[0] || '-- 点击添加 --';
+                        }
+                        renderOptions();
+                        self._markEmbedderChanged();
+                    }
+                });
+                dropdown.appendChild(option);
+            });
+        };
+
+        const showAddInput = () => {
+            dropdown.innerHTML = '';
+            const input = document.createElement('input');
+            input.type = 'text';
+            input.className = 'select-input';
+            input.placeholder = placeholder;
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    const newValue = input.value.trim();
+                    if (newValue) {
+                        if (!values.includes(newValue)) values.push(newValue);
+                        display.textContent = newValue;
+                        dropdown.style.display = 'none';
+                        if (containerId === 'embedder-api-key-select') {
+                            self._embedderApiKeys = [...values];
+                        } else {
+                            self._embedderModels = [...values];
+                        }
+                        self._markEmbedderChanged();
+                    }
+                } else if (e.key === 'Escape') {
+                    renderOptions();
+                }
+            });
+            input.addEventListener('blur', () => {
+                if (!input.value.trim()) renderOptions();
+            });
+            input.addEventListener('click', (e) => e.stopPropagation());
+            dropdown.appendChild(input);
+            setTimeout(() => input.focus(), 0);
+        };
+
+        renderOptions();
+
+        display.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isVisible = dropdown.style.display === 'block';
+            dropdown.style.display = isVisible ? 'none' : 'block';
+            if (!isVisible) renderOptions();
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!selectDiv.contains(e.target)) {
+                dropdown.style.display = 'none';
+            }
+        });
+
+        selectDiv.appendChild(display);
+        selectDiv.appendChild(dropdown);
+        container.appendChild(selectDiv);
+    }
+
+    /** 标记 embedder 配置有未保存更改 */
+    _markEmbedderChanged() {
+        const saveBtn = document.getElementById('save-embedder-config');
+        if (saveBtn && !saveBtn.classList.contains('has-changes')) {
+            saveBtn.classList.add('has-changes');
+            saveBtn.innerHTML = '保存设置 <span style="color: var(--warning-color);">(有未保存更改)</span>';
+        }
+    }
+
+    // 处理嵌入提供商变更
+    handleEmbedderProviderChange(provider) {
+        const apiKeyGroup = document.getElementById('embedder-api-key-group');
+        const baseUrlGroup = document.getElementById('embedder-base-url-group') ||
+                             document.getElementById('knowledge-embedder-base-url')?.closest('.form-group');
+
+        if (provider === 'ollama') {
+            if (apiKeyGroup) apiKeyGroup.style.display = 'none';
+        } else {
+            if (apiKeyGroup) apiKeyGroup.style.display = 'block';
+        }
+    }
+
+    updateKnowledgeEmbedderStatus() {
+        const enabledCheckbox = document.getElementById('knowledge-enabled');
+        const statusBadge = document.getElementById('knowledge-embedder-status');
+
+        if (!statusBadge) return;
+
+        const isEnabled = enabledCheckbox?.checked !== false;
+        statusBadge.textContent = isEnabled ? '当前配置' : '已停用';
+        statusBadge.classList.toggle('active', isEnabled);
+        statusBadge.classList.toggle('inactive', !isEnabled);
+    }
+
+    updateKnowledgeIndexStatusBadge(hasData) {
+        const badge = document.getElementById('knowledge-index-status');
+        if (!badge) return;
+
+        badge.textContent = hasData ? '已有数据' : '暂无数据';
+        badge.classList.toggle('active', hasData);
+        badge.classList.toggle('inactive', !hasData);
+    }
+
+    updateKnowledgeStatField(fieldId, value) {
+        const field = document.getElementById(fieldId);
+        if (field) field.value = String(value);
+    }
+
+    bindKnowledgeEmbedderStatus() {
+        const enabledCheckbox = document.getElementById('knowledge-enabled');
+        if (enabledCheckbox && !enabledCheckbox.dataset.statusBound) {
+            enabledCheckbox.addEventListener('change', () => this.updateKnowledgeEmbedderStatus());
+            enabledCheckbox.dataset.statusBound = 'true';
+        }
+
+        this.updateKnowledgeEmbedderStatus();
+    }
+
+    // 保存向量嵌入配置
+    async saveEmbedderConfig() {
+        const provider = document.getElementById('knowledge-embedder-provider')?.value || 'openai';
+        const baseUrl = document.getElementById('knowledge-embedder-base-url')?.value || '';
+        const enabled = document.getElementById('knowledge-enabled')?.checked !== false;
+
+        // 从 editable-select 读取当前选中值
+        const selectedKey = document.querySelector('#embedder-api-key-select .select-display')?.textContent || '';
+        const selectedModel = document.querySelector('#embedder-model-select .select-display')?.textContent || '';
+
+        // 确保值在数组中
+        const apiKeys = this._embedderApiKeys || [];
+        const models = this._embedderModels || [];
+        if (selectedKey && selectedKey !== '-- 点击添加 --' && !apiKeys.includes(selectedKey)) {
+            apiKeys.push(selectedKey);
+        }
+        if (selectedModel && selectedModel !== '-- 点击添加 --' && !models.includes(selectedModel)) {
+            models.push(selectedModel);
+        }
+
+        const keyIndex = Math.max(0, apiKeys.indexOf(selectedKey));
+        const modelIndex = Math.max(0, models.indexOf(selectedModel));
+
+        const embedderConfig = {
+            knowledge: {
+                enabled: enabled,
+                embedder: {
+                    provider: provider,
+                    api_key: apiKeys,
+                    key_index: keyIndex,
+                    model: models,
+                    model_index: modelIndex,
+                    base_url: baseUrl
+                }
+            }
+        };
+
+        await this.updateConfig(embedderConfig);
+        const success = await this.saveConfig();
+
+        if (success) {
+            const saveBtn = document.getElementById('save-embedder-config');
+            if (saveBtn) {
+                saveBtn.classList.remove('has-changes');
+                saveBtn.innerHTML = '保存设置';
+            }
+            this.bindKnowledgeEmbedderStatus();
+        }
+
+        window.app?.showNotification(
+            success ? '向量嵌入配置已保存' : '保存向量嵌入配置失败',
+            success ? 'success' : 'error'
+        );
+    }
+
+    // 刷新知识库
+    async refreshKnowledge() {
+        try {
+            const response = await fetch('/api/knowledge/refresh', {
+                method: 'POST'
+            });
+
+            if (response.ok) {
+                await this.loadKnowledgeStats();
+                window.app?.showNotification('知识库已刷新', 'success');
+            } else {
+                window.app?.showNotification('刷新知识库失败', 'error');
+            }
+        } catch (error) {
+            window.app?.showNotification('刷新知识库失败: ' + error.message, 'error');
+        }
+    }
+
+    // 打开知识库管理
+    openImageManager() {
+        if (window.app?.showView) {
+            window.app.showView('knowledge-manager');
+            return;
+        }
+
+        window.app?.showNotification('无法打开知识库管理页面', 'warning');
+    }
+
+    // 加载知识库统计
+    async loadKnowledgeStats() {
+        try {
+            const response = await fetch('/api/knowledge/stats');
+            if (response.ok) {
+                const result = await response.json();
+                const data = result.data || {};
+                this.updateKnowledgeStatsUI(
+                    data.image_count || 0,
+                    data.image_knowledge_count || 0,
+                    data.text_knowledge_count || 0,
+                    data.total_knowledge_count || 0
+                );
+            }
+        } catch (error) {
+            console.error('加载知识库统计失败:', error);
+        }
+    }
+
+    updateKnowledgeStatsUI(imageCount, imageKnowledgeCount, textKnowledgeCount, totalKnowledgeCount) {
+        this.updateKnowledgeStatField('image-count', imageCount);
+        this.updateKnowledgeStatField('image-knowledge-count', imageKnowledgeCount);
+        this.updateKnowledgeStatField('text-knowledge-count', textKnowledgeCount);
+        this.updateKnowledgeStatField('knowledge-count', totalKnowledgeCount);
+        this.updateKnowledgeIndexStatusBadge(imageCount > 0 || imageKnowledgeCount > 0 || textKnowledgeCount > 0);
+    }
+
+    // 填充热搜平台UI
     populatePlatformsUI() {  
         const platformListBody = document.getElementById('platform-list-body');  
         if (!platformListBody || !this.config.platforms) return;  
@@ -2276,44 +2691,48 @@ class AIWriteXConfigManager {
         });  
     }    
         
-    showConfigPanel(panelType) {  
-        const configContent = document.querySelector('.config-content');  
-        const targetPanel = document.getElementById(`config-${panelType}`);  
-        
-        this.currentPanel = panelType; 
+    showConfigPanel(panelType) {
+        const targetPanel = document.getElementById(`config-${panelType}`);
 
-        // 关键:在任何DOM操作之前立即重置滚动位置  
-        if (configContent) {  
-            configContent.scrollTop = 0;  
-        }  
-        
-        // 隐藏所有配置面板  
-        document.querySelectorAll('.config-panel').forEach(panel => {  
-            if (panel !== targetPanel) {  
-                panel.classList.remove('active');  
-                panel.style.display = 'none';  
-            }  
-        });  
-        
-        // 显示目标面板  
-        if (targetPanel) {  
-            targetPanel.style.display = 'block';  
-            targetPanel.offsetHeight; // 强制重排  
-            targetPanel.classList.add('active');  
-        }  
-        
-        // 更新导航状态  
-        document.querySelectorAll('.config-nav-item').forEach(item => {  
-            item.classList.remove('active');  
-        });  
-        
-        const activeNavItem = document.querySelector(`[data-config="${panelType}"]`)?.parentElement;  
-        if (activeNavItem) {  
-            activeNavItem.classList.add('active');  
-        }   
-        
-        this.populateUI();  
-    }  
+        this.currentPanel = panelType;
+
+        // 隐藏所有配置面板
+        document.querySelectorAll('.config-panel').forEach(panel => {
+            if (panel !== targetPanel) {
+                panel.classList.remove('active');
+                panel.style.display = 'none';
+            }
+        });
+
+        // 显示目标面板
+        if (targetPanel) {
+            targetPanel.style.display = 'block';
+            targetPanel.offsetHeight; // 强制重排
+            targetPanel.classList.add('active');
+        }
+
+        // 更新导航状态
+        document.querySelectorAll('.config-nav-item').forEach(item => {
+            item.classList.remove('active');
+        });
+
+        const activeNavItem = document.querySelector(`[data-config="${panelType}"]`)?.parentElement;
+        if (activeNavItem) {
+            activeNavItem.classList.add('active');
+        }
+
+        // populateUI 包裹在 try-catch 中，防止异常阻断面板显示
+        try {
+            this.populateUI();
+        } catch (error) {
+            console.error('populateUI失败:', error);
+        }
+
+        if (panelType === 'knowledge-embedder') {
+            this.bindKnowledgeEmbedderStatus();
+            this.loadKnowledgeStats();
+        }
+    }
   
     // ========== UI配置管理(localStorage) ==========  
       

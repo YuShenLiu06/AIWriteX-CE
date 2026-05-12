@@ -1,0 +1,515 @@
+/* ========== 知识库管理特有样式 ========== */
+
+/* Modal 遮罩层 - 知识库管理页的 modal 使用类名 .modal */
+#knowledge-manager-view .modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+/* Modal 内容容器 - 复用通用 modal-content 样式 */
+#knowledge-manager-view .modal .modal-content {
+    background: var(--surface-color);
+    border-radius: 8px;
+    box-shadow: var(--shadow-lg);
+    max-width: 600px;
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Modal 头部 */
+#knowledge-manager-view .modal .modal-header {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+#knowledge-manager-view .modal .modal-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* 关闭按钮 */
+#knowledge-manager-view .modal .modal-close {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    padding: 0;
+    line-height: 1;
+}
+
+#knowledge-manager-view .modal .modal-close:hover {
+    background: var(--hover-color);
+}
+
+/* Modal 主体 */
+#knowledge-manager-view .modal .modal-body {
+    padding: 24px;
+}
+
+/* Modal 底部 */
+#knowledge-manager-view .modal .modal-footer {
+    padding: 16px 24px;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+/* Modal 表单元素 */
+#knowledge-manager-view .modal .modal-body .form-group {
+    margin-bottom: 16px;
+}
+
+#knowledge-manager-view .modal .modal-body label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 500;
+    font-size: 14px;
+    color: var(--text-primary);
+}
+
+#knowledge-manager-view .modal .modal-body input[type="text"],
+#knowledge-manager-view .modal .modal-body input[type="file"],
+#knowledge-manager-view .modal .modal-body select,
+#knowledge-manager-view .modal .modal-body textarea {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 14px;
+    background: var(--surface-color);
+    color: var(--text-primary);
+    transition: border-color 0.2s ease;
+}
+
+#knowledge-manager-view .modal .modal-body input[type="text"]:focus,
+#knowledge-manager-view .modal .modal-body input[type="file"]:focus,
+#knowledge-manager-view .modal .modal-body select:focus,
+#knowledge-manager-view .modal .modal-body textarea:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+#knowledge-manager-view .modal .modal-body textarea {
+    min-height: 100px;
+    resize: vertical;
+}
+
+#knowledge-manager-view .modal .modal-body input[type="file"] {
+    padding: 8px;
+}
+
+/* 文件上传区域 */
+.file-upload-area {
+    border: 2px dashed var(--border-color);
+    border-radius: 8px;
+    padding: 24px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--background-color);
+}
+
+.file-upload-area:hover,
+.file-upload-area.dragover {
+    border-color: var(--primary-color);
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.file-upload-area .file-upload-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-secondary);
+}
+
+.file-upload-area .file-upload-placeholder svg {
+    opacity: 0.6;
+}
+
+.file-upload-area .file-upload-placeholder span {
+    font-size: 14px;
+}
+
+.file-upload-list {
+    margin-top: 12px;
+    text-align: left;
+}
+
+.file-upload-list .file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--surface-color);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    color: var(--text-primary);
+}
+
+.file-upload-list .file-item .file-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.file-upload-list .file-item .file-remove {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    cursor: pointer;
+    padding: 0 4px;
+    font-size: 16px;
+}
+
+.file-upload-list .file-item .file-remove:hover {
+    color: var(--danger-color);
+}
+
+/* 侧边栏统计 */
+.sidebar-stats {
+    flex-shrink: 0;
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--border-color);
+}
+
+.sidebar-stats .stat-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    padding: 4px 0;
+}
+
+.sidebar-stats .stat-label {
+    color: var(--text-tertiary);
+}
+
+.sidebar-stats .stat-value {
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* 图片预览样式 */
+.card-preview img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+/* 图片卡片悬停效果 */
+.image-card {
+    position: relative;
+}
+
+.image-card .card-preview::after {
+    content: '';
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    background: rgba(0, 0, 0, 0.5);
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.image-card:hover .card-preview::after {
+    opacity: 1;
+}
+
+/* 预览Modal */
+.modal-preview .modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.preview-container {
+    width: 100%;
+    max-height: 400px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--background-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.preview-container img {
+    max-width: 100%;
+    max-height: 400px;
+    object-fit: contain;
+}
+
+.preview-info {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.preview-info p {
+    margin: 0;
+    display: flex;
+    gap: 8px;
+}
+
+.preview-info strong {
+    min-width: 70px;
+    color: var(--text-secondary);
+}
+
+/* 上传Modal */
+#km-upload-modal .modal-body,
+#km-edit-modal .modal-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+#km-upload-modal textarea,
+#km-edit-modal textarea {
+    min-height: 80px;
+    resize: vertical;
+}
+
+/* 空状态图标颜色 */
+#km-empty-state svg {
+    stroke: var(--text-tertiary);
+    opacity: 0.5;
+}
+
+#km-empty-state h3 {
+    margin: 16px 0 8px;
+    color: var(--text-secondary);
+    font-size: 18px;
+}
+
+#km-empty-state p {
+    color: var(--text-tertiary);
+    font-size: 14px;
+}
+
+/* ========== 知识库面板切换 ========== */
+.knowledge-panel {
+    display: none;
+}
+
+.knowledge-panel.active {
+    display: block;
+}
+
+/* ========== 文本知识库卡片 ========== */
+.text-card {
+    padding: 16px;
+}
+
+.text-card .card-title {
+    font-size: 15px;
+    margin: 0 0 8px;
+    color: var(--text-primary);
+}
+
+.text-card .card-excerpt {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin: 0 0 12px;
+    line-height: 1.5;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.text-card .card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    align-items: center;
+}
+
+/* ========== 文本预览Modal ========== */
+.modal-preview .preview-content {
+    max-height: 300px;
+    overflow-y: auto;
+    padding: 12px;
+    background: var(--background-color);
+    border-radius: 6px;
+    font-size: 14px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+/* ========== 列表视图 ========== */
+.content-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.content-list.list-view {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.content-list.list-view .content-card {
+    flex-direction: row;
+    padding: 12px 16px;
+}
+
+.content-list.list-view .card-preview {
+    width: 80px;
+    height: 60px;
+    flex-shrink: 0;
+}
+
+/* ========== 知识库类型切换Tab ========== */
+.km-type-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 4px;
+    background: var(--background-color);
+    border-radius: 8px;
+}
+
+.km-tab-btn {
+    padding: 6px 16px;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.km-tab-btn:hover {
+    color: var(--text-primary);
+    background: var(--hover-color);
+}
+
+.km-tab-btn.active {
+    background: var(--primary-color);
+    color: white;
+}
+
+/* ========== 知识库开关 ========== */
+.km-toggles {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.km-toggles + .toolbar-right {
+    margin-left: auto;
+}
+
+/* ========== 工具栏右侧区域 ========== */
+.toolbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+/* 覆盖 forms.css 中 .toggle-switch 的全局样式，避免冲突 */
+.km-toggles .toggle-switch {
+    display: inline-flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    user-select: none;
+    position: static;
+    width: auto;
+    height: auto;
+    background: none;
+    border-radius: 0;
+}
+
+.km-toggles .toggle-switch::after {
+    display: none !important;
+    content: none !important;
+}
+
+.km-toggles .toggle-switch input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+    pointer-events: none;
+}
+
+.km-toggles .toggle-slider {
+    display: inline-block;
+    width: 36px;
+    height: 20px;
+    min-width: 36px;
+    min-height: 20px;
+    background: var(--border-color);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+    vertical-align: middle;
+}
+
+.km-toggles .toggle-slider::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    background: white;
+    border-radius: 50%;
+    top: 2px;
+    left: 2px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+}
+
+.km-toggles .toggle-switch input[type="checkbox"]:checked + .toggle-slider {
+    background: var(--primary-color);
+}
+
+.km-toggles .toggle-switch input[type="checkbox"]:checked + .toggle-slider::before {
+    transform: translateX(16px);
+}
+
+.km-toggles .toggle-label {
+    display: inline-block;
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.km-toggles .toggle-switch input[type="checkbox"]:checked ~ .toggle-label {
+    color: var(--text-primary);
+    font-weight: 500;
+}

@@ -1,0 +1,304 @@
+<div id="knowledge-manager-view" class="view-content" style="display: none;">
+    <div class="manager-layout">
+        <!-- 左侧分类树 -->
+        <aside class="manager-sidebar">
+            <div class="sidebar-header">
+                <h3>分类</h3>
+                <button class="btn-icon" id="add-category-btn" title="新建分类" onclick="console.log('Category btn clicked'); if(window.knowledgeManager) window.knowledgeManager.showAddCategoryModal();">
+                    <svg viewBox="0 0 24 24" width="16" height="16">
+                        <path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="sidebar-tree" id="category-tree">
+                <div class="tree-item active" data-category="all">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">
+                        <rect x="3" y="3" width="7" height="7"/>
+                        <rect x="14" y="3" width="7" height="7"/>
+                        <rect x="3" y="14" width="7" height="7"/>
+                        <rect x="14" y="14" width="7" height="7"/>
+                    </svg>
+                    <span>全部</span>
+                </div>
+                <div class="tree-item" data-category="uncategorized">
+                    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor">
+                        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+                    </svg>
+                    <span>未分类</span>
+                </div>
+            </div>
+            <div class="sidebar-stats">
+                <div class="stat-item">
+                    <span class="stat-label">当前库:</span>
+                    <span class="stat-value" id="km-current-library">图片知识库</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">条目数:</span>
+                    <span class="stat-value" id="km-total-items">-</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-wrapper">
+            <div class="manager-toolbar">
+                <div class="km-type-tabs">
+                    <button class="km-tab-btn active" data-type="image">图片知识库</button>
+                    <button class="km-tab-btn" data-type="text">文本知识库</button>
+                </div>
+                <div class="km-toggles">
+                    <label class="toggle-switch" title="启用文本知识库">
+                        <input type="checkbox" id="km-toggle-text" checked>
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label">文本库</span>
+                    </label>
+                    <label class="toggle-switch" title="启用图片知识库">
+                        <input type="checkbox" id="km-toggle-image" checked>
+                        <span class="toggle-slider"></span>
+                        <span class="toggle-label">图片库</span>
+                    </label>
+                </div>
+                <div class="toolbar-right">
+                    <div class="search-box">
+                        <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor">
+                            <circle cx="11" cy="11" r="8"/>
+                            <path d="m21 21-4.35-4.35"/>
+                        </svg>
+                        <input type="text" id="km-search-input" placeholder="搜索...">
+                    </div>
+                </div>
+
+                <div class="toolbar-actions">
+                    <div class="view-toggle">
+                        <button class="view-btn active" data-layout="grid" title="网格视图">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor">
+                                <rect x="3" y="3" width="7" height="7"/>
+                                <rect x="14" y="3" width="7" height="7"/>
+                                <rect x="3" y="14" width="7" height="7"/>
+                                <rect x="14" y="14" width="7" height="7"/>
+                            </svg>
+                        </button>
+                        <button class="view-btn" data-layout="list" title="列表视图">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor">
+                                <line x1="8" y1="6" x2="21" y2="6"/>
+                                <line x1="8" y1="12" x2="21" y2="12"/>
+                                <line x1="8" y1="18" x2="21" y2="18"/>
+                                <line x1="3" y1="6" x2="3.01" y2="6"/>
+                                <line x1="3" y1="12" x2="3.01" y2="12"/>
+                                <line x1="3" y1="18" x2="3.01" y2="18"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <button class="btn btn-primary" id="km-add-item-btn" onclick="console.log('Inline onclick works!'); if(window.knowledgeManager) window.knowledgeManager.showAddModal();">
+                        <svg viewBox="0 0 24 24" width="16" height="16">
+                            <path d="M12 5v14m-7-7h14" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        <span id="km-add-btn-text">上传图片</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="manager-main">
+                <!-- 图片知识库面板 -->
+                <div class="knowledge-panel active" id="km-image-panel">
+                    <div class="content-grid" id="km-image-grid">
+                        <!-- 图片卡片将通过JS动态加载 -->
+                    </div>
+                </div>
+                <!-- 文本知识库面板 -->
+                <div class="knowledge-panel" id="km-text-panel" style="display: none;">
+                    <div class="content-list" id="km-text-list">
+                        <!-- 文本卡片将通过JS动态加载 -->
+                    </div>
+                </div>
+                <div class="empty-state" id="km-empty-state" style="display: none;">
+                    <svg viewBox="0 0 24 24" width="64" height="64" fill="none" stroke="currentColor">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                        <line x1="16" y1="13" x2="8" y2="13"/>
+                        <line x1="16" y1="17" x2="8" y2="17"/>
+                        <polyline points="10 9 9 9 8 9"/>
+                    </svg>
+                    <h3 id="km-empty-title">暂无内容</h3>
+                    <p id="km-empty-desc">点击"新增"添加第一条知识</p>
+                </div>
+            </div>
+        </main>
+
+        <!-- 文本知识库Modal -->
+<div id="km-text-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="km-text-modal-title">新增文本知识</h3>
+            <button class="modal-close" id="km-close-text">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="km-text-id">
+            <div class="form-group">
+                <label>标题</label>
+                <input type="text" id="km-text-title" class="form-control" placeholder="输入知识标题">
+            </div>
+            <div class="form-group">
+                <label>内容</label>
+                <textarea id="km-text-content" class="form-control" rows="6" placeholder="输入知识内容"></textarea>
+            </div>
+            <div class="form-group">
+                <label>摘要</label>
+                <input type="text" id="km-text-summary" class="form-control" placeholder="简短摘要（可选）">
+            </div>
+            <div class="form-group">
+                <label>标签</label>
+                <input type="text" id="km-text-tags" class="form-control" placeholder="多个标签用逗号分隔">
+            </div>
+            <div class="form-group">
+                <label>分类</label>
+                <select id="km-text-category">
+                    <option value="">未分类</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>来源类型</label>
+                <select id="km-text-source-type" class="form-control">
+                    <option value="manual">手动录入</option>
+                    <option value="imported">导入文件</option>
+                    <option value="web">网页采集</option>
+                    <option value="other">其他</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="km-cancel-text">取消</button>
+            <button class="btn btn-primary" id="km-confirm-text">保存</button>
+        </div>
+    </div>
+</div>
+
+        <!-- 文本预览Modal -->
+<div id="km-text-preview-modal" class="modal" style="display: none;">
+    <div class="modal-content modal-preview">
+        <div class="modal-header">
+            <h3 id="km-text-preview-title">文本预览</h3>
+            <button class="modal-close" id="km-close-text-preview">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="preview-info">
+                <p><strong>标题:</strong> <span id="km-text-preview-title-val">-</span></p>
+                <p><strong>分类:</strong> <span id="km-text-preview-category">-</span></p>
+                <p><strong>标签:</strong> <span id="km-text-preview-tags">-</span></p>
+                <p><strong>来源:</strong> <span id="km-text-preview-source">-</span></p>
+                <p><strong>使用次数:</strong> <span id="km-text-preview-usage">-</span></p>
+            </div>
+            <div class="preview-content" id="km-text-preview-content"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="km-edit-text-from-preview">编辑</button>
+            <button class="btn btn-danger" id="km-delete-text">删除</button>
+        </div>
+    </div>
+</div>
+
+<!-- 图片上传Modal -->
+<div id="km-upload-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>上传图片</h3>
+            <button class="modal-close" id="km-close-upload">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="form-group">
+                <label>选择图片</label>
+                <div class="file-upload-area" id="km-file-upload-area">
+                    <input type="file" id="km-file-input" accept="image/*" multiple hidden>
+                    <div class="file-upload-placeholder">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                            <polyline points="17 8 12 3 7 8"/>
+                            <line x1="12" y1="3" x2="12" y2="15"/>
+                        </svg>
+                        <span>点击选择图片或拖拽到此处</span>
+                    </div>
+                    <div class="file-upload-list" id="km-file-list"></div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>图片描述</label>
+                <textarea id="km-image-description" placeholder="输入图片描述，用于语义检索"></textarea>
+            </div>
+            <div class="form-group">
+                <label>标签</label>
+                <input type="text" id="km-image-tags" placeholder="多个标签用逗号分隔">
+            </div>
+            <div class="form-group">
+                <label>分类</label>
+                <select id="km-image-category">
+                    <option value="">未分类</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="km-cancel-upload">取消</button>
+            <button class="btn btn-primary" id="km-confirm-upload">上传</button>
+        </div>
+    </div>
+</div>
+
+<!-- 图片编辑Modal -->
+<div id="km-edit-modal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>编辑图片</h3>
+            <button class="modal-close" id="km-close-edit">&times;</button>
+        </div>
+        <div class="modal-body">
+            <input type="hidden" id="km-edit-image-id">
+            <div class="form-group">
+                <label>图片描述</label>
+                <textarea id="km-edit-description"></textarea>
+            </div>
+            <div class="form-group">
+                <label>标签</label>
+                <input type="text" id="km-edit-tags" placeholder="多个标签用逗号分隔">
+            </div>
+            <div class="form-group">
+                <label>分类</label>
+                <select id="km-edit-category">
+                    <option value="">未分类</option>
+                </select>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="km-cancel-edit">取消</button>
+            <button class="btn btn-primary" id="km-confirm-edit">保存</button>
+        </div>
+    </div>
+</div>
+
+<!-- 图片预览Modal -->
+<div id="km-preview-modal" class="modal" style="display: none;">
+    <div class="modal-content modal-preview">
+        <div class="modal-header">
+            <h3 id="km-preview-title">图片预览</h3>
+            <button class="modal-close" id="km-close-preview">&times;</button>
+        </div>
+        <div class="modal-body">
+            <div class="preview-container">
+                <img id="km-preview-image" src="" alt="Preview">
+            </div>
+            <div class="preview-info">
+                <p><strong>文件名:</strong> <span id="km-preview-filename">-</span></p>
+                <p><strong>描述:</strong> <span id="km-preview-description">-</span></p>
+                <p><strong>标签:</strong> <span id="km-preview-tags">-</span></p>
+                <p><strong>分类:</strong> <span id="km-preview-category">-</span></p>
+                <p><strong>使用次数:</strong> <span id="km-preview-usage">-</span></p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" id="km-use-image">使用此图片</button>
+            <button class="btn btn-secondary" id="km-edit-from-preview">编辑</button>
+            <button class="btn btn-danger" id="km-delete-image">删除</button>
+        </div>
+    </div>
+</div>
+    </div>
+</div>

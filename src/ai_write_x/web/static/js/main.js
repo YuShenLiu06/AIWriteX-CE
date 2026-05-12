@@ -122,43 +122,67 @@ class AIWriteXApp {
                     window.templateManager = new TemplateManager();    
                 }    
                 break;    
-            case 'article-manager':    
-                if (!window.articleManager) {    
-                    window.articleManager = new ArticleManager();    
-                }    
-                break;    
+case 'article-manager':
+                if (!window.articleManager) {
+                    window.articleManager = new ArticleManager();
+                }
+                break;
+            case 'knowledge-manager':
+                if (!window.knowledgeManager) {
+                    window.knowledgeManager = new KnowledgeManager();
+                }
+                break;
         }    
     }    
         
-    handleConfigViewSwitch(viewName) {    
-        if (viewName === 'config-manager') {    
-            // 清除所有子菜单的active状态    
-            document.querySelectorAll('.nav-sublink').forEach(sublink => {    
-                sublink.classList.remove('active');    
-            });    
-                
-            // 激活界面设置子菜单    
-            const uiConfigSublink = document.querySelector('[data-config="ui"]');    
-            if (uiConfigSublink) {    
-                uiConfigSublink.classList.add('active');    
-            }    
-                
-            // 显示界面设置面板    
-            if (window.configManager) {    
-                window.configManager.showConfigPanel('ui');    
-            }    
-        } else {    
-            // 如果切换到非配置管理视图,折叠系统设置菜单    
-            const expandableNavItem = document.querySelector('.nav-item-expandable');    
-            if (expandableNavItem) {    
-                expandableNavItem.classList.remove('expanded');    
-            }    
-                
-            // 同时清除所有子菜单的 active 状态    
-            document.querySelectorAll('.nav-sublink').forEach(sublink => {    
-                sublink.classList.remove('active');    
-            });    
-        }    
+    handleConfigViewSwitch(viewName) {
+        if (viewName === 'config-manager') {
+            // 清除所有子菜单的active状态
+            document.querySelectorAll('.nav-sublink').forEach(sublink => {
+                sublink.classList.remove('active');
+            });
+
+            // 激活界面设置子菜单
+            const uiConfigSublink = document.querySelector('[data-config="ui"]');
+            if (uiConfigSublink) {
+                uiConfigSublink.classList.add('active');
+            }
+
+            // 显示界面设置面板（带防御性检查）
+            if (window.configManager) {
+                try {
+                    window.configManager.showConfigPanel('ui');
+                } catch (error) {
+                    console.error('showConfigPanel调用失败:', error);
+                    this.fallbackShowConfigPanel('ui');
+                }
+            } else {
+                this.fallbackShowConfigPanel('ui');
+            }
+        } else {
+            // 如果切换到非配置管理视图,折叠系统设置菜单
+            const expandableNavItem = document.querySelector('.nav-item-expandable');
+            if (expandableNavItem) {
+                expandableNavItem.classList.remove('expanded');
+            }
+
+            // 同时清除所有子菜单的 active 状态
+            document.querySelectorAll('.nav-sublink').forEach(sublink => {
+                sublink.classList.remove('active');
+            });
+        }
+    }
+
+    fallbackShowConfigPanel(panelType) {
+        const targetPanel = document.getElementById(`config-${panelType}`);
+        if (targetPanel) {
+            document.querySelectorAll('.config-panel').forEach(panel => {
+                panel.classList.remove('active');
+                panel.style.display = 'none';
+            });
+            targetPanel.style.display = 'block';
+            targetPanel.classList.add('active');
+        }
     }    
         
     updatePreviewButtonVisibility(viewName) {    

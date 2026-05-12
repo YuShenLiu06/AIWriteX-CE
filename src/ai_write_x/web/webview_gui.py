@@ -23,7 +23,7 @@ class WebViewGUI:
     def __init__(self):
         self.server_thread = None
         self.window = None
-        self.server_port = 8000
+        self.server_port = 8888
         self.tray_manager = TrayManager("AIWriteX")
         self.tray_thread = None
 
@@ -87,7 +87,7 @@ class WebViewGUI:
         try:
             # 配置uvicorn服务器
             config = uvicorn.Config(
-                app, host="127.0.0.1", port=self.server_port, log_level="warning", access_log=False
+                app, host="127.0.0.1", port=8888, log_level="warning", access_log=False
             )
             server = uvicorn.Server(config)
 

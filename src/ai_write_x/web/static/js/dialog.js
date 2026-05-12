@@ -4,12 +4,11 @@ class DialogManager {
         this.activeDialog = null;  
     }  
       
-    showInput(title, message, defaultValue = '', onConfirm, onCancel) {  
-        const existingDialog = document.querySelector('.custom-input-dialog');  
-        if (existingDialog) {  
-            existingDialog.remove();  
-        }  
-        
+    showInput(title, message, defaultValue = '', onConfirm, onCancel) {
+        // 先彻底清理所有可能残留的对话框元素
+        document.querySelectorAll('.custom-input-dialog, .custom-confirm-dialog, .custom-alert-dialog, .dialog-overlay').forEach(el => el.remove());
+        this.activeDialog = null;
+
         // 创建遮罩层  
         const overlay = document.createElement('div');  
         overlay.className = 'dialog-overlay';  
@@ -230,12 +229,16 @@ class DialogManager {
         });  
     }  
       
-    // 关闭对话框  
-    closeDialog() {  
-        if (this.activeDialog) {  
-            this.activeDialog.remove();  
-            this.activeDialog = null;  
-        }  
+    // 关闭对话框
+    closeDialog() {
+        // 移除遮罩层（会级联移除所有子元素包括dialog）
+        if (this.activeDialog && this.activeDialog.parentNode) {
+            this.activeDialog.remove();
+        }
+        this.activeDialog = null;
+        // 额外的安全清理：移除所有残留的对话框元素
+        document.querySelectorAll('.custom-input-dialog, .custom-confirm-dialog, .custom-alert-dialog').forEach(el => el.remove());
+        document.querySelectorAll('.dialog-overlay').forEach(el => el.remove());
     }  
 }  
   
