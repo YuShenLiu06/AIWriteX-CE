@@ -25,3 +25,5 @@ AIWriteX.dmg
 .qoder
 license.dat
 build_secrets.json
+.claude/
+tempt/
