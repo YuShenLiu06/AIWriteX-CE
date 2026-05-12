@@ -1,6 +1,8 @@
 from src.ai_write_x.core.tool_registry import GlobalToolRegistry
 from src.ai_write_x.tools.custom_tool import AIForgeSearchTool
 from src.ai_write_x.tools.custom_tool import ReadTemplateTool
+from src.ai_write_x.tools.image_search_tool import ImageSearchTool
+from src.ai_write_x.tools.text_knowledge_search_tool import TextKnowledgeSearchTool
 from src.ai_write_x.core.unified_workflow import UnifiedContentWorkflow
 
 from src.ai_write_x.adapters.platform_adapters import (
@@ -22,6 +24,8 @@ def initialize_global_tools():
     # 注册所有可用工具
     registry.register_tool("AIForgeSearchTool", AIForgeSearchTool)
     registry.register_tool("ReadTemplateTool", ReadTemplateTool)
+    registry.register_tool("ImageSearchTool", ImageSearchTool)
+    registry.register_tool("TextKnowledgeSearchTool", TextKnowledgeSearchTool)
 
     return registry
 

@@ -209,7 +209,7 @@ def ai_write_x_main(config_data=None):
             log.print_log(f"配置填写有错误：{config.error_message}", "error")
             return None, None
 
-    task_model = "自定义" if not config.platform else "热搜随机"
+    task_model = "自定义" if not config.platforms else "热搜随机"
     log.print_log(f"开始执行任务，话题模式：{task_model}")
 
     # 保存环境变量到临时文件

@@ -35,14 +35,14 @@ platforms:
 publish_platform: wechat
 wechat:
   credentials:
-    - appid: ""
-      appsecret: ""
-      author: ""
+    - appid: wxc3c3473c735376e2
+      appsecret: 246e06e47ccdc999066cf058b9277c5c
+      author: YuShenBlog
       call_sendall: false
       sendall: true
       tag_id: 0
 api:
-  api_type: OpenRouter
+  api_type: Deepseek
   OpenRouter:
     key: OPENROUTER_API_KEY
     key_index: 0
@@ -60,16 +60,16 @@ api:
     api_base: https://openrouter.ai/api/v1
     max_tokens: 32768
   Deepseek:
-    key: DEEPSEEK_API_KEY
+    key: sk-728b79995670417fa89e992d2c42854f
     key_index: 0
-    api_key: []
+    api_key:
+      - sk-728b79995670417fa89e992d2c42854f
     model_index: 0
     model:
-      - deepseek/deepseek-chat
-      - deepseek/deepseek-reasoner
-      - deepseek/deepseek-r1
-    api_base: https://api.deepseek.com/v1
-    max_tokens: 8192
+      - deepseek/deepseek-v4-flash
+      - deepseek/deepseek-v4-pro
+    api_base: https://api.deepseek.com
+    max_tokens: 32768
   Grok:
     key: XAI_API_KEY
     key_index: 0
@@ -168,25 +168,25 @@ api:
 img_api:
   api_type: picsum
   ali:
-    api_key: ""
+    api_key: ''
     model: wanx2.0-t2i-turbo
   picsum:
-    api_key: ""
-    model: ""
+    api_key: ''
+    model: ''
 use_template: true
-template_category: ""
-template: ""
+template_category: ''
+template: ''
 use_compress: true
 aiforge_search_max_results: 10
 aiforge_search_min_results: 1
-min_article_len: 1000
-max_article_len: 2000
+min_article_len: 2000
+max_article_len: 5000
 auto_publish: false
 article_format: html
 format_publish: true
 dimensional_creative:
   enabled: true
-  creative_intensity: 1
+  creative_intensity: 0.7
   preserve_core_info: true
   allow_experimental: false
   auto_dimension_selection: true
@@ -234,8 +234,8 @@ dimensional_creative:
     style:
       name: 文体风格
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: poetry
           value: 诗歌
@@ -280,8 +280,8 @@ dimensional_creative:
     culture:
       name: 文化视角
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: eastern_philosophy
           value: 东方哲学
@@ -326,8 +326,8 @@ dimensional_creative:
     time:
       name: 时空背景
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: ancient_china
           value: 春秋战国
@@ -372,8 +372,8 @@ dimensional_creative:
     personality:
       name: 人格角色
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: libai
           value: 李白
@@ -426,8 +426,8 @@ dimensional_creative:
     emotion:
       name: 情感调性
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: healing
           value: 治愈系
@@ -472,8 +472,8 @@ dimensional_creative:
     format:
       name: 表达格式
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: diary
           value: 日记体
@@ -518,8 +518,8 @@ dimensional_creative:
     scene:
       name: 场景环境
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: coffee_shop
           value: 咖啡馆
@@ -564,8 +564,8 @@ dimensional_creative:
     audience:
       name: 目标受众
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: gen_z
           value: Z世代
@@ -610,8 +610,8 @@ dimensional_creative:
     theme:
       name: 主题内容
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: growth
           value: 成长蜕变
@@ -656,8 +656,8 @@ dimensional_creative:
     technique:
       name: 表现技法
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: first_person
           value: 第一人称
@@ -702,8 +702,8 @@ dimensional_creative:
     language:
       name: 语言风格
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: classical
           value: 古典雅致
@@ -740,8 +740,8 @@ dimensional_creative:
     tone:
       name: 语调语气
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: serious
           value: 严肃庄重
@@ -778,8 +778,8 @@ dimensional_creative:
     perspective:
       name: 叙述视角
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: first_person
           value: 第一人称
@@ -812,8 +812,8 @@ dimensional_creative:
     structure:
       name: 文章结构
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: chronological
           value: 时间顺序
@@ -850,8 +850,8 @@ dimensional_creative:
     rhythm:
       name: 节奏韵律
       allow_custom: true
-      selected_option: ""
-      custom_input: ""
+      selected_option: ''
+      custom_input: ''
       preset_options:
         - name: fast
           value: 快节奏
@@ -886,22 +886,36 @@ page_design:
   container:
     max_width: 750
     margin_horizontal: 10
-    background_color: "#f8f9fa"
+    background_color: '#f8f9fa'
   card:
     border_radius: 12
     box_shadow: 0 4px 16px rgba(0,0,0,0.06)
     padding: 24
-    background_color: "#ffffff"
+    background_color: '#ffffff'
   typography:
     base_font_size: 16
     line_height: 1.6
     heading_scale: 1.5
-    text_color: "#333333"
-    heading_color: "#333333"
+    text_color: '#333333'
+    heading_color: '#333333'
   spacing:
     section_margin: 24
     element_margin: 16
   accent:
-    primary_color: "#3a7bd5"
-    secondary_color: "#00b09b"
-    highlight_bg: "#f0f7ff"
+    primary_color: '#3a7bd5'
+    secondary_color: '#00b09b'
+    highlight_bg: '#f0f7ff'
+knowledge:
+  enabled: true
+  text_enabled: true
+  image_enabled: true
+  embedder:
+    provider: openai
+    api_key:
+      - sk-HWd0CalIXXM3ep7GE79a289cFbD74b55Ae303148238a9155
+    model:
+      - embedding-v1
+      - jina-embeddings-v5-text-nano
+    base_url: https://aihubmix.com/v1
+    key_index: 0
+    model_index: 1

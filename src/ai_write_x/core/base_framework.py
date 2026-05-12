@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Dict, List, Any, Optional
 from crewai import Agent, Task
+from crewai.knowledge.source.base_knowledge_source import BaseKnowledgeSource
 from dataclasses import dataclass, field
 from enum import Enum
 import threading
@@ -31,6 +32,9 @@ class AgentConfig:
     backstory: str
     tools: List[str] = field(default_factory=list)
     llm_config: Dict[str, Any] = field(default_factory=dict)
+    knowledge_sources: List[BaseKnowledgeSource] = field(default_factory=list)
+    embedder: Dict[str, Any] = field(default_factory=dict)
+    knowledge_config: Optional[Any] = None
     allow_delegation: bool = False
     memory: bool = True
     max_rpm: int = 100
@@ -60,6 +64,9 @@ class WorkflowConfig:
     content_type: ContentType
     agents: List[AgentConfig]
     tasks: List[TaskConfig]
+    knowledge_sources: List[BaseKnowledgeSource] = field(default_factory=list)
+    embedder: Dict[str, Any] = field(default_factory=dict)
+    knowledge_config: Optional[Any] = None
     validation_rules: Dict[str, Any] = field(default_factory=dict)
     metadata: Dict[str, Any] = field(default_factory=dict)
 

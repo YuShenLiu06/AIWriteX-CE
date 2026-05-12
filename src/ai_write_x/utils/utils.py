@@ -324,8 +324,8 @@ def is_valid_url(url):
 
 
 def sanitize_filename(filename):
-    # 定义非法字符的正则表达式
-    illegal_chars = r'[<>:"/\\|?*\x00-\x1F]'
+    # 定义非法字符的正则表达式（包括斜杠以防止路径注入）
+    illegal_chars = r'[<>:"/\\|?*\x00-\x1F/\\]'
     # 将非法字符替换为下划线
     sanitized = re.sub(illegal_chars, "_", filename)
     # 去除首尾的空格和点号（Windows 文件名不能以点号或空格开头/结尾）

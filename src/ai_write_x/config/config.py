@@ -1278,7 +1278,17 @@ class Config:
                     "highlight_bg": "#f0f7ff",
                 },
             },
-        }
+            # 知识库配置
+            "knowledge": {
+                "enabled": True,
+                "embedder": {
+                    "provider": "openai",
+                    "api_key": "",
+                    "model": "text-embedding-3-small",
+                    "base_url": "",
+                },
+            },
+        },
 
         self.default_aiforge_config = {
             "locale": "zh",

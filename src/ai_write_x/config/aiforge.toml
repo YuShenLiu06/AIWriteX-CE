@@ -1,7 +1,7 @@
 max_tokens = 4096
 max_rounds = 2
 max_optimization_attempts = 3
-default_llm_provider = "openrouter"
+default_llm_provider = "deepseek"
 locale = "zh"                       # ar|de|en|es|fr|hi|ja|ko|pt|ru|vi|zh
 
 
@@ -16,7 +16,7 @@ max_tokens = 8192
 [llm.deepseek]
 type = "deepseek"
 model = "deepseek-chat"
-api_key = ""
+api_key = "sk-8d5fbba83fc34b459f6560663514675d"
 base_url = "https://api.deepseek.com"
 timeout = 60
 max_tokens = 8192
@@ -133,50 +133,13 @@ force_block_access = false  # 强制阻止网络访问
 # 统一域名过滤（适用于所有执行阶段）  
 [security.network.domain_filtering]
 enabled = true
-whitelist = [
-    "api.openai.com",
-    "api.deepseek.com",
-    "openrouter.ai",
-    "baidu.com",
-    "bing.com",
-    "so.com",
-    "sogou.com",
-    "api.x.ai",
-    "dashscope.aliyuncs.com",
-    "generativelanguage.googleapis.com",
-]
+whitelist = ["api.openai.com", "api.deepseek.com", "openrouter.ai", "baidu.com", "bing.com", "so.com", "sogou.com", "api.x.ai", "dashscope.aliyuncs.com", "generativelanguage.googleapis.com"]
 blacklist = ["malicious-site.com"]
 
 # 任务特定域名扩展  
 [security.network.domain_filtering.task_overrides.data_fetch]
 mode = "extended"
-additional_domains = [
-    "sina.com.cn",
-    "163.com",
-    "qq.com",
-    "sohu.com",
-    "xinhuanet.com",
-    "people.com.cn",
-    "chinanews.com",
-    "thepaper.cn",
-    "36kr.com",
-    "ifeng.com",
-    "cnbeta.com",
-    "zol.com.cn",
-    "csdn.net",
-    "jianshu.com",
-    "zhihu.com",
-    "weibo.com",
-    "douban.com",
-    "bilibili.com",
-    "youku.com",
-    "iqiyi.com",
-    "tencent.com",
-    "alibaba.com",
-    "jd.com",
-    "tmall.com",
-    "taobao.com",
-]
+additional_domains = ["sina.com.cn", "163.com", "qq.com", "sohu.com", "xinhuanet.com", "people.com.cn", "chinanews.com", "thepaper.cn", "36kr.com", "ifeng.com", "cnbeta.com", "zol.com.cn", "csdn.net", "jianshu.com", "zhihu.com", "weibo.com", "douban.com", "bilibili.com", "youku.com", "iqiyi.com", "tencent.com", "alibaba.com", "jd.com", "tmall.com", "taobao.com"]
 
 # 在配置文件中添加扩展部分  
 [extensions]

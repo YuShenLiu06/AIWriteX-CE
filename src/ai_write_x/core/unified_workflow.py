@@ -1,6 +1,7 @@
 import os
 import time
-from typing import Dict, Any
+import json
+from typing import Dict, Any, List
 
 from src.ai_write_x.core.base_framework import (
     WorkflowConfig,
@@ -22,6 +23,7 @@ from src.ai_write_x.adapters.platform_adapters import (
 from src.ai_write_x.core.monitoring import WorkflowMonitor
 from src.ai_write_x.config.config import Config
 from src.ai_write_x.core.content_generation import ContentGenerationEngine
+from src.ai_write_x.core.knowledge_manager import KnowledgeManager
 from src.ai_write_x.utils.path_manager import PathManager
 from src.ai_write_x.utils import utils
 from src.ai_write_x.adapters.platform_adapters import PlatformType
@@ -52,12 +54,83 @@ class UnifiedContentWorkflow:
         dimensional_config = config.dimensional_creative_config
         self.creative_engine = DimensionalCreativeEngine(dimensional_config)
 
+    def _search_relevant_images(self, topic: str, category: str = None) -> List[Dict[str, Any]]:
+        """
+        搜索与话题相关的图片
+
+        Args:
+            topic: 文章话题
+            category: 可选的分类
+
+        Returns:
+            List[Dict]: 匹配的图片列表
+        """
+        try:
+            from src.ai_write_x.tools.image_search_tool import ImageSearchTool
+
+            tool = ImageSearchTool()
+            results = tool._run(query=topic, category=category, limit=5)
+
+            if results:
+                return json.loads(results)
+            return []
+
+        except Exception as e:
+            log.print_log(f"图片搜索失败: {e}", "warning")
+            return []
+
+    def _insert_images_to_content(self, content: str, images: List[Dict[str, Any]], max_images: int = 3) -> str:
+        """
+        将图片插入到文章内容中
+
+        Args:
+            content: 文章HTML内容
+            images: 图片列表
+            max_images: 最大插入图片数
+
+        Returns:
+            str: 插入图片后的内容
+        """
+        if not images:
+            return content
+
+        # 构建图片HTML标签
+        image_tags = []
+        for img in images[:max_images]:
+            path = img.get("stored_path", "")
+            desc = img.get("description", "") or img.get("original_filename", "")
+            alt_text = desc.replace('"', "'")
+
+            # 构建完整的图片标签
+            img_tag = f'<img src="{path}" alt="{alt_text}" style="max-width:100%;margin:20px 0;" loading="lazy" />'
+            image_tags.append(img_tag)
+
+        if not image_tags:
+            return content
+
+        # 尝试在第一个</p>后插入
+        first_para_end = content.find("</p>")
+        if first_para_end != -1:
+            insert_pos = first_para_end + 4
+            content = content[:insert_pos] + "\n".join(image_tags) + content[insert_pos:]
+        else:
+            # 如果没有</p>，在</section>后插入
+            first_section_end = content.find("</section>")
+            if first_section_end != -1:
+                insert_pos = first_section_end + len("</section>")
+                content = content[:insert_pos] + "\n".join(image_tags) + content[insert_pos:]
+
+        log.print_log(f"[IMAGE_INSERT] 已插入 {len(image_tags)} 张相关图片到HTML内容", "info")
+        return content
+
     def get_base_content_config(self, **kwargs) -> WorkflowConfig:
         """动态生成基础内容配置，根据平台和需求定制"""
 
         config = Config.get_instance()
         # 获取目标平台
         publish_platform = kwargs.get("publish_platform", PlatformType.WECHAT.value)
+
+        # Task 2: 写作任务的描述
         writer_des = f"""基于话题'{{topic}}'和搜索工具获取的最新信息，撰写一篇高质量的文章。
 
 工具 aiforge_search_tool 使用参数：
@@ -72,7 +145,8 @@ class UnifiedContentWorkflow:
     - 如果是"搜索"结果：基于搜索到的信息进行原创写作
     - 优先使用搜索结果中的真实发布时间和数据
     - 如果没有获取到有效结果：使用通用时间表述进行原创写作
-3. 确保文章逻辑清晰、内容完整、语言流畅
+3. 如果前置任务搜索到了知识库中的相关资料，应结合知识库资料进行创作
+4. 确保文章逻辑清晰、内容完整、语言流畅
 
 文章要求：
 - 标题：当{{platform}}不为空时为"{{platform}}|{{topic}}"，否则为"{{topic}}"
@@ -82,26 +156,71 @@ class UnifiedContentWorkflow:
 
         config = Config.get_instance()
 
-        # 基础配置
-        agents = [
+        knowledge_manager = KnowledgeManager.get_instance()
+        knowledge_sources = knowledge_manager.get_all_knowledge_sources()
+        embedder = knowledge_manager.get_embedder() if knowledge_sources else {}
+
+        # 根据文本知识库是否启用，决定是否添加知识搜索 Agent 和 Task
+        text_enabled = knowledge_manager.is_text_enabled()
+
+        agents = []
+        tasks = []
+
+        # Agent: 知识研究员（文本知识库启用时添加）
+        if text_enabled:
+            agents.append(
+                AgentConfig(
+                    role="知识研究员",
+                    name="researcher",
+                    goal="根据话题，在知识库中搜索相关的参考资料和素材",
+                    backstory=(
+                        "你是知识检索专家。你的任务是根据给定的话题，"
+                        "使用 text_knowledge_search 工具搜索知识库中的相关资料。"
+                        "请从话题中提取最核心的关键词进行搜索（例如话题是'火锅店老板创业故事'，"
+                        "就用'创业故事'或'火锅店老板'搜索），不要用完整的话题描述作为搜索词。"
+                        "如果搜索到相关资料，完整输出资料内容；如果未找到，说明即可。"
+                    ),
+                    tools=["TextKnowledgeSearchTool"],
+                ),
+            )
+            tasks.append(
+                TaskConfig(
+                    name="search_knowledge",
+                    description=(
+                        "请根据话题 '{{topic}}'，在知识库中搜索相关的参考资料。\n"
+                        "步骤：\n"
+                        "1. 从话题中提取 1-3 个核心关键词\n"
+                        "2. 使用 text_knowledge_search 工具搜索\n"
+                        "3. 如果第一次搜索无结果，尝试换一组关键词再搜索一次\n"
+                        "4. 输出找到的相关知识内容（含完整正文），或明确说明未找到"
+                    ),
+                    agent_name="researcher",
+                    expected_output="搜索到的相关知识内容（含完整正文），或'未找到相关知识'",
+                ),
+            )
+
+        # Agent: 内容创作专家
+        agents.append(
             AgentConfig(
                 role="内容创作专家",
                 name="writer",
                 goal="撰写高质量文章",
-                backstory="你是一位作家",
-                tools=["AIForgeSearchTool"],
+                backstory="你是一位作家，能够结合外部搜索结果和知识库内容完成写作。若前置任务搜索到了知识库中的相关资料，应优先参考其内容融入文章。",
+                tools=["AIForgeSearchTool", "ImageSearchTool"],
             ),
-        ]
+        )
 
-        tasks = [
+        # Task: 写作
+        write_context = ["search_knowledge"] if text_enabled else []
+        tasks.append(
             TaskConfig(
                 name="write_content",
                 description=writer_des,
                 agent_name="writer",
                 expected_output="文章标题 + 文章正文（标准Markdown格式）",
-                context=["analyze_topic"],
+                context=write_context,
             ),
-        ]
+        )
 
         return WorkflowConfig(
             name=f"{publish_platform}_content_generation",
@@ -110,6 +229,9 @@ class UnifiedContentWorkflow:
             content_type=ContentType.ARTICLE,
             agents=agents,
             tasks=tasks,
+            knowledge_sources=knowledge_sources,
+            embedder=embedder,
+            knowledge_config=knowledge_manager.get_knowledge_config(),
         )
 
     def _generate_base_content(self, topic: str, **kwargs) -> ContentResult:
@@ -144,6 +266,9 @@ class UnifiedContentWorkflow:
         else:
             title = topic
 
+        # 注意: 图片检索和文本知识检索已移至 CrewAI Task 内部，
+        # 图片配图将在后续专门的配图流程中处理
+
         try:
             # 1. 生成基础内容（统一Markdown格式）
             base_content = self._generate_base_content(
@@ -157,8 +282,9 @@ class UnifiedContentWorkflow:
             log.print_log("[PROGRESS:CREATIVE:END]", "internal")
 
             # 3. 转换处理（template或design）
-
+            log.print_log("[PROGRESS:TRANSFORM:START]", "internal")
             transform_content = self._transform_content(final_content, publish_platform, **kwargs)
+            log.print_log("[PROGRESS:TRANSFORM:END]", "internal")
 
             # 4. 保存（非AI参与）
             log.print_log("[PROGRESS:SAVE:START]", "internal")

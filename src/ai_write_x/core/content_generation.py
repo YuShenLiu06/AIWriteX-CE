@@ -11,6 +11,7 @@ from src.ai_write_x.core.agent_factory import AgentFactory
 from src.ai_write_x.core.monitoring import WorkflowMonitor
 from src.ai_write_x.utils.content_parser import ContentParser
 from src.ai_write_x.utils import utils
+from src.ai_write_x.utils import log
 
 
 class ContentGenerationEngine(BaseWorkflowFramework):
@@ -68,12 +69,28 @@ class ContentGenerationEngine(BaseWorkflowFramework):
 
             process = process_map.get(self.config.workflow_type, Process.sequential)
 
-            crew = Crew(
-                agents=list(self.agents.values()),
-                tasks=list(self.tasks.values()),
-                process=process,
-                verbose=True,
-            )
+            crew_kwargs = {
+                "agents": list(self.agents.values()),
+                "tasks": list(self.tasks.values()),
+                "process": process,
+                "verbose": True,
+            }
+            if self.config.knowledge_sources:
+                crew_kwargs["knowledge_sources"] = self.config.knowledge_sources
+            if self.config.embedder:
+                crew_kwargs["embedder"] = self.config.embedder
+            if self.config.knowledge_config is not None:
+                crew_kwargs["knowledge_config"] = self.config.knowledge_config
+
+            crew = Crew(**crew_kwargs)
+
+            # 检测知识库是否因 Embedder API 超时而静默失败
+            if self.config.knowledge_sources and not crew.knowledge:
+                log.print_log(
+                    "[知识库] 警告: Crew 知识库初始化失败 (可能是 Embedder API 超时)，"
+                    "本次生成将不使用知识库内容",
+                    "warning",
+                )
 
             result = crew.kickoff(inputs=input_data)
             result = utils.remove_code_blocks(str(result))

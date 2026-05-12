@@ -68,6 +68,13 @@ class AgentFactory:
             "verbose": config.verbose,
         }
 
+        if config.knowledge_sources:
+            agent_kwargs["knowledge_sources"] = config.knowledge_sources
+        if config.embedder:
+            agent_kwargs["embedder"] = config.embedder
+        if config.knowledge_config is not None:
+            agent_kwargs["knowledge_config"] = config.knowledge_config
+
         # 添加模板支持
         if hasattr(config, "system_template") and config.system_template:
             agent_kwargs["system_template"] = config.system_template
