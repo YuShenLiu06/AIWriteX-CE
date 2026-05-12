@@ -50,6 +50,7 @@ async def get_config():
             "dimensional_creative": config_dict.get("dimensional_creative", {}),
             "aiforge_config": config.aiforge_config,
             "page_design": config_dict.get("page_design"),
+            "knowledge": config_dict.get("knowledge", {}),
         }
 
         return {"status": "success", "data": config_data}
@@ -186,28 +187,6 @@ async def get_platforms():
         raise HTTPException(status_code=500, detail=str(e))
 
 
-@router.get("/system-messages")
-async def get_system_messages():
-    """获取系统消息/帮助信息"""
-    config = Config.get_instance()
-
-    # 从配置中读取系统消息
-    system_messages = config.config.get("system_messages", [])
-
-    # 如果配置中没有,返回默认消息
-    if not system_messages:
-        system_messages = [
-            {"text": "欢迎使用AIWriteX智能内容创作平台", "type": "info"},
-            {"text": "本项目禁止用于商业用途，仅限个人使用", "type": "info"},
-            {"text": "技术支持与业务合作，请联系522765228@qq.com", "type": "info"},
-            {
-                "text": "AIWriteX重新定义AI辅助内容创作的边界，融合搜索+借鉴+AI+创意四重能力，多种超绝玩法，让内容创作充满无限可能",
-                "type": "info",
-            },
-            {"text": "更多AIWriteX功能开发中，敬请期待", "type": "info"},
-        ]
-
-    return {"status": "success", "data": system_messages}
 
 
 @router.get("/page-design")
