@@ -1,7 +1,7 @@
 # -*- coding: UTF-8 -*-
 
-__version__ = "2.3.1"
-__author__ = "https://aiwritex.voidai.cc"
+__version__ = "1.0.0"
+__author__ = "AIWriteX-CE Community"
 
 
 def get_version():
