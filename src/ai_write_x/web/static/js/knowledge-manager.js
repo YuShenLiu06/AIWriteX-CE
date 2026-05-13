@@ -83,15 +83,6 @@ class KnowledgeManager {
     }
 
     bindEvents() {
-        // 知识库类型切换Tab
-        document.querySelectorAll('.km-tab-btn').forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                document.querySelectorAll('.km-tab-btn').forEach(b => b.classList.remove('active'));
-                e.target.classList.add('active');
-                this.switchKnowledgeType(e.target.dataset.type);
-            });
-        });
-
         // 视图切换
         document.querySelectorAll('#knowledge-manager-view .view-btn').forEach(btn => {
             btn.addEventListener('click', (e) => this.switchView(e.target.closest('.view-btn').dataset.layout));
@@ -771,16 +762,13 @@ class KnowledgeManager {
 
     showUploadModal() {
         const modal = document.getElementById('km-upload-modal');
-        console.log('showUploadModal called, modal element:', modal);
         if (modal) {
-            console.log('Setting modal display to flex');
             modal.style.display = 'flex';
             document.getElementById('km-file-input').value = '';
             document.getElementById('km-image-description').value = '';
             document.getElementById('km-image-tags').value = '';
             document.getElementById('km-image-category').value = '';
-        } else {
-            console.error('km-upload-modal element not found!');
+            this._resetUploadButton();
         }
     }
 
@@ -866,8 +854,16 @@ class KnowledgeManager {
         const category = document.getElementById('km-image-category').value;
 
         if (!fileInput.files || fileInput.files.length === 0) {
-            window.app?.showNotification('请选择图片', 'warning');
+            this._notify('请先选择一张图片', 'warning');
             return;
+        }
+
+        // 显示上传中状态
+        const uploadBtn = document.getElementById('km-confirm-upload');
+        const originalText = uploadBtn?.textContent;
+        if (uploadBtn) {
+            uploadBtn.disabled = true;
+            uploadBtn.textContent = '上传中...';
         }
 
         const formData = new FormData();
@@ -877,22 +873,44 @@ class KnowledgeManager {
         formData.append('category', category);
 
         try {
-            const response = await fetch('/api/images', {
+            const response = await fetch('/api/images/', {
                 method: 'POST',
                 body: formData
             });
 
             if (response.ok) {
-                window.app?.showNotification('图片上传成功', 'success');
+                this._notify('图片上传成功', 'success');
                 this.hideUploadModal();
                 this.loadImages();
             } else {
-                const error = await response.json();
-                window.app?.showNotification(error.message || '上传失败', 'error');
+                const errorData = await response.json().catch(() => ({}));
+                const errorMsg = errorData.detail || errorData.message || '上传失败';
+                this._notify(errorMsg, 'error');
             }
         } catch (error) {
             console.error('上传失败:', error);
-            window.app?.showNotification('上传失败', 'error');
+            this._notify('网络错误，上传失败', 'error');
+        } finally {
+            if (uploadBtn) {
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = originalText || '上传';
+            }
+        }
+    }
+
+    _resetUploadButton() {
+        const btn = document.getElementById('km-confirm-upload');
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = '上传';
+        }
+    }
+
+    _notify(message, type = 'info') {
+        if (window.app?.showNotification) {
+            window.app.showNotification(message, type);
+        } else if (window.dialogManager?.showAlert) {
+            window.dialogManager.showAlert(message, type === 'error' ? 'error' : 'info');
         }
     }
 
