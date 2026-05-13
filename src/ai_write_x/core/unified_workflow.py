@@ -123,6 +123,77 @@ class UnifiedContentWorkflow:
         log.print_log(f"[IMAGE_INSERT] 已插入 {len(image_tags)} 张相关图片到HTML内容", "info")
         return content
 
+    def _extract_image_results(self) -> List[Dict[str, Any]]:
+        """从 CrewAI 任务输出中提取图片搜索结果"""
+        try:
+            if not self.content_engine or not self.content_engine.tasks:
+                return []
+
+            search_task = self.content_engine.tasks.get("search_images")
+            if not search_task or not hasattr(search_task, "output") or not search_task.output:
+                return []
+
+            raw = getattr(search_task.output, "raw", str(search_task.output))
+            raw = utils.remove_code_blocks(raw)
+            images = json.loads(raw)
+
+            if isinstance(images, list):
+                valid = [
+                    img for img in images
+                    if img.get("image_id") and img.get("stored_path")
+                ]
+                if valid:
+                    log.print_log(
+                        f"[IMAGE_MATCH] 提取到 {len(valid)} 张匹配图片", "info"
+                    )
+                return valid
+            return []
+        except (json.JSONDecodeError, Exception) as e:
+            log.print_log(f"[IMAGE_MATCH] 图片结果解析失败: {e}", "warning")
+            return []
+
+    def _replace_placeholder_images(
+        self, content: ContentResult, images: List[Dict[str, Any]]
+    ) -> ContentResult:
+        """替换 HTML 中的占位图片为知识库匹配图片"""
+        import re
+
+        if not images:
+            return content
+
+        html = content.content
+        pattern = r'(src=["\'])https://picsum\.photos/[^"\']+(["\'])'
+        matches = list(re.finditer(pattern, html))
+
+        if not matches:
+            log.print_log("[IMAGE_MATCH] 未找到占位图片", "info")
+            return content
+
+        replaced = 0
+        for i, match in enumerate(matches):
+            if i >= len(images):
+                break
+            path = images[i].get("stored_path", "")
+            if path:
+                html = (
+                    html[: match.start()]
+                    + f'src="{path}"'
+                    + html[match.end() :]
+                )
+                replaced += 1
+
+        log.print_log(
+            f"[IMAGE_MATCH] 替换了 {replaced}/{len(matches)} 张占位图片", "info"
+        )
+
+        return ContentResult(
+            title=content.title,
+            content=html,
+            summary=content.summary,
+            content_format=content.content_format,
+            metadata=content.metadata,
+        )
+
     def get_base_content_config(self, **kwargs) -> WorkflowConfig:
         """动态生成基础内容配置，根据平台和需求定制"""
 
@@ -160,8 +231,9 @@ class UnifiedContentWorkflow:
         knowledge_sources = knowledge_manager.get_all_knowledge_sources()
         embedder = knowledge_manager.get_embedder() if knowledge_sources else {}
 
-        # 根据文本知识库是否启用，决定是否添加知识搜索 Agent 和 Task
+        # 根据知识库启用状态，决定是否添加搜索 Agent 和 Task
         text_enabled = knowledge_manager.is_text_enabled()
+        image_enabled = knowledge_manager.is_image_enabled()
 
         agents = []
         tasks = []
@@ -187,7 +259,7 @@ class UnifiedContentWorkflow:
                 TaskConfig(
                     name="search_knowledge",
                     description=(
-                        "请根据话题 '{{topic}}'，在知识库中搜索相关的参考资料。\n"
+                        "请根据话题 '{topic}'，在知识库中搜索相关的参考资料。\n"
                         "步骤：\n"
                         "1. 从话题中提取 1-3 个核心关键词\n"
                         "2. 使用 text_knowledge_search 工具搜索\n"
@@ -196,6 +268,46 @@ class UnifiedContentWorkflow:
                     ),
                     agent_name="researcher",
                     expected_output="搜索到的相关知识内容（含完整正文），或'未找到相关知识'",
+                ),
+            )
+
+        # Agent: 图片匹配专家（图片知识库启用时添加）
+        if image_enabled:
+            agents.append(
+                AgentConfig(
+                    role="图片匹配专家",
+                    name="image_matcher",
+                    goal="根据文章话题，在图片知识库中搜索最匹配的图片",
+                    backstory=(
+                        "你是图片检索专家。根据给定的话题，"
+                        "使用 image_search 工具搜索图片知识库中的相关图片。"
+                        "请从话题中提取关键场景、主题和概念作为搜索词，"
+                        "每个搜索词应简洁精准（2-4个词），分别搜索不同维度的图片。"
+                    ),
+                    tools=["ImageSearchTool"],
+                ),
+            )
+            tasks.append(
+                TaskConfig(
+                    name="search_images",
+                    description=(
+                        "请根据话题 '{topic}' 搜索图片知识库。\n"
+                        "步骤：\n"
+                        "1. 分析话题，提取 3-5 个不同维度的搜索关键词\n"
+                        "   （主题词、场景词、情感词、物体词）\n"
+                        "2. 对每个关键词使用 image_search 工具搜索，limit=2\n"
+                        "3. 汇总所有结果，去除重复（相同 image_id），保留最多 8 张\n"
+                        "4. 输出 JSON 格式的图片列表\n\n"
+                        "输出格式（必须是合法JSON数组）：\n"
+                        '[{{"image_id": "...", "stored_path": "...", '
+                        '"description": "...", "score": 0.9}}]'
+                    ),
+                    agent_name="image_matcher",
+                    expected_output=(
+                        "JSON格式的匹配图片列表，"
+                        "包含 image_id, stored_path, description, score"
+                    ),
+                    context=["search_knowledge"] if text_enabled else [],
                 ),
             )
 
@@ -211,7 +323,11 @@ class UnifiedContentWorkflow:
         )
 
         # Task: 写作
-        write_context = ["search_knowledge"] if text_enabled else []
+        write_context = []
+        if text_enabled:
+            write_context.append("search_knowledge")
+        if image_enabled:
+            write_context.append("search_images")
         tasks.append(
             TaskConfig(
                 name="write_content",
@@ -250,7 +366,14 @@ class UnifiedContentWorkflow:
             "reference_ratio": kwargs.get("reference_ratio", 0.0),
         }
 
-        return self.content_engine.execute_workflow(input_data)
+        result = self.content_engine.execute_workflow(input_data)
+
+        # 提取图片搜索结果
+        matched_images = self._extract_image_results()
+        if matched_images:
+            result.metadata["matched_images"] = matched_images
+
+        return result
 
     def execute(self, topic: str, **kwargs) -> Dict[str, Any]:
         """统一执行流程：输入 -> 内容生成 -> 格式处理 -> 保存 -> 发布"""
@@ -267,7 +390,7 @@ class UnifiedContentWorkflow:
             title = topic
 
         # 注意: 图片检索和文本知识检索已移至 CrewAI Task 内部，
-        # 图片配图将在后续专门的配图流程中处理
+        # 图片配图在 HTML 变换后通过 _replace_placeholder_images 处理
 
         try:
             # 1. 生成基础内容（统一Markdown格式）
@@ -285,6 +408,15 @@ class UnifiedContentWorkflow:
             log.print_log("[PROGRESS:TRANSFORM:START]", "internal")
             transform_content = self._transform_content(final_content, publish_platform, **kwargs)
             log.print_log("[PROGRESS:TRANSFORM:END]", "internal")
+
+            # 3.5 配图替换：用知识库匹配图片替换占位图
+            matched_images = base_content.metadata.get("matched_images", [])
+            if matched_images:
+                log.print_log("[PROGRESS:IMAGE_MATCH:START]", "internal")
+                transform_content = self._replace_placeholder_images(
+                    transform_content, matched_images
+                )
+                log.print_log("[PROGRESS:IMAGE_MATCH:END]", "internal")
 
             # 4. 保存（非AI参与）
             log.print_log("[PROGRESS:SAVE:START]", "internal")
