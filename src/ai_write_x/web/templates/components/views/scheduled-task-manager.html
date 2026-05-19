@@ -1,0 +1,188 @@
+<div id="scheduled-task-manager-view" class="view-content" style="display: none;">
+    <div class="manager-layout">
+        <aside class="manager-sidebar">
+            <div class="sidebar-header">
+                <h3>任务筛选</h3>
+            </div>
+            <div class="sidebar-tree" id="scheduled-task-sidebar-tree"></div>
+            <div class="sidebar-stats">
+                <div class="stat-item">
+                    <span class="stat-label">调度器:</span>
+                    <span class="stat-value" id="scheduled-task-sidebar-runtime">-</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">启用任务:</span>
+                    <span class="stat-value" id="scheduled-task-sidebar-enabled-count">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-label">任务总数:</span>
+                    <span class="stat-value" id="scheduled-task-sidebar-total-count">0</span>
+                </div>
+            </div>
+        </aside>
+
+        <main class="main-wrapper">
+            <div class="manager-toolbar">
+                <div class="search-box">
+                    <svg class="search-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor">
+                        <circle cx="11" cy="11" r="8" />
+                        <path d="m21 21-4.35-4.35" />
+                    </svg>
+                    <input type="text" id="scheduled-task-search" placeholder="搜索任务名称、话题或任务 ID...">
+                </div>
+
+                <div class="toolbar-actions">
+                    <div class="view-toggle">
+                        <button class="view-btn active" data-layout="grid" title="网格视图">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor">
+                                <rect x="3" y="3" width="7" height="7" />
+                                <rect x="14" y="3" width="7" height="7" />
+                                <rect x="3" y="14" width="7" height="7" />
+                                <rect x="14" y="14" width="7" height="7" />
+                            </svg>
+                        </button>
+                        <button class="view-btn" data-layout="list" title="列表视图">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor">
+                                <line x1="8" y1="6" x2="21" y2="6" />
+                                <line x1="8" y1="12" x2="21" y2="12" />
+                                <line x1="8" y1="18" x2="21" y2="18" />
+                                <line x1="3" y1="6" x2="3.01" y2="6" />
+                                <line x1="3" y1="12" x2="3.01" y2="12" />
+                                <line x1="3" y1="18" x2="3.01" y2="18" />
+                            </svg>
+                        </button>
+                    </div>
+
+                    <button class="btn btn-secondary" id="scheduled-task-refresh-btn">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <polyline points="23 4 23 10 17 10" />
+                            <polyline points="1 20 1 14 7 14" />
+                            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10" />
+                            <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14" />
+                        </svg>
+                        刷新
+                    </button>
+
+                    <button class="btn btn-primary" id="scheduled-task-create-btn">
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M12 5v14" />
+                            <path d="M5 12h14" />
+                        </svg>
+                        新建任务
+                    </button>
+                </div>
+            </div>
+
+            <div class="manager-main">
+                <div class="scheduled-task-content">
+                <section class="scheduled-task-runtime-panel">
+                    <div class="scheduled-task-panel-header">
+                        <div>
+                            <h3>运行状态</h3>
+                            <p>通过现有 fetch 模式读取调度器与当前执行状态。</p>
+                        </div>
+                        <button class="btn btn-secondary" id="scheduled-task-runtime-refresh-btn">刷新状态</button>
+                    </div>
+                    <div class="scheduled-task-runtime-grid" id="scheduled-task-runtime-grid"></div>
+                </section>
+
+                <section class="scheduled-task-list-panel">
+                    <div class="scheduled-task-panel-header">
+                        <div>
+                            <h3>任务列表</h3>
+                            <p id="scheduled-task-list-caption">创建、启停、立即执行并查看定时任务概况。</p>
+                        </div>
+                    </div>
+                    <div class="scheduled-task-grid content-grid" id="scheduled-task-grid"></div>
+                </section>
+
+                <div class="scheduled-task-detail-layout">
+                    <section class="scheduled-task-detail-panel">
+                        <div class="scheduled-task-panel-header">
+                            <div>
+                                <h3 id="scheduled-task-form-title">新建任务</h3>
+                                <p>话题字段必填，语义与创意工坊的 topic-input 一致，但本页不支持空话题自动热搜。</p>
+                            </div>
+                            <span class="scheduled-task-selected-badge" id="scheduled-task-selected-badge">未选择任务</span>
+                        </div>
+
+                        <form id="scheduled-task-form" class="scheduled-task-form">
+                            <input type="hidden" id="scheduled-task-id">
+
+                            <div class="scheduled-task-form-row">
+                                <div class="form-group">
+                                    <label class="form-label" for="scheduled-task-name">任务名称</label>
+                                    <input type="text" id="scheduled-task-name" class="form-input" placeholder="例如：每日 AI 行业热点整理" maxlength="100" required>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="scheduled-task-schedule-type">调度方式</label>
+                                    <select id="scheduled-task-schedule-type" class="form-select">
+                                        <option value="fixed_time">固定时间</option>
+                                        <option value="cron">Cron 表达式</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label class="form-label" for="scheduled-task-topic">任务话题 <span class="scheduled-task-required">*</span></label>
+                                <textarea
+                                    id="scheduled-task-topic"
+                                    class="form-textarea scheduled-task-topic-input"
+                                    rows="4"
+                                    placeholder="请输入需要定时生成的文章话题"
+                                    required
+                                ></textarea>
+                                <p class="scheduled-task-form-hint">
+                                    与创意工坊 topic-input 的输入语义一致，直接决定本次创作方向；此页面不支持留空后自动获取热搜。
+                                </p>
+                            </div>
+
+                            <div class="scheduled-task-form-row">
+                                <div class="form-group scheduled-task-schedule-field" data-schedule-mode="fixed_time">
+                                    <label class="form-label" for="scheduled-task-time-of-day">每日触发时间</label>
+                                    <input type="time" id="scheduled-task-time-of-day" class="form-input" value="09:00">
+                                </div>
+                                <div class="form-group scheduled-task-schedule-field" data-schedule-mode="cron" style="display: none;">
+                                    <label class="form-label" for="scheduled-task-cron-expression">Cron 表达式</label>
+                                    <input type="text" id="scheduled-task-cron-expression" class="form-input" placeholder="例如：0 9 * * *">
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label" for="scheduled-task-max-retries">最大重试次数</label>
+                                    <input type="number" id="scheduled-task-max-retries" class="form-input" value="3" min="0" max="10" step="1">
+                                </div>
+                            </div>
+
+                            <div class="scheduled-task-form-row scheduled-task-form-row-checkboxes">
+                                <label class="scheduled-task-checkbox">
+                                    <input type="checkbox" id="scheduled-task-enabled" checked>
+                                    <span>保存后立即启用</span>
+                                </label>
+                                <label class="scheduled-task-checkbox">
+                                    <input type="checkbox" id="scheduled-task-auto-publish" checked>
+                                    <span>生成成功后自动发布</span>
+                                </label>
+                            </div>
+
+                            <div class="scheduled-task-form-actions">
+                                <button type="button" class="btn btn-secondary" id="scheduled-task-reset-btn">重置表单</button>
+                                <button type="submit" class="btn btn-primary" id="scheduled-task-save-btn">保存任务</button>
+                            </div>
+                        </form>
+                    </section>
+
+                    <section class="scheduled-task-history-panel">
+                        <div class="scheduled-task-panel-header">
+                            <div>
+                                <h3>执行记录</h3>
+                                <p id="scheduled-task-history-caption">选择任务后查看运行历史、失败信息与产出记录。</p>
+                            </div>
+                            <button class="btn btn-secondary" id="scheduled-task-history-refresh-btn">刷新记录</button>
+                        </div>
+                        <div class="scheduled-task-history" id="scheduled-task-history"></div>
+                    </section>
+                </div>
+                </div>
+            </div>
+        </main>
+    </div>
+</div>

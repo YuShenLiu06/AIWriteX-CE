@@ -167,6 +167,7 @@ class KnowledgeManager {
 
     async switchKnowledgeType(type) {
         this.currentKnowledgeType = type;
+
         const imagePanel = document.getElementById('km-image-panel');
         const textPanel = document.getElementById('km-text-panel');
         const addBtnText = document.getElementById('km-add-btn-text');

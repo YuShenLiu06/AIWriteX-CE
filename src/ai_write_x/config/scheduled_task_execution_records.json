@@ -1,0 +1,37 @@
+{
+  "records": [
+    {
+      "record_id": "rec_ae207f89",
+      "task_id": "task_d77298f8",
+      "started_at": "2026-05-19T12:11:00.010553+00:00",
+      "finished_at": null,
+      "status": "running",
+      "retry_attempt": 0,
+      "message": null,
+      "article_path": null,
+      "published": false
+    },
+    {
+      "record_id": "rec_99fa2dea",
+      "task_id": "task_d77298f8",
+      "started_at": "2026-05-19T20:22:00.003229+08:00",
+      "finished_at": "2026-05-19T20:22:11.823611+08:00",
+      "status": "success",
+      "retry_attempt": 0,
+      "message": "任务执行完成",
+      "article_path": null,
+      "published": false
+    },
+    {
+      "record_id": "rec_705444f8",
+      "task_id": "task_d77298f8",
+      "started_at": "2026-05-19T20:30:00.008763+08:00",
+      "finished_at": "2026-05-19T20:34:48.092863+08:00",
+      "status": "success",
+      "retry_attempt": 0,
+      "message": "任务执行完成",
+      "article_path": null,
+      "published": false
+    }
+  ]
+}

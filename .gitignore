@@ -28,5 +28,7 @@ build_secrets.json
 .claude/
 tempt/
 
+src/ai_write_x/config/config.yaml
+
 # 知识库本地存储（ChromaDB向量数据库、任务缓存等运行时数据）
 knowledge_storage/

@@ -91,6 +91,16 @@ class PathManager:
         return PathManager.get_config_dir() / file_name
 
     @staticmethod
+    def get_scheduled_tasks_path():
+        """获取定时任务定义 JSON 文件路径"""
+        return PathManager.get_config_dir() / "scheduled_tasks.json"
+
+    @staticmethod
+    def get_scheduled_task_records_path():
+        """获取定时任务执行记录 JSON 文件路径"""
+        return PathManager.get_config_dir() / "scheduled_task_execution_records.json"
+
+    @staticmethod
     def ensure_directory_exists(path):
         """确保目录存在，如果不存在则创建"""
         Path(path).mkdir(parents=True, exist_ok=True)

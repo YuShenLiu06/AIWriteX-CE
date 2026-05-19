@@ -32,15 +32,39 @@
                     <span>模板管理</span>
                 </a>
             </li>
-            <li class="nav-item">
-                <a href="#" class="nav-link" data-view="knowledge-manager">
+            <li class="nav-item nav-item-expandable">
+                <a href="#" class="nav-link nav-toggle" data-view="knowledge-manager">
                     <svg class="nav-icon" viewBox="0 0 24 24">
                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
                         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
                     </svg>
                     <span>知识库管理</span>
+                    <svg class="nav-arrow" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="9,18 15,12 9,6"></polyline>
+                    </svg>
                 </a>
-            </li>  
+                <ul class="nav-submenu">
+                    <li class="nav-subitem">
+                        <a href="#" class="nav-sublink active" data-knowledge="image">
+                            <span>图片知识库</span>
+                        </a>
+                    </li>
+                    <li class="nav-subitem">
+                        <a href="#" class="nav-sublink" data-knowledge="text">
+                            <span>文本知识库</span>
+                        </a>
+                    </li>
+                </ul>
+            </li>
+            <li class="nav-item">
+                <a href="#" class="nav-link" data-view="scheduled-task-manager">
+                    <svg class="nav-icon" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                    <span>定时任务</span>
+                </a>
+            </li>
             <!-- 系统设置 - 支持二级菜单 -->  
             <li class="nav-item nav-item-expandable">  
                 <a href="#" class="nav-link nav-toggle" data-view="config-manager">  

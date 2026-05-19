@@ -16,7 +16,7 @@ max_tokens = 8192
 [llm.deepseek]
 type = "deepseek"
 model = "deepseek-chat"
-api_key = "sk-8d5fbba83fc34b459f6560663514675d"
+api_key = "sk-f09124d0717f457b826ba11727f57ba1"
 base_url = "https://api.deepseek.com"
 timeout = 60
 max_tokens = 8192

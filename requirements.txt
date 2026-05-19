@@ -21,3 +21,4 @@ pywin32>=306; sys_platform == "win32"
 python-multipart>=0.0.6  
 jinja2>=3.1.0  
 cryptography
+apscheduler>=3.10.0

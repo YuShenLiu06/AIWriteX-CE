@@ -31,6 +31,7 @@ from .api.generate import router as generate_router
 from .api.images import router as images_router
 from .api.text_knowledge import router as text_knowledge_router
 from .api.knowledge import router as knowledge_router
+from .api.scheduled_tasks import router as scheduled_tasks_router
 
 # 添加全局状态
 app_shutdown_event = asyncio.Event()
@@ -57,12 +58,36 @@ async def lifespan(app: FastAPI):
         if not app_state.config.load_config():
             log.print_log("配置加载失败，使用默认配置", "warning")
 
+        # 初始化定时任务模块
+        try:
+            from src.ai_write_x.scheduler import (
+                ScheduledTaskRepository,
+                ScheduledTaskService,
+                ScheduledTaskExecutor,
+                ScheduledTaskScheduler,
+            )
+
+            repository = ScheduledTaskRepository()
+            service = ScheduledTaskService(repository)
+            executor = ScheduledTaskExecutor(service)
+            scheduler = ScheduledTaskScheduler(service, executor)
+
+            app_state.scheduled_task_service = service
+            app_state.scheduled_task_executor = executor
+            app_state.scheduled_task_scheduler = scheduler
+
+            scheduler.start()
+        except Exception as e:
+            log.print_log(f"定时任务模块初始化失败: {e}", "warning")
+
     except Exception as e:
         log.print_log(f"Web服务启动失败: {str(e)}", "error")
 
     yield
 
     # 关闭时执行
+    if app_state.scheduled_task_scheduler:
+        app_state.scheduled_task_scheduler.stop()
     app_state.is_running = False
     log.print_log("AIWriteX Web服务正在关闭", "info")
 
@@ -102,6 +127,7 @@ app.include_router(generate_router)
 app.include_router(images_router)
 app.include_router(text_knowledge_router)
 app.include_router(knowledge_router)
+app.include_router(scheduled_tasks_router)
 
 
 @app.get("/", response_class=HTMLResponse)
