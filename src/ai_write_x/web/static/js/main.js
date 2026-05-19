@@ -26,37 +26,52 @@ class AIWriteXApp {
             });    
         });    
             
-        // 系统配置主菜单切换    
-        const navToggle = document.querySelector('.nav-toggle');    
-        if (navToggle) {    
-            navToggle.addEventListener('click', (e) => {    
-                e.preventDefault();    
-                const navItem = e.target.closest('.nav-item-expandable');    
-                if (navItem) {    
-                    navItem.classList.toggle('expanded');    
-                }    
-                this.showView('config-manager');    
-            });    
-        }    
-            
-        // 配置二级菜单点击事件    
-        document.querySelectorAll('.nav-sublink').forEach(link => {    
-            link.addEventListener('click', (e) => {    
-                e.preventDefault();    
-                const configType = link.dataset.config;    
-                    
-                // 更新二级菜单状态    
-                document.querySelectorAll('.nav-sublink').forEach(sublink => {    
-                    sublink.classList.remove('active');    
-                });    
-                link.classList.add('active');    
-                    
-                // 委托给配置管理器    
-                if (window.configManager) {    
-                    window.configManager.showConfigPanel(configType);    
-                }    
-            });    
-        });    
+        // 可展开菜单项（知识库管理、系统设置）的点击事件
+        document.querySelectorAll('.nav-item-expandable').forEach(navItem => {
+            const navToggle = navItem.querySelector('.nav-toggle');
+            if (navToggle) {
+                navToggle.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    navItem.classList.toggle('expanded');
+                    const view = navToggle.dataset.view;
+                    if (view) {
+                        this.showView(view);
+                    }
+                });
+            }
+        });
+
+        // 二级菜单点击事件
+        document.querySelectorAll('.nav-sublink').forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const configType = link.dataset.config;
+                const knowledgeType = link.dataset.knowledge;
+                const navItem = link.closest('.nav-item-expandable');
+
+                if (configType) {
+                    navItem?.querySelectorAll('.nav-sublink').forEach(sublink => {
+                        sublink.classList.remove('active');
+                    });
+                    link.classList.add('active');
+                    this.showView('config-manager');
+
+                    if (window.configManager) {
+                        window.configManager.showConfigPanel(configType);
+                    }
+                } else if (knowledgeType) {
+                    navItem?.querySelectorAll('.nav-sublink').forEach(sublink => {
+                        sublink.classList.remove('active');
+                    });
+                    link.classList.add('active');
+                    this.showView('knowledge-manager');
+
+                    if (window.knowledgeManager) {
+                        window.knowledgeManager.switchKnowledgeType(knowledgeType);
+                    }
+                }
+            });
+        });
     }    
         
     showView(viewName) {  
@@ -160,14 +175,14 @@ case 'article-manager':
                 this.fallbackShowConfigPanel('ui');
             }
         } else {
-            // 如果切换到非配置管理视图,折叠系统设置菜单
-            const expandableNavItem = document.querySelector('.nav-item-expandable');
-            if (expandableNavItem) {
-                expandableNavItem.classList.remove('expanded');
+            // 如果切换到非配置管理视图,仅折叠系统设置菜单
+            const configNavItem = document.querySelector('.nav-item-expandable .nav-toggle[data-view="config-manager"]')?.closest('.nav-item-expandable');
+            if (configNavItem) {
+                configNavItem.classList.remove('expanded');
             }
 
-            // 同时清除所有子菜单的 active 状态
-            document.querySelectorAll('.nav-sublink').forEach(sublink => {
+            // 同时清除系统设置子菜单的 active 状态
+            configNavItem?.querySelectorAll('.nav-sublink').forEach(sublink => {
                 sublink.classList.remove('active');
             });
         }
