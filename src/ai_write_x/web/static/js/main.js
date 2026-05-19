@@ -147,7 +147,12 @@ case 'article-manager':
                     window.knowledgeManager = new KnowledgeManager();
                 }
                 break;
-        }    
+            case 'scheduled-task-manager':
+                if (!window.scheduledTaskManager) {
+                    window.scheduledTaskManager = new ScheduledTaskManager();
+                }
+                break;
+        }
     }    
         
     handleConfigViewSwitch(viewName) {

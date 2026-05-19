@@ -78,11 +78,16 @@ body {
     contain-intrinsic-size: 0 800px;  
 }  
 
-#creative-workshop-view.view-content {  
-    overflow: hidden;  
-    padding: 0;  
-    content-visibility: auto;  
-    contain-intrinsic-size: 0 800px;  
+#creative-workshop-view.view-content {
+    overflow: hidden;
+    padding: 0;
+    content-visibility: auto;
+    contain-intrinsic-size: 0 800px;
+}
+
+#scheduled-task-manager-view.view-content {
+    overflow: hidden;
+    padding: 0;
 }
 
 .view-content.show {  

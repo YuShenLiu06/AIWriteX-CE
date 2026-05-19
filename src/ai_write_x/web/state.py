@@ -11,6 +11,9 @@ class AppState:
         self.log_queue = None
         self.is_running = False
         self.config = None
+        self.scheduled_task_service = None
+        self.scheduled_task_scheduler = None
+        self.scheduled_task_executor = None
 
 
 # 全局状态实例

@@ -1,0 +1,438 @@
+/* 定时任务管理器样式 */
+
+/* ========== 内容区域统一样式 ========== */
+#scheduled-task-manager-view .scheduled-task-content {
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+}
+
+/* ========== 运行状态面板 ========== */
+#scheduled-task-manager-view .scheduled-task-runtime-panel {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-runtime-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.75rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-runtime-card {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    padding: 0.875rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    transition: border-color 0.2s;
+}
+
+#scheduled-task-manager-view .scheduled-task-runtime-card.success {
+    border-left: 3px solid var(--success-color, #22c55e);
+}
+
+#scheduled-task-manager-view .scheduled-task-runtime-card.info {
+    border-left: 3px solid var(--info-color, #3b82f6);
+}
+
+#scheduled-task-manager-view .scheduled-task-runtime-card.warning {
+    border-left: 3px solid var(--warning-color, #f59e0b);
+}
+
+#scheduled-task-manager-view .scheduled-task-runtime-card.error {
+    border-left: 3px solid var(--error-color, #ef4444);
+}
+
+#scheduled-task-manager-view .scheduled-task-runtime-card.neutral {
+    border-left: 3px solid var(--border-color, #94a3b8);
+}
+
+#scheduled-task-manager-view .scheduled-task-runtime-title {
+    font-size: 0.75rem;
+    color: var(--text-secondary, #64748b);
+}
+
+#scheduled-task-manager-view .scheduled-task-runtime-value {
+    font-size: 1rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-runtime-desc {
+    font-size: 0.7rem;
+    color: var(--text-tertiary, #94a3b8);
+    margin: 0;
+}
+
+/* ========== 面板头部 ========== */
+#scheduled-task-manager-view .scheduled-task-panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+/* ========== 任务列表面板 ========== */
+#scheduled-task-manager-view .scheduled-task-list-panel {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-panel-header h3 {
+    margin: 0;
+    font-size: 1rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-panel-header p {
+    margin: 0.25rem 0 0;
+    font-size: 0.8rem;
+    color: var(--text-secondary, #64748b);
+}
+
+/* ========== 状态标签 ========== */
+#scheduled-task-manager-view .scheduled-task-status-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    font-size: 0.7rem;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+#scheduled-task-manager-view .scheduled-task-status-badge.neutral {
+    background: var(--neutral-bg, #f1f5f9);
+    color: var(--text-secondary, #64748b);
+}
+
+#scheduled-task-manager-view .scheduled-task-status-badge.success {
+    background: var(--success-bg, #dcfce7);
+    color: var(--success-color, #16a34a);
+}
+
+#scheduled-task-manager-view .scheduled-task-status-badge.info {
+    background: var(--info-bg, #dbeafe);
+    color: var(--info-color, #2563eb);
+}
+
+#scheduled-task-manager-view .scheduled-task-status-badge.warning {
+    background: var(--warning-bg, #fef3c7);
+    color: var(--warning-color, #d97706);
+}
+
+#scheduled-task-manager-view .scheduled-task-status-badge.error {
+    background: var(--error-bg, #fee2e2);
+    color: var(--error-color, #dc2626);
+}
+
+/* ========== Chip 标签 ========== */
+#scheduled-task-manager-view .scheduled-task-chip {
+    display: inline-block;
+    padding: 0.1rem 0.4rem;
+    border-radius: 4px;
+    font-size: 0.65rem;
+    font-weight: 500;
+}
+
+#scheduled-task-manager-view .scheduled-task-chip.success {
+    background: var(--success-bg, #dcfce7);
+    color: var(--success-color, #16a34a);
+}
+
+#scheduled-task-manager-view .scheduled-task-chip.info {
+    background: var(--info-bg, #dbeafe);
+    color: var(--info-color, #2563eb);
+}
+
+#scheduled-task-manager-view .scheduled-task-chip.neutral {
+    background: var(--neutral-bg, #f1f5f9);
+    color: var(--text-secondary, #64748b);
+}
+
+#scheduled-task-manager-view .scheduled-task-chip-row {
+    display: flex;
+    gap: 0.375rem;
+    flex-wrap: wrap;
+    margin-top: 0.375rem;
+}
+
+/* ========== 任务卡片 ========== */
+#scheduled-task-manager-view .scheduled-task-card {
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+#scheduled-task-manager-view .scheduled-task-card-body {
+    padding: 0.75rem 1rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-card.selected {
+    border-color: var(--primary-color, #3b82f6);
+    box-shadow: 0 0 0 1px var(--primary-color, #3b82f6);
+}
+
+#scheduled-task-manager-view .scheduled-task-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.5rem;
+    margin-bottom: 0.375rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-card-title-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex: 1;
+    min-width: 0;
+}
+
+#scheduled-task-manager-view .scheduled-task-card-title-group .card-title {
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#scheduled-task-manager-view .scheduled-task-task-id {
+    font-size: 0.65rem;
+    color: var(--text-tertiary, #94a3b8);
+    flex-shrink: 0;
+}
+
+#scheduled-task-manager-view .scheduled-task-topic-text {
+    font-size: 0.8rem;
+    color: var(--text-secondary, #64748b);
+    margin: 0;
+    line-height: 1.4;
+}
+
+#scheduled-task-manager-view .scheduled-task-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.375rem 1rem;
+    margin-top: 0.5rem;
+    font-size: 0.75rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-meta-grid dt {
+    color: var(--text-tertiary, #94a3b8);
+    font-weight: normal;
+}
+
+#scheduled-task-manager-view .scheduled-task-meta-grid dd {
+    margin: 0;
+    color: var(--text-primary, #1e293b);
+}
+
+#scheduled-task-manager-view .scheduled-task-error-text {
+    margin: 0.5rem 0 0;
+    font-size: 0.75rem;
+    color: var(--error-color, #ef4444);
+}
+
+/* ========== 卡片操作按钮 ========== */
+#scheduled-task-manager-view .scheduled-task-card-actions {
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.5rem 0 0;
+    border-top: 1px solid var(--border-color, #e2e8f0);
+    margin-top: 0.5rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-action-btn {
+    flex: 1;
+    padding: 0.35rem 0;
+    border: none;
+    background: transparent;
+    color: var(--text-secondary, #64748b);
+    cursor: pointer;
+    font-size: 0.75rem;
+    border-radius: 4px;
+    transition: background 0.15s, color 0.15s;
+}
+
+#scheduled-task-manager-view .scheduled-task-action-btn:hover {
+    background: var(--hover-bg, #f1f5f9);
+    color: var(--text-primary, #1e293b);
+}
+
+#scheduled-task-manager-view .scheduled-task-action-btn.danger:hover {
+    background: var(--error-bg, #fee2e2);
+    color: var(--error-color, #ef4444);
+}
+
+/* ========== 表单 ========== */
+#scheduled-task-manager-view .scheduled-task-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-form-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-form-row-checkboxes {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    align-items: center;
+}
+
+#scheduled-task-manager-view .scheduled-task-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+#scheduled-task-manager-view .scheduled-task-checkbox input[type="checkbox"] {
+    width: 1rem;
+    height: 1rem;
+    cursor: pointer;
+}
+
+#scheduled-task-manager-view .scheduled-task-required {
+    color: var(--error-color, #ef4444);
+}
+
+#scheduled-task-manager-view .scheduled-task-form-hint {
+    font-size: 0.75rem;
+    color: var(--text-tertiary, #94a3b8);
+    margin: 0.25rem 0 0;
+}
+
+#scheduled-task-manager-view .scheduled-task-form-actions {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: flex-end;
+}
+
+#scheduled-task-manager-view .scheduled-task-selected-badge {
+    font-size: 0.75rem;
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    background: var(--neutral-bg, #f1f5f9);
+    color: var(--text-secondary, #64748b);
+}
+
+/* ========== 详情/历史布局 ========== */
+#scheduled-task-manager-view .scheduled-task-detail-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-detail-panel,
+#scheduled-task-manager-view .scheduled-task-history-panel {
+    background: var(--card-bg, #ffffff);
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+/* ========== 执行记录 ========== */
+#scheduled-task-manager-view .scheduled-task-history {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-history-item {
+    border: 1px solid var(--border-color, #e2e8f0);
+    border-radius: 6px;
+    padding: 0.75rem;
+    font-size: 0.8rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-history-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.5rem;
+    flex-wrap: wrap;
+}
+
+#scheduled-task-manager-view .scheduled-task-history-time {
+    font-size: 0.7rem;
+    color: var(--text-tertiary, #94a3b8);
+}
+
+#scheduled-task-manager-view .scheduled-task-history-body p {
+    margin: 0.25rem 0;
+    font-size: 0.75rem;
+}
+
+#scheduled-task-manager-view .scheduled-task-history-empty {
+    text-align: center;
+    padding: 2rem 1rem;
+    color: var(--text-tertiary, #94a3b8);
+}
+
+#scheduled-task-manager-view .scheduled-task-history-empty svg {
+    margin-bottom: 0.75rem;
+    opacity: 0.4;
+}
+
+/* ========== 空状态 ========== */
+#scheduled-task-manager-view .scheduled-task-empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-tertiary, #94a3b8);
+}
+
+#scheduled-task-manager-view .scheduled-task-empty-state svg {
+    margin-bottom: 1rem;
+    opacity: 0.3;
+}
+
+#scheduled-task-manager-view .scheduled-task-empty-state h3 {
+    margin: 0 0 0.5rem;
+    color: var(--text-secondary, #64748b);
+}
+
+#scheduled-task-manager-view .scheduled-task-empty-state p {
+    margin: 0;
+    font-size: 0.85rem;
+}
+
+/* ========== 列表模式 ========== */
+#scheduled-task-manager-view .scheduled-task-grid.list-view {
+    grid-template-columns: 1fr;
+}
+
+#scheduled-task-manager-view .scheduled-task-grid.list-view .scheduled-task-card {
+    flex-direction: row;
+    align-items: center;
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 900px) {
+    #scheduled-task-manager-view .scheduled-task-detail-layout {
+        grid-template-columns: 1fr;
+    }
+
+    #scheduled-task-manager-view .scheduled-task-runtime-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 600px) {
+    #scheduled-task-manager-view .scheduled-task-runtime-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #scheduled-task-manager-view .scheduled-task-form-row {
+        grid-template-columns: 1fr;
+    }
+}
