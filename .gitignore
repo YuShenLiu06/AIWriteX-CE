@@ -32,3 +32,10 @@ src/ai_write_x/config/config.yaml
 
 # 知识库本地存储（ChromaDB向量数据库、任务缓存等运行时数据）
 knowledge_storage/
+knowledge/texts/text_knowledge_index.json
+
+# 配置文件（包含 API 密钥等敏感信息）
+src/ai_write_x/config/aiforge.toml
+src/ai_write_x/config/scheduled_tasks.json
+src/ai_write_x/config/scheduled_task_execution_records.json
+src/ai_write_x/config/config.yaml
