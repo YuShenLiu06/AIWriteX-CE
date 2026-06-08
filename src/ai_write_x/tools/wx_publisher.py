@@ -54,12 +54,16 @@ class WeixinPublisher:
         self.img_api_type = config.img_api_type  # 只有一种模型，统一从配置读取
         self.img_api_key = config.img_api_key
         self.img_api_model = config.img_api_model
+        # SOCKS5 代理配置（用于固定微信 API 出口 IP）
+        self._proxies = config.get_proxies()
+        if self._proxies:
+            log.print_log(f"微信API请求已启用代理: {config.get_proxy_url()}", "info")
 
     @property
     def is_verified(self):
         if not hasattr(self, "_is_verified"):
             url = f"{self.BASE_URL}/account/getaccountbasicinfo?access_token={self._ensure_access_token()}"  # noqa 501
-            response = requests.get(url, timeout=5)
+            response = requests.get(url, timeout=5, proxies=self._proxies)
 
             try:
                 response.raise_for_status()
@@ -84,7 +88,7 @@ class WeixinPublisher:
         url = f"{self.BASE_URL}/token?grant_type=client_credential&appid={self.app_id}&secret={self.app_secret}"  # noqa 501
 
         try:
-            response = requests.get(url)
+            response = requests.get(url, proxies=self._proxies)
             response.raise_for_status()
             data = response.json()
             access_token = data.get("access_token")
@@ -126,7 +130,7 @@ class WeixinPublisher:
 
             headers = {"Content-Type": "application/json"}
             json_data = json.dumps(data, ensure_ascii=False).encode("utf-8")
-            response = requests.post(url, data=json_data, headers=headers)
+            response = requests.post(url, data=json_data, headers=headers, proxies=self._proxies)
             response.raise_for_status()
             data = response.json()
 
@@ -197,7 +201,7 @@ class WeixinPublisher:
 
             if resolved_path.startswith(("http://", "https://")):
                 # 处理网络图片
-                image_response = requests.get(resolved_path, stream=True)
+                image_response = requests.get(resolved_path, stream=True, proxies=self._proxies)
                 image_response.raise_for_status()
                 image_buffer = BytesIO(image_response.content)
 
@@ -227,7 +231,7 @@ class WeixinPublisher:
                 url = f"{self.BASE_URL}/material/add_material?access_token={token}&type=image"
 
             files = {"media": (file_name, image_buffer, mime_type)}
-            response = requests.post(url, files=files)
+            response = requests.post(url, files=files, proxies=self._proxies)
             response.raise_for_status()
             data = response.json()
 
@@ -279,7 +283,7 @@ class WeixinPublisher:
         data = {"media_id": media_id}
 
         try:
-            response = requests.post(url, params=params, json=data)
+            response = requests.post(url, params=params, json=data, proxies=self._proxies)
             response.raise_for_status()
             result = response.json()
 
@@ -309,7 +313,7 @@ class WeixinPublisher:
         params = {"publish_id": publish_id}
 
         for _ in range(max_retries):
-            response = requests.post(url, json=params).json()
+            response = requests.post(url, json=params, proxies=self._proxies).json()
             if response.get("article_id"):
                 return response.get("article_detail")["item"][0]["article_url"]
 
@@ -332,7 +336,7 @@ class WeixinPublisher:
         }
         menu_url = f"{self.BASE_URL}/menu/create?access_token={self._ensure_access_token()}"
         try:
-            result = requests.post(menu_url, json=menu_data).json()
+            result = requests.post(menu_url, json=menu_data, proxies=self._proxies).json()
             if "errcode" in result and result.get("errcode") != 0:
                 ret = f"创建菜单失败: {result.get('errmsg')}"
         except Exception as e:
@@ -363,7 +367,7 @@ class WeixinPublisher:
             data = {"articles": articles}
             headers = {"Content-Type": "application/json"}
             json_data = json.dumps(data, ensure_ascii=False).encode("utf-8")
-            response = requests.post(url, data=json_data, headers=headers)
+            response = requests.post(url, data=json_data, headers=headers, proxies=self._proxies)
             response.raise_for_status()
             result = response.json()
 
@@ -403,7 +407,7 @@ class WeixinPublisher:
         url = f"{self.BASE_URL}/message/mass/sendall?access_token={self._ensure_access_token()}"
 
         try:
-            result = requests.post(url, json=data).json()
+            result = requests.post(url, json=data, proxies=self._proxies).json()
             if "errcode" in result and result.get("errcode") != 0:
                 ret = f"根据标签进行群发失败: {result.get('errmsg')}"
         except Exception as e:

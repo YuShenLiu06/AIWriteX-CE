@@ -75,6 +75,13 @@ class Config:
                 {"name": "知乎热榜", "weight": 0.01, "enabled": True},
             ],
             "publish_platform": "wechat",
+            "proxy": {
+                "enabled": False,
+                "host": "",
+                "port": 9000,
+                "username": "",
+                "password": "",
+            },
             "wechat": {
                 "credentials": [
                     {
@@ -1540,6 +1547,49 @@ class Config:
             if not self.config:
                 raise ValueError("配置未加载")
             return self.config["wechat"]["credentials"]
+
+    def get_proxy_config(self) -> Dict[str, Any]:
+        """获取代理配置，返回包含代理信息的字典。
+
+        Returns:
+            包含 enabled, host, port, username, password 的字典。
+            如果未启用则返回 {"enabled": False}。
+        """
+        with self._lock:
+            if not self.config:
+                return {"enabled": False}
+            return self.config.get("proxy", {"enabled": False})
+
+    def get_proxy_url(self) -> str | None:
+        """获取构建好的 SOCKS5 代理 URL。
+
+        Returns:
+            如 "socks5://user:pass@host:port"，未启用时返回 None。
+        """
+        proxy_cfg = self.get_proxy_config()
+        if not proxy_cfg.get("enabled", False):
+            return None
+        host = proxy_cfg.get("host", "")
+        if not host:
+            return None
+        port = proxy_cfg.get("port", 9000)
+        username = proxy_cfg.get("username", "")
+        password = proxy_cfg.get("password", "")
+        if username and password:
+            return f"socks5://{username}:{password}@{host}:{port}"
+        return f"socks5://{host}:{port}"
+
+    def get_proxies(self) -> Dict[str, str]:
+        """获取 requests 库可用的 proxies 字典。
+
+        Returns:
+            如 {"http": "socks5://...", "https": "socks5://..."}，
+            未启用代理时返回空字典。
+        """
+        proxy_url = self.get_proxy_url()
+        if not proxy_url:
+            return {}
+        return {"http": proxy_url, "https": proxy_url}
 
     @property
     def api_type(self):
