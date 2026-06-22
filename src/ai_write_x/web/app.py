@@ -1,15 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
+import os
 import time
 import asyncio
 from pathlib import Path
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 
 import uvicorn
@@ -32,6 +34,8 @@ from .api.images import router as images_router
 from .api.text_knowledge import router as text_knowledge_router
 from .api.knowledge import router as knowledge_router
 from .api.scheduled_tasks import router as scheduled_tasks_router
+from .api.convert import router as convert_router
+from .auth import load_auth_config, verify_auth
 
 # 添加全局状态
 app_shutdown_event = asyncio.Event()
@@ -57,6 +61,9 @@ async def lifespan(app: FastAPI):
         app_state.config = Config.get_instance()
         if not app_state.config.load_config():
             log.print_log("配置加载失败，使用默认配置", "warning")
+
+        # 初始化鉴权配置(环境变量优先 > config.yaml auth 段 > 默认)
+        load_auth_config(app_state.config.config)
 
         # 初始化定时任务模块
         try:
@@ -116,6 +123,18 @@ app.mount("/images", StaticFiles(directory=PathManager.get_image_dir()), name="i
 
 app.add_middleware(GZipMiddleware, minimum_size=1000)
 
+# CORS:仅当显式配置 AIWRITEX_CORS_ORIGINS 时启用(生产建议同源反代)
+_raw_cors = os.environ.get("AIWRITEX_CORS_ORIGINS", "")
+_cors_origins = [o.strip() for o in _raw_cors.split(",") if o.strip()]
+if _cors_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
 # 模板引擎
 templates = Jinja2Templates(directory=str(templates_path))
 
@@ -128,9 +147,10 @@ app.include_router(images_router)
 app.include_router(text_knowledge_router)
 app.include_router(knowledge_router)
 app.include_router(scheduled_tasks_router)
+app.include_router(convert_router)
 
 
-@app.get("/", response_class=HTMLResponse)
+@app.get("/", response_class=HTMLResponse, dependencies=[Depends(verify_auth)])
 async def read_root(request: Request):
     """返回主界面"""
     return templates.TemplateResponse(
