@@ -1303,7 +1303,7 @@ class Config:
                 "api_key": "",  # 由 AIWRITEX_AUTH_API_KEY 环境变量注入
                 "public_paths": ["/health", "/static", "/images"],
             },
-        },
+        }
 
         self.default_aiforge_config = {
             "locale": "zh",

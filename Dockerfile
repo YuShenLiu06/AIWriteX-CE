@@ -6,10 +6,18 @@ FROM python:3.11-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app \
+    PIP_INDEX_URL=https://pypi.tuna.tsinghua.edu.cn/simple \
+    PIP_TRUSTED_HOST=pypi.tuna.tsinghua.edu.cn \
+    PIP_DISABLE_PIP_VERSION_CHECK=1 \
+    PIP_DEFAULT_TIMEOUT=120
 
 # 工作目录
 WORKDIR /app
+
+# 替换 apt 为清华源(大陆构建加速)
+RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources \
+    && sed -i 's|security.debian.org|mirrors.tuna.tsinghua.edu.cn|g' /etc/apt/sources.list.d/debian.sources
 
 # 安装系统依赖并清理缓存
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -22,8 +30,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY requirements-server.txt /app/
 
 # 安装 Python 依赖
-RUN pip install --upgrade pip && \
-    pip install -r requirements-server.txt
+RUN pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple \
+    && pip install -r requirements-server.txt
 
 # 复制源代码
 COPY src ./src
