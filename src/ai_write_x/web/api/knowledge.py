@@ -5,13 +5,15 @@
 提供知识库统计与统一刷新能力。
 """
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from ..auth import verify_auth
 
 from src.ai_write_x.core.knowledge_manager import KnowledgeManager
 from src.ai_write_x.utils import log
 
 
-router = APIRouter(prefix="/api/knowledge", tags=["knowledge"])
+router = APIRouter(prefix="/api/knowledge", tags=["knowledge"], dependencies=[Depends(verify_auth)])
 
 
 @router.get("/stats")

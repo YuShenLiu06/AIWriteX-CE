@@ -8,7 +8,9 @@
 import tempfile
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+
+from ..auth import verify_auth
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import List, Optional
@@ -18,7 +20,7 @@ from src.ai_write_x.core.knowledge_manager import KnowledgeManager
 from src.ai_write_x.utils import log
 
 
-router = APIRouter(prefix="/api/images", tags=["images"])
+router = APIRouter(prefix="/api/images", tags=["images"], dependencies=[Depends(verify_auth)])
 
 
 class ImageUpdate(BaseModel):

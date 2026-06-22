@@ -7,7 +7,9 @@
 
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from ..auth import verify_auth
 from pydantic import BaseModel, Field
 
 from src.ai_write_x.core.knowledge_manager import KnowledgeManager
@@ -15,7 +17,7 @@ from src.ai_write_x.core.text_knowledge_repository import TextKnowledgeRepositor
 from src.ai_write_x.utils import log
 
 
-router = APIRouter(prefix="/api/text-knowledge", tags=["text-knowledge"])
+router = APIRouter(prefix="/api/text-knowledge", tags=["text-knowledge"], dependencies=[Depends(verify_auth)])
 
 
 class TextKnowledgeCreate(BaseModel):

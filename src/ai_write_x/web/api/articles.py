@@ -1,7 +1,7 @@
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import HTMLResponse, Response
 from fastapi import File, UploadFile
 import uuid
@@ -9,13 +9,15 @@ from pydantic import BaseModel
 from typing import List, Optional
 import json
 
+from ..auth import verify_auth
+
 from src.ai_write_x.config.config import Config
 from src.ai_write_x.utils.path_manager import PathManager
 from src.ai_write_x.tools.wx_publisher import pub2wx
 from src.ai_write_x.utils import utils
 
 
-router = APIRouter(prefix="/api/articles", tags=["articles"])
+router = APIRouter(prefix="/api/articles", tags=["articles"], dependencies=[Depends(verify_auth)])
 
 
 class ArticleContentUpdate(BaseModel):

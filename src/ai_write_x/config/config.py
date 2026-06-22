@@ -1295,6 +1295,14 @@ class Config:
                     "base_url": "",
                 },
             },
+            # 鉴权配置(保护对外 API 与 Web 访问)
+            "auth": {
+                "enabled": False,  # 默认关闭保持开发体验;Docker 经 AIWRITEX_AUTH_ENABLED=true 开启
+                "username": "admin",
+                "password": "",  # 由 AIWRITEX_AUTH_PASSWORD 环境变量注入,勿落配置文件
+                "api_key": "",  # 由 AIWRITEX_AUTH_API_KEY 环境变量注入
+                "public_paths": ["/health", "/static", "/images"],
+            },
         },
 
         self.default_aiforge_config = {

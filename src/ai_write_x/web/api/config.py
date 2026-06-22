@@ -3,7 +3,9 @@
 
 import json
 from typing import Dict, Any
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from ..auth import verify_auth
 from pydantic import BaseModel
 import requests
 from packaging import version
@@ -16,7 +18,7 @@ from src.ai_write_x.utils.path_manager import PathManager
 from src.ai_write_x.adapters.platform_adapters import PlatformType
 
 
-router = APIRouter(prefix="/api/config", tags=["config"])
+router = APIRouter(prefix="/api/config", tags=["config"], dependencies=[Depends(verify_auth)])
 
 
 class ConfigUpdateRequest(BaseModel):

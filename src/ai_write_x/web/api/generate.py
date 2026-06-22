@@ -1,7 +1,10 @@
 #!/usr/bin/env python
 # -*- coding: UTF-8 -*-
 
-from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
+import secrets
+from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketDisconnect
+
+from ..auth import verify_auth, get_auth_config
 from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from typing import Optional
@@ -16,12 +19,46 @@ from src.ai_write_x.crew_main import ai_write_x_main
 from src.ai_write_x.tools import hotnews
 from src.ai_write_x.utils import utils, log
 
-router = APIRouter(prefix="/api", tags=["generate"])
+router = APIRouter(prefix="/api", tags=["generate"], dependencies=[Depends(verify_auth)])
 
 # 全局任务管理
 _current_process = None
 _current_log_queue = None
 _task_status = {"status": "idle", "error": None}
+
+
+def _check_websocket_auth(websocket: WebSocket) -> bool:
+    """WebSocket 鉴权检查 - 支持 Basic Auth 和 API Key"""
+    auth_cfg = get_auth_config()
+    if not auth_cfg.enabled:
+        return True
+
+    # 检查 Authorization 头 (Basic Auth)
+    auth_header = websocket.headers.get("authorization", "")
+    if auth_header:
+        if auth_header.startswith("Basic "):
+            import base64
+            try:
+                decoded = base64.b64decode(auth_header[6:]).decode("utf-8")
+                username, password = decoded.split(":", 1)
+                user_ok = secrets.compare_digest(
+                    username.encode("utf-8"), auth_cfg.username.encode("utf-8")
+                )
+                pass_ok = secrets.compare_digest(
+                    password.encode("utf-8"), auth_cfg.password.encode("utf-8")
+                )
+                if user_ok and pass_ok:
+                    return True
+            except Exception:
+                pass
+
+    # 检查 query 参数 api_key
+    query_params = dict(websocket.query_params)
+    api_key = query_params.get("api_key", "")
+    if api_key and secrets.compare_digest(api_key, auth_cfg.api_key):
+        return True
+
+    return False
 
 
 class ReferenceConfig(BaseModel):
@@ -234,6 +271,11 @@ async def get_generation_status():
 @router.websocket("/ws/generate/logs")
 async def websocket_logs(websocket: WebSocket):
     """WebSocket日志连接 - 统一处理主进程和子进程日志"""
+    # 鉴权检查
+    if not _check_websocket_auth(websocket):
+        await websocket.close(code=4401)
+        return
+
     await websocket.accept()
 
     global _current_log_queue, _current_process

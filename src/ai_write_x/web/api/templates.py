@@ -2,13 +2,15 @@ import shutil
 from datetime import datetime
 from pathlib import Path
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+
+from ..auth import verify_auth
 from fastapi.responses import HTMLResponse, Response
 from pydantic import BaseModel
 
 from src.ai_write_x.utils.path_manager import PathManager
 
-router = APIRouter(prefix="/api/templates", tags=["templates"])
+router = APIRouter(prefix="/api/templates", tags=["templates"], dependencies=[Depends(verify_auth)])
 
 
 # Pydantic 模型定义
