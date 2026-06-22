@@ -3,10 +3,15 @@
  * 职责:应用初始化、视图路由、全局通知    
  */    
 class AIWriteXApp {    
-    constructor() {    
-        this.currentView = 'creative-workshop';    
-            
-        this.init();    
+    constructor() {
+        this.currentView = 'creative-workshop';
+
+        try {
+            this.init();
+        } catch (error) {
+            console.error('应用初始化失败:', error);
+        }
+        this.setupMobileSidebar();
     }    
         
     init() {    
@@ -122,7 +127,12 @@ class AIWriteXApp {
         // 控制预览按钮的显示/隐藏  
         this.updatePreviewButtonVisibility(viewName);  
         
-        this.currentView = viewName;  
+        this.currentView = viewName;
+
+        // 移动端：导航后关闭侧边栏抽屉
+        if (this.closeMobileSidebar) {
+            this.closeMobileSidebar();
+        }
     }
         
     initializeViewManager(viewName) {    
@@ -213,6 +223,33 @@ case 'article-manager':
         }    
     }    
         
+    // ========== 移动端侧边栏抽屉 ==========
+
+    /** 初始化移动端汉堡菜单和侧边栏抽屉交互 */
+    setupMobileSidebar() {
+        const menuBtn = document.getElementById('mobile-menu-btn');
+        const sidebar = document.querySelector('.sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        if (!menuBtn || !sidebar) return;
+
+        /** 关闭侧边栏抽屉 */
+        this.closeMobileSidebar = () => {
+            sidebar.classList.remove('open');
+            overlay?.classList.remove('active');
+            document.body.style.overflow = '';
+        };
+
+        // 汉堡按钮点击 → 切换抽屉
+        menuBtn.addEventListener('click', () => {
+            const isOpen = sidebar.classList.toggle('open');
+            overlay?.classList.toggle('active');
+            document.body.style.overflow = isOpen ? 'hidden' : '';
+        });
+
+        // 点击遮罩层 → 关闭抽屉
+        overlay?.addEventListener('click', () => this.closeMobileSidebar());
+    }
+
     // ========== 全局通知系统 ==========    
     showNotification(message, type = 'info') {    
         const notification = document.createElement('div');    

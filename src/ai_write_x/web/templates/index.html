@@ -37,6 +37,9 @@
     <link rel="stylesheet" href="/static/css/views/config-manager.css">
     <link rel="stylesheet" href="/static/css/views/knowledge-manager.css">
     <link rel="stylesheet" href="/static/css/views/scheduled-task-manager.css">
+
+    <!-- 移动端适配样式（最后加载以覆盖桌面样式） -->
+    <link rel="stylesheet" href="/static/css/mobile.css">
 </head>  
   
 <body class="window-mode-standard" data-window-mode="standard">  
@@ -44,8 +47,11 @@
         <!-- 组件化的头部 -->  
         {% include 'components/header.html' %}  
           
-        <!-- 组件化的侧边栏 -->  
-        {% include 'components/sidebar.html' %}  
+        <!-- 组件化的侧边栏 -->
+        {% include 'components/sidebar.html' %}
+
+        <!-- 移动端侧边栏遮罩层 -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>  
           
         <!-- 主体布局 -->  
         <div class="app-main">  
@@ -77,7 +83,8 @@
     <script src="/static/lib/monaco/vs/loader.js"></script>  
     <script src="/static/js/dialog.js"></script>  
     <script src="/static/js/preview-panel.js"></script>
-    <script src="/static/js/main.js"></script>  
+    <script src="/static/js/update-checker.js"></script>
+<script src="/static/js/main.js"></script>  
     <script src="/static/js/progress-manager.js"></script> 
     <script src="/static/js/creative-workshop.js"></script> 
     <script src="/static/js/article-manager.js"></script>  

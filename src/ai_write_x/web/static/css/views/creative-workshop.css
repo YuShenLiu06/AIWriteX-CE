@@ -446,14 +446,14 @@
     height: 14px;  
 }  
   
-.toolbar-btn .btn-icon,  
-.generate-btn .btn-icon {  
-    width: 16px;  
-    height: 16px;  
+.toolbar-btn .panel-icon,
+.generate-btn .panel-icon {
+    width: 20px;
+    height: 20px;
 }  
   
-.generate-btn .btn-icon {  
-    stroke: white;  
+.generate-btn .panel-icon {
+    stroke: white;
 }  
   
 /* ========== 配置面板基类 ========== */  
