@@ -1,0 +1,60 @@
+version: "3.9"
+
+services:
+  aiwritex:
+    build: .
+    image: aiwritex:latest
+    container_name: aiwritex-server
+    ports:
+      - "${AIWRITEX_PORT:-8888}:8888"
+    environment:
+      # 运行模式
+      AIWRITEX_RUN_MODE: server
+
+      # 服务器配置
+      AIWRITEX_HOST: 0.0.0.0
+      AIWRITEX_PORT: 8888
+
+      # 认证配置
+      AIWRITEX_AUTH_ENABLED: "true"
+      AIWRITEX_AUTH_USER: ${AIWRITEX_AUTH_USER:-admin}
+      AIWRITEX_AUTH_PASSWORD: ${AIWRITEX_AUTH_PASSWORD}
+      AIWRITEX_AUTH_API_KEY: ${AIWRITEX_AUTH_API_KEY}
+
+      # CORS 配置
+      AIWRITEX_CORS_ORIGINS: ${AIWRITEX_CORS_ORIGINS:-http://localhost:3000,http://localhost:8888}
+
+      # LLM API 密钥
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY:-}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      XAI_API_KEY: ${XAI_API_KEY:-}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      GEMINI_API_KEY: ${GEMINI_API_KEY:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+    volumes:
+      # 配置文件（敏感信息，需要手动挂载）
+      - aiwritex-config:/app/src/ai_write_x/config
+      # 数据目录
+      - aiwritex-output:/app/output
+      - aiwritex-image:/app/image
+      - aiwritex-logs:/app/logs
+      - aiwritex-temp:/app/temp
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8888/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  aiwritex-config:
+    driver: local
+  aiwritex-output:
+    driver: local
+  aiwritex-image:
+    driver: local
+  aiwritex-logs:
+    driver: local
+  aiwritex-temp:
+    driver: local

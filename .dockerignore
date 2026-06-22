@@ -1,0 +1,50 @@
+# Git
+.git
+.github
+.gitignore
+
+# IDE
+.vscode
+.idea
+
+# Claude
+.claude
+
+# Python
+.venv
+venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# 项目特定
+aiforge_work
+knowledge
+knowledge_storage
+tempt
+tests
+docs
+
+# 静态资源（排除）
+*.jpg
+*.png
+*.jpeg
+*.gif
+*.webp
+
+# Node/前端（如果有）
+node_modules
+client
+
+# 环境文件
+.env
+.env.*
+!.env.example
+
+# 配置文件（敏感）
+config.yaml
+
+# Markdown 文档
+*.md
+!README.md
