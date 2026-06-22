@@ -67,7 +67,9 @@ class ScheduledTaskService:
         updates = {
             k: v for k, v in data.items()
             if k in ("name", "topic", "schedule_type", "time_of_day",
-                     "cron_expression", "enabled", "auto_publish", "max_retries")
+                     "cron_expression", "enabled", "auto_publish", "max_retries",
+                     "reference_urls", "reference_ratio", "template_category",
+                     "template_name", "platform")
         }
 
         if "topic" in updates and not updates["topic"].strip():

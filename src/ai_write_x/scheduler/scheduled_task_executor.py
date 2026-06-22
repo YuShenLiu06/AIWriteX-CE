@@ -99,13 +99,24 @@ class ScheduledTaskExecutor:
     @staticmethod
     def _build_config_data(task: ScheduledTask) -> dict:
         """将任务定义转为 generate.py 可消费的 config_data"""
+        from src.ai_write_x.utils import utils
+
+        # 解析参考URL:按 | 分割后过滤无效URL
+        urls = []
+        if task.reference_urls:
+            raw_urls = task.reference_urls.split("|")
+            urls = [u.strip() for u in raw_urls if u.strip() and utils.is_valid_url(u.strip())]
+
+        # 参考比例:整数转百分比(0-100 -> 0.0-1.0)
+        ratio = float(task.reference_ratio or 0) / 100.0
+
         return {
             "custom_topic": task.topic.strip(),
-            "urls": [],
-            "reference_ratio": 0.0,
-            "custom_template_category": "",
-            "custom_template": "",
-            "platform": "",
+            "urls": urls,
+            "reference_ratio": ratio,
+            "custom_template_category": task.template_category or "",
+            "custom_template": task.template_name or "",
+            "platform": task.platform or "",
         }
 
     @staticmethod

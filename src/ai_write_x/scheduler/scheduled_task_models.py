@@ -37,6 +37,12 @@ class ScheduledTask:
     last_error: Optional[str] = None
     created_at: str = field(default_factory=_now_iso)
     updated_at: str = field(default_factory=_now_iso)
+    # 生成配置扩展字段
+    reference_urls: str = ""
+    reference_ratio: int = 0
+    template_category: str = ""
+    template_name: str = ""
+    platform: str = ""
 
     def to_dict(self) -> Dict[str, Any]:
         return {
@@ -56,6 +62,11 @@ class ScheduledTask:
             "last_error": self.last_error,
             "created_at": self.created_at,
             "updated_at": self.updated_at,
+            "reference_urls": self.reference_urls,
+            "reference_ratio": self.reference_ratio,
+            "template_category": self.template_category,
+            "template_name": self.template_name,
+            "platform": self.platform,
         }
 
     @classmethod
@@ -77,6 +88,11 @@ class ScheduledTask:
             last_error=data.get("last_error"),
             created_at=data.get("created_at", _now_iso()),
             updated_at=data.get("updated_at", _now_iso()),
+            reference_urls=data.get("reference_urls", ""),
+            reference_ratio=data.get("reference_ratio", 0),
+            template_category=data.get("template_category", ""),
+            template_name=data.get("template_name", ""),
+            platform=data.get("platform", ""),
         )
 
 

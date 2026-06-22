@@ -2,14 +2,19 @@
 
 from __future__ import annotations
 
-from fastapi import APIRouter, HTTPException, Request
-from pydantic import BaseModel, field_validator
+from fastapi import APIRouter, Depends, HTTPException, Request
+from pydantic import BaseModel, Field, field_validator
 from typing import Optional
 
 from src.ai_write_x.utils import log
 from ..state import get_app_state
+from ..auth import verify_auth
 
-router = APIRouter(prefix="/api/scheduled-tasks", tags=["scheduled-tasks"])
+router = APIRouter(
+    prefix="/api/scheduled-tasks",
+    tags=["scheduled-tasks"],
+    dependencies=[Depends(verify_auth)]
+)
 
 
 class CreateTaskRequest(BaseModel):
@@ -21,6 +26,12 @@ class CreateTaskRequest(BaseModel):
     enabled: bool = True
     auto_publish: bool = False
     max_retries: int = 3
+    # 生成配置扩展字段
+    reference_urls: Optional[str] = None
+    reference_ratio: Optional[int] = Field(default=None, ge=0, le=100)
+    template_category: Optional[str] = None
+    template_name: Optional[str] = None
+    platform: Optional[str] = None
 
     @field_validator("topic")
     @classmethod
@@ -46,6 +57,12 @@ class UpdateTaskRequest(BaseModel):
     enabled: Optional[bool] = None
     auto_publish: Optional[bool] = None
     max_retries: Optional[int] = None
+    # 生成配置扩展字段
+    reference_urls: Optional[str] = None
+    reference_ratio: Optional[int] = Field(default=None, ge=0, le=100)
+    template_category: Optional[str] = None
+    template_name: Optional[str] = None
+    platform: Optional[str] = None
 
     @field_validator("topic")
     @classmethod
