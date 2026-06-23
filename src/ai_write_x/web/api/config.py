@@ -3,7 +3,7 @@
 
 import json
 from typing import Dict, Any
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 
 from ..auth import verify_auth
 from pydantic import BaseModel
@@ -205,14 +205,14 @@ async def get_page_design_config():
 
 
 @router.get("/help-manual")
-async def get_help_manual():
+async def get_help_manual(request: Request):
     """获取使用手册HTML内容"""
     from fastapi.responses import HTMLResponse
     from ..app import templates
 
     # 渲染模板
     html_content = templates.TemplateResponse(
-        "components/help-manual.html", {"request": {}}
+        request, "components/help-manual.html", {}
     ).body.decode("utf-8")
 
     return HTMLResponse(content=html_content)

@@ -154,7 +154,7 @@ app.include_router(convert_router)
 async def read_root(request: Request):
     """返回主界面"""
     return templates.TemplateResponse(
-        "index.html", {"request": request, "version": get_version_with_prefix()}  # 传递版本号
+        request, "index.html", {"version": get_version_with_prefix()}
     )
 
 
