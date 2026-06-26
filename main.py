@@ -6,6 +6,16 @@ import sys
 
 os.environ["PYTHONIOENCODING"] = "utf-8"
 
+# 启动期加载 .env 到 os.environ（Docker 已注入环境变量时无 .env 文件不报错；
+# override=False 不覆盖已存在的环境变量，双部署兼容）
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:
+    # python-dotenv 未安装时降级：依赖 OS 环境变量或 config.yaml
+    pass
+
 
 def _run_gui() -> None:
     """启动GUI应用程序（桌面模式）"""

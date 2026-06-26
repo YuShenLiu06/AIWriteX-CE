@@ -6,8 +6,13 @@ Web 端:浏览器收到 401 + WWW-Authenticate 头后自动弹出原生 Basic �
 登录成功后缓存凭证,后续同源 /api/* 请求自动带 Authorization 头。
 CLI/API 端:通过 X-API-Key 头或 Basic(user:pass)鉴权,二者任一通过即可。
 
+启用优先级(高 → 低):
+    1. 环境变量 AIWRITEX_AUTH_ENABLED 显式设置(true/false)
+    2. 凭证存在即启用(password 或 api_key 任一非空)
+
+注意:config.yaml 的 auth.enabled 字段不再被使用(旧版默认 false 会持续误导)。
 凭证来源优先级:环境变量 > config.yaml 的 auth 段 > 默认值。
-    AIWRITEX_AUTH_ENABLED   true/false   是否启用鉴权
+    AIWRITEX_AUTH_ENABLED   true/false   显式启停(可选,不设则按凭证自动判断)
     AIWRITEX_AUTH_USER      Basic 用户名
     AIWRITEX_AUTH_PASSWORD  Basic 密码
     AIWRITEX_AUTH_API_KEY   静态 API Key
@@ -45,26 +50,35 @@ class AuthConfig:
 _auth_config: AuthConfig = AuthConfig()
 
 
-def _env_bool(name: str, fallback: bool) -> bool:
-    raw = os.environ.get(name)
-    if raw is None:
-        return fallback
-    return raw.strip().lower() in ("1", "true", "yes", "on")
+def _resolve_enabled(cfg_auth: dict, password: str, api_key: str) -> bool:
+    """鉴权启用状态解析(忽略 config.yaml 的 enabled 字段,避免旧版默认值持续误导)。
+
+    优先级:
+    1. 环境变量 AIWRITEX_AUTH_ENABLED 显式非空设置 → 跟随该值(便于 dev 显式关闭)
+    2. 凭证(password 或 api_key)任一存在即启用
+    """
+    env_raw = os.environ.get("AIWRITEX_AUTH_ENABLED")
+    if env_raw is not None and env_raw.strip() != "":
+        return env_raw.strip().lower() in ("1", "true", "yes", "on")
+    return bool(password) or bool(api_key)
 
 
 def load_auth_config(config: dict | None = None) -> AuthConfig:
     """根据 config.yaml 的 auth 段与环境变量构建鉴权配置,并缓存为模块单例。
 
-    优先级:环境变量 > config.yaml 的 auth 段 > 默认值。
+    启用规则:AIWRITEX_AUTH_ENABLED 环境变量显式设置时跟随;否则凭证存在即启用。
+    凭证优先级:环境变量 > config.yaml 的 auth 段 > 默认值。
     """
     global _auth_config
 
     cfg = (config or {}).get("auth", {}) or {}
+    password = os.environ.get("AIWRITEX_AUTH_PASSWORD") or cfg.get("password") or ""
+    api_key = os.environ.get("AIWRITEX_AUTH_API_KEY") or cfg.get("api_key") or ""
     auth_cfg = AuthConfig(
-        enabled=_env_bool("AIWRITEX_AUTH_ENABLED", bool(cfg.get("enabled", False))),
+        enabled=_resolve_enabled(cfg, password, api_key),
         username=os.environ.get("AIWRITEX_AUTH_USER") or cfg.get("username") or "admin",
-        password=os.environ.get("AIWRITEX_AUTH_PASSWORD") or cfg.get("password") or "",
-        api_key=os.environ.get("AIWRITEX_AUTH_API_KEY") or cfg.get("api_key") or "",
+        password=password,
+        api_key=api_key,
         public_paths=tuple(cfg.get("public_paths") or _DEFAULT_PUBLIC_PATHS),
     )
 
@@ -77,6 +91,13 @@ def load_auth_config(config: dict | None = None) -> AuthConfig:
         log.print_log(
             f"[Auth] 鉴权已启用,user={auth_cfg.username},api_key 已配置={bool(auth_cfg.api_key)}",
             "info",
+        )
+    else:
+        log.print_log(
+            "[Auth] 鉴权已关闭,所有 API 与 Web 界面公网可访问。"
+            "如需启用请配置 AIWRITEX_AUTH_PASSWORD / AIWRITEX_AUTH_API_KEY,"
+            "或显式设 AIWRITEX_AUTH_ENABLED=true",
+            "warning",
         )
 
     _auth_config = auth_cfg

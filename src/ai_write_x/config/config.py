@@ -1296,8 +1296,10 @@ class Config:
                 },
             },
             # 鉴权配置(保护对外 API 与 Web 访问)
+            # enabled 字段保留向后兼容但不再被 auth.py 使用;
+            # 实际启停由 AIWRITEX_AUTH_ENABLED 环境变量或凭证存在性决定(详见 src/ai_write_x/web/auth.py)
             "auth": {
-                "enabled": False,  # 默认关闭保持开发体验;Docker 经 AIWRITEX_AUTH_ENABLED=true 开启
+                "enabled": False,  # 已废弃:仅为旧版配置兼容保留,实际不读取
                 "username": "admin",
                 "password": "",  # 由 AIWRITEX_AUTH_PASSWORD 环境变量注入,勿落配置文件
                 "api_key": "",  # 由 AIWRITEX_AUTH_API_KEY 环境变量注入

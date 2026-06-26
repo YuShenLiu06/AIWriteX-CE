@@ -165,7 +165,7 @@ async def health_check():
 
 
 # 添加关闭接口
-@app.post("/shutdown")
+@app.post("/shutdown", dependencies=[Depends(verify_auth)])
 async def shutdown():
     """关闭服务器"""
     app_shutdown_event.set()
