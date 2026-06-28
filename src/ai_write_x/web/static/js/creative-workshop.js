@@ -22,8 +22,9 @@ class CreativeWorkshopManager {
         this._hotSearchPlatform = '';    
           
         this.messageQueue = [];  // 消息队列  
-        this.isProcessingQueue = false;  // 是否正在处理队列  
-
+        this.isProcessingQueue = false;  // 是否正在处理队列
+        this._wsManualClose = false;  // WS 是否被主动关闭(区分主动/被动断开)
+        this._wsReconnectAttempts = 0;  // WS 断线重连尝试次数
         this.init();        
     }        
             
@@ -627,60 +628,99 @@ class CreativeWorkshopManager {
     }
     // ========== WebSocket 日志流式传输 ==========      
           
-    connectLogWebSocket() {      
-        if (this.logWebSocket) {      
-            this.logWebSocket.close();      
-        }      
-            
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';      
-        const wsUrl = `${protocol}//${window.location.host}/api/ws/generate/logs`;      
-            
-        try {      
-            this.logWebSocket = new WebSocket(wsUrl);      
-                
-            this.logWebSocket.onopen = () => {      
-                console.log('日志 WebSocket 已连接');      
-            };      
-                
-            this.logWebSocket.onmessage = (event) => {      
-                try {      
-                    const data = JSON.parse(event.data);      
-                      
-                    if (data.message && data.message.includes('[PROGRESS:')) {                          
-                        // 提取所有进度标记  
-                        const progressMarkers = data.message.match(/\[PROGRESS:[^\]]+\]/g); 
-                    }  
-                    // 将消息加入队列而不是直接处理  
-                    this.messageQueue.push(data);  
-                      
-                    // 如果没有在处理队列,启动处理  
-                    if (!this.isProcessingQueue) {  
-                        this.processMessageQueue();  
-                    }  
-                        
-                    // 转发到全局日志面板      
-                    this.appendLog(data.message, data.type, false, data.timestamp);  
-                        
-                    // 检查完成状态      
-                    if (data.type === 'completed' || data.type === 'failed') {      
-                        this.handleGenerationComplete(data);      
-                    }      
-                } catch (error) {      
-                    console.error('解析日志消息失败:', error);      
-                }      
-            };      
-                
-            this.logWebSocket.onerror = (error) => {      
-                console.error('WebSocket 错误:', error);     
-            };      
-                
-            this.logWebSocket.onclose = () => {      
-                this.logWebSocket = null;      
-            };      
-        } catch (error) {      
-            console.error('创建 WebSocket 连接失败:', error);      
-        }      
-    }    
+    connectLogWebSocket() {
+        // 新连接:清除主动关闭标志并重置重连计数
+        this._wsManualClose = false;
+        this._wsReconnectAttempts = 0;
+        this._openLogWebSocket();
+    }
+
+    // 实际建立 WS 连接(重连时复用,不重置计数)
+    _openLogWebSocket() {
+        if (this.logWebSocket) {
+            this.logWebSocket.close();
+        }
+
+        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const wsUrl = `${protocol}//${window.location.host}/api/ws/generate/logs`;
+
+        try {
+            this.logWebSocket = new WebSocket(wsUrl);
+
+            this.logWebSocket.onopen = () => {
+                console.log('日志 WebSocket 已连接');
+                this._wsReconnectAttempts = 0;
+            };
+
+            this.logWebSocket.onmessage = (event) => {
+                try {
+                    const data = JSON.parse(event.data);
+
+                    if (data.message && data.message.includes('[PROGRESS:')) {
+                        // 提取所有进度标记
+                        const progressMarkers = data.message.match(/\[PROGRESS:[^\]]+\]/g);
+                    }
+                    // 将消息加入队列而不是直接处理
+                    this.messageQueue.push(data);
+
+                    // 如果没有在处理队列,启动处理
+                    if (!this.isProcessingQueue) {
+                        this.processMessageQueue();
+                    }
+
+                    // 转发到全局日志面板
+                    this.appendLog(data.message, data.type, false, data.timestamp);
+
+                    // 检查完成状态
+                    if (data.type === 'completed' || data.type === 'failed') {
+                        this.handleGenerationComplete(data);
+                    }
+                } catch (error) {
+                    console.error('解析日志消息失败:', error);
+                }
+            };
+
+            this.logWebSocket.onerror = (error) => {
+                console.error('WebSocket 错误:', error);
+                // onclose 随后会触发,由其统一决定是否重连
+            };
+
+            this.logWebSocket.onclose = () => {
+                this.logWebSocket = null;
+                // 生成中且非主动关闭:尝试重连,避免瞬时断开导致日志永久静默
+                if (!this._wsManualClose && this.isGenerating) {
+                    this._scheduleWsReconnect();
+                }
+            };
+        } catch (error) {
+            console.error('创建 WebSocket 连接失败:', error);
+            if (!this._wsManualClose && this.isGenerating) {
+                this._scheduleWsReconnect();
+            }
+        }
+    }
+
+    // 断线重连:线性退避(1~5s),最多 5 次;生成结束或主动断开后停止
+    _scheduleWsReconnect() {
+        const MAX_ATTEMPTS = 5;
+        if (this._wsManualClose || !this.isGenerating) {
+            return;
+        }
+        if (this._wsReconnectAttempts >= MAX_ATTEMPTS) {
+            console.warn(`日志 WebSocket 重连已达上限(${MAX_ATTEMPTS} 次),停止重连`);
+            this.appendLog('实时日志连接中断,任务仍在后台进行(可重新生成以恢复日志)', 'warning', false, Date.now() / 1000);
+            return;
+        }
+        this._wsReconnectAttempts += 1;
+        const delay = Math.min(1000 * this._wsReconnectAttempts, 5000);
+        setTimeout(() => {
+            if (!this._wsManualClose && this.isGenerating) {
+                console.log(`日志 WebSocket 第 ${this._wsReconnectAttempts} 次重连...`);
+                this._openLogWebSocket();
+            }
+        }, delay);
+    }
+
       
     // 处理消息队列  
     async processMessageQueue() {  
@@ -777,13 +817,14 @@ class CreativeWorkshopManager {
         this.isProcessingQueue = false;  
     }  
           
-    disconnectLogWebSocket() {      
-        if (this.logWebSocket) {      
-            this.logWebSocket.close();      
-            this.logWebSocket = null;      
-        }      
-    }      
-        
+    disconnectLogWebSocket() {
+        // 标记主动关闭,阻止 onclose 触发重连
+        this._wsManualClose = true;
+        if (this.logWebSocket) {
+            this.logWebSocket.close();
+            this.logWebSocket = null;
+        }
+    }
     /**      
      * 处理生成完成      
      */      

@@ -27,3 +27,5 @@ cryptography
 apscheduler>=3.10.0
 croniter>=2.0.0
 packaging
+# 测试(容器内执行 pytest 回归,见 tests/)
+pytest>=8.0.0

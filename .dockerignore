@@ -24,6 +24,8 @@ aiforge_work
 knowledge_storage
 tempt
 tests
+# 回归测试需随镜像发布,便于在容器内执行 pytest(见 Dockerfile COPY tests)
+!tests
 docs
 
 # 静态资源（排除）

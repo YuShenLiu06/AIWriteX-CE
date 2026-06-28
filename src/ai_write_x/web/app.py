@@ -30,7 +30,7 @@ from .state import app_state
 from .api.config import router as config_router
 from .api.templates import router as templates_router
 from .api.articles import router as articles_router
-from .api.generate import router as generate_router
+from .api.generate import router as generate_router, ws_router
 from .api.images import router as images_router
 from .api.text_knowledge import router as text_knowledge_router
 from .api.knowledge import router as knowledge_router
@@ -168,6 +168,7 @@ app.include_router(config_router)
 app.include_router(templates_router)
 app.include_router(articles_router)
 app.include_router(generate_router)
+app.include_router(ws_router)
 app.include_router(images_router)
 app.include_router(text_knowledge_router)
 app.include_router(knowledge_router)

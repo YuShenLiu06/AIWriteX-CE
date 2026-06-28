@@ -36,6 +36,8 @@ RUN pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple \
 # 复制源代码
 COPY src ./src
 COPY main.py ./
+# 复制测试(便于在容器内执行 pytest 回归)
+COPY tests ./tests
 
 # 复制知识库(默认文章模板/文本),确保容器内模板可用
 COPY knowledge ./knowledge
