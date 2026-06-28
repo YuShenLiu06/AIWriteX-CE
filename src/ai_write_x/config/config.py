@@ -1,3 +1,4 @@
+import copy
 from typing import Any, Dict
 import os
 import yaml
@@ -1517,6 +1518,29 @@ class Config:
         self._license_edition = "basic"  # 默认基础版
         self._license_custom_features = []
 
+        # 配置字典不变式守护:确保 default_config 与 config 始终为 dict
+        # (历史 issue 曾因非 dict 状态导致 /api/config/ 500 与鉴权失效)
+        self._ensure_config_dict()
+
+    def _ensure_config_dict(self) -> None:
+        """保证 default_config 与 config 始终为 dict(防御 tuple/None 等异常状态)。
+
+        历史上若 config 被污染为非 dict,会让 load_auth_config 抛异常并被吞掉,
+        导致鉴权静默关闭 + /api/config/ 500。此守护使异常状态可见且可恢复。
+        """
+        if not isinstance(self.default_config, dict):
+            log.print_log(
+                f"default_config 类型异常({type(self.default_config).__name__}),重置为空 dict",
+                "error",
+            )
+            self.default_config = {}
+        if not isinstance(self.config, dict):
+            log.print_log(
+                f"config 类型异常({type(self.config).__name__}),回退到 default_config",
+                "warning",
+            )
+            self.config = dict(self.default_config)
+
     @property
     def license_edition(self):
         """获取授权版本类型"""
@@ -1854,16 +1878,24 @@ class Config:
             if os.path.exists(self.config_path):
                 try:
                     with open(self.config_path, "r", encoding="utf-8") as f:
-                        self.config = yaml.safe_load(f)
-                        if not self.config:
-                            self.config = self.default_config
+                        loaded = yaml.safe_load(f)
+                        if isinstance(loaded, dict) and loaded:
+                            self.config = loaded
+                        elif isinstance(loaded, dict):
+                            self.config = copy.deepcopy(self.default_config)
+                        else:
+                            log.print_log(
+                                f"config.yaml 解析为非字典({type(loaded).__name__}),使用默认配置",
+                                "warning",
+                            )
+                            self.config = copy.deepcopy(self.default_config)
                 except Exception as e:
                     self.error_message = f"加载 config.yaml 失败: {e}"
                     log.print_log(self.error_message, "error")
-                    self.config = self.default_config
+                    self.config = copy.deepcopy(self.default_config)
                     ret = False
             else:
-                self.config = self.default_config
+                self.config = copy.deepcopy(self.default_config)
 
             if os.path.exists(self.config_aiforge_path):
                 try:
@@ -2178,7 +2210,7 @@ class Config:
                         indent=2,
                     )
 
-                self.config = self.default_config.copy()
+                self.config = copy.deepcopy(self.default_config)
                 return True
 
             except Exception:

@@ -58,6 +58,10 @@ async def list_categories():
     # 排除的目录名称
     excluded_dirs = {"components", "__pycache__", ".git"}
 
+    # 目录缺失时返回空列表,避免 iterdir() 抛 FileNotFoundError
+    if not template_dir.exists():
+        return {"status": "success", "data": categories}
+
     for item in template_dir.iterdir():
         if item.is_dir() and item.name not in excluded_dirs:
             template_count = len(list(item.glob("*.html")))
@@ -162,6 +166,9 @@ async def list_templates(category: str = None):
                 )
     else:
         # 返回所有分类的模板 - 添加过滤
+        if not template_dir.exists():
+            return {"status": "success", "data": templates}
+
         for category_dir in template_dir.iterdir():
             if category_dir.is_dir() and category_dir.name not in excluded_dirs:  # 添加过滤条件
                 for file in category_dir.glob("*.html"):

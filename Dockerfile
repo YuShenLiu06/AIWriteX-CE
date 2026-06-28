@@ -37,6 +37,13 @@ RUN pip install --upgrade pip -i https://pypi.tuna.tsinghua.edu.cn/simple \
 COPY src ./src
 COPY main.py ./
 
+# 复制知识库(默认文章模板/文本),确保容器内模板可用
+COPY knowledge ./knowledge
+
+# 预创建运行期需要的目录(dev 模式首次启动需可写,防缺目录报错)
+RUN mkdir -p /app/knowledge/templates /app/knowledge/texts \
+    /app/logs /app/output /app/image /app/temp
+
 # 数据卷（持久化目录）
 VOLUME ["/app/output", "/app/image", "/app/logs", "/app/temp", "/app/src/ai_write_x/config"]
 

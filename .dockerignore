@@ -20,7 +20,7 @@ __pycache__
 
 # 项目特定
 aiforge_work
-knowledge
+# 注意:knowledge(默认文章模板)不再排除,需随镜像发布,否则容器内 /api/templates/* 缺目录报 500
 knowledge_storage
 tempt
 tests

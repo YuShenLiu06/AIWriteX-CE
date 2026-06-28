@@ -28,9 +28,14 @@ _task_status = {"status": "idle", "error": None}
 
 
 def _check_websocket_auth(websocket: WebSocket) -> bool:
-    """WebSocket 鉴权检查 - 支持 Basic Auth 和 API Key"""
+    """WebSocket 鉴权检查 - 支持 Session Cookie / Basic Auth / API Key"""
     auth_cfg = get_auth_config()
     if not auth_cfg.enabled:
+        return True
+
+    # 会话 cookie(浏览器登录后 WS 握手自动携带;SessionMiddleware 已解入 scope["session"])
+    session = websocket.scope.get("session") or {}
+    if session.get("user"):
         return True
 
     # 检查 Authorization 头 (Basic Auth)
