@@ -43,11 +43,14 @@ COPY tests ./tests
 COPY knowledge ./knowledge
 
 # 预创建运行期需要的目录(dev 模式首次启动需可写,防缺目录报错)
-RUN mkdir -p /app/knowledge/templates /app/knowledge/texts \
+# 注意:不预创建 /app/src/ai_write_x/config（Python 包，随 COPY src 入镜像，不能被卷遮蔽）
+RUN mkdir -p /app/runtime_config \
+    /app/knowledge/templates /app/knowledge/texts /app/knowledge_storage \
     /app/logs /app/output /app/image /app/temp
 
-# 数据卷（持久化目录）
-VOLUME ["/app/output", "/app/image", "/app/logs", "/app/temp", "/app/src/ai_write_x/config"]
+# 数据卷（持久化目录）——compose 以 bind mount 覆盖；纯 docker run 时回退为匿名卷
+VOLUME ["/app/output", "/app/image", "/app/logs", "/app/temp", \
+        "/app/runtime_config", "/app/knowledge_storage", "/app/knowledge/texts"]
 
 # 默认环境变量
 ENV AIWRITEX_RUN_MODE=server \
