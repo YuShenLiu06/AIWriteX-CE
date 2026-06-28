@@ -13,6 +13,10 @@ services:
       AIWRITEX_HOST: 0.0.0.0
       AIWRITEX_PORT: 8888
 
+      # 运行期配置数据目录（与 Python 包 src/ai_write_x/config 分离，
+      # 避免 bind mount 遮蔽 config.py 导致 import 失败）
+      AIWRITEX_CONFIG_DIR: /app/runtime_config
+
       # 认证配置
       AIWRITEX_AUTH_ENABLED: "true"
       AIWRITEX_AUTH_USER: ${AIWRITEX_AUTH_USER:-admin}
@@ -30,13 +34,21 @@ services:
       GEMINI_API_KEY: ${GEMINI_API_KEY:-}
       OPENAI_API_KEY: ${OPENAI_API_KEY:-}
     volumes:
-      # 配置文件（敏感信息，需要手动挂载）
-      - aiwritex-config:/app/src/ai_write_x/config
-      # 数据目录
-      - aiwritex-output:/app/output
-      - aiwritex-image:/app/image
-      - aiwritex-logs:/app/logs
-      - aiwritex-temp:/app/temp
+      # 持久化数据（bind mount 到宿主机；根目录由 .env 的 AIWRITEX_DATA_DIR 配置，默认 ./data）
+      # 配置数据（config.yaml / aiforge.toml / 定时任务 / ui_config 等）——挂到独立目录，不挂 Python 包
+      - ${AIWRITEX_DATA_DIR:-./data}/config:/app/runtime_config
+      # 生成文章 / 发布记录 / 设计数据
+      - ${AIWRITEX_DATA_DIR:-./data}/output:/app/output
+      # 图片资源
+      - ${AIWRITEX_DATA_DIR:-./data}/image:/app/image
+      # 应用日志
+      - ${AIWRITEX_DATA_DIR:-./data}/logs:/app/logs
+      # 临时文件
+      - ${AIWRITEX_DATA_DIR:-./data}/temp:/app/temp
+      # 知识库向量存储（ChromaDB + CrewAI storage）——原未挂载，重建容器即丢失
+      - ${AIWRITEX_DATA_DIR:-./data}/knowledge_storage:/app/knowledge_storage
+      # 文本知识库索引/入库文本——仅挂 texts 子目录，保留镜像内只读 templates
+      - ${AIWRITEX_DATA_DIR:-./data}/knowledge_texts:/app/knowledge/texts
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-fsS", "http://localhost:8888/health"]
@@ -44,15 +56,3 @@ services:
       timeout: 5s
       retries: 3
       start_period: 40s
-
-volumes:
-  aiwritex-config:
-    driver: local
-  aiwritex-output:
-    driver: local
-  aiwritex-image:
-    driver: local
-  aiwritex-logs:
-    driver: local
-  aiwritex-temp:
-    driver: local

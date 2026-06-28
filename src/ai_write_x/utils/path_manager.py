@@ -27,6 +27,14 @@ class PathManager:
     @staticmethod
     def get_config_dir():
         """获取配置文件目录"""
+        # 容器/服务端：显式指定 AIWRITEX_CONFIG_DIR 时使用该数据目录
+        # （与 Python 包 src/ai_write_x/config 分离，便于 bind mount，避免遮蔽 config.py 导致 import 失败）
+        env_config_dir = os.environ.get("AIWRITEX_CONFIG_DIR")
+        if env_config_dir:
+            config_dir = Path(env_config_dir)
+            config_dir.mkdir(parents=True, exist_ok=True)
+            return config_dir
+
         if not utils.get_is_release_ver():
             # 开发模式：使用源码目录
             return Path(__file__).parent.parent / "config"

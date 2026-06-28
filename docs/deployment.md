@@ -39,6 +39,9 @@ AIWRITEX_AUTH_PASSWORD=your_secure_password
 # 必需：至少一个 LLM API 密钥
 OPENROUTER_API_KEY=sk-or-...
 # 或 DEEPSEEK_API_KEY=sk-...
+
+# 可选：持久化数据根目录（默认 ./data，所有配置/文章/图片/日志/知识库落盘到此）
+AIWRITEX_DATA_DIR=./data
 ```
 
 ### 3. 启动服务
@@ -49,15 +52,22 @@ OPENROUTER_API_KEY=sk-or-...
 docker compose up -d --build
 ```
 
-或使用纯 Docker：
+或使用纯 Docker（bind mount 到宿主机 `./data`，与 compose 行为一致）：
 
 ```bash
 docker build -t aiwritex:latest .
+mkdir -p data/config data/output data/image data/logs data/temp data/knowledge_storage data/knowledge_texts
 docker run -d \
   --name aiwritex-server \
   -p 8888:8888 \
-  -v aiwritex-config:/app/src/ai_write_x/config \
-  -v aiwritex-output:/app/output \
+  -e AIWRITEX_CONFIG_DIR=/app/runtime_config \
+  -v "$PWD/data/config:/app/runtime_config" \
+  -v "$PWD/data/output:/app/output" \
+  -v "$PWD/data/image:/app/image" \
+  -v "$PWD/data/logs:/app/logs" \
+  -v "$PWD/data/temp:/app/temp" \
+  -v "$PWD/data/knowledge_storage:/app/knowledge_storage" \
+  -v "$PWD/data/knowledge_texts:/app/knowledge/texts" \
   -e AIWRITEX_AUTH_PASSWORD=your_password \
   -e OPENROUTER_API_KEY=your_key \
   aiwritex:latest
@@ -91,6 +101,28 @@ http://localhost:8888
 
 ---
 
+## 数据持久化
+
+所有需要持久化的内容（配置、生成的文章、图片、日志、知识库等）通过 **bind mount** 挂载到宿主机，根目录由 `.env` 的 `AIWRITEX_DATA_DIR` 配置（默认 `./data`）。容器重启 / 重建 / `down -v` 后数据均不丢失，且在宿主机可直接查看、编辑、备份。
+
+| 宿主机路径 | 容器路径 | 内容 |
+|---|---|---|
+| `data/config` | `/app/runtime_config` | config.yaml、aiforge.toml、定时任务、UI 配置等（由 `AIWRITEX_CONFIG_DIR` 指定） |
+| `data/output` | `/app/output` | 生成的文章、发布记录、设计数据 |
+| `data/image` | `/app/image` | 图片资源 |
+| `data/logs` | `/app/logs` | 应用日志 |
+| `data/temp` | `/app/temp` | 临时文件 |
+| `data/knowledge_storage` | `/app/knowledge_storage` | ChromaDB 向量库 + CrewAI 存储 |
+| `data/knowledge_texts` | `/app/knowledge/texts` | 文本知识库索引 / 入库文本 |
+
+> 注意：仅挂载 `knowledge/texts` 子目录，**默认文章模板** `knowledge/templates` 保留在镜像内（随镜像发布），不会被宿主目录遮蔽。
+>
+> 注意：配置数据挂载到独立的 `/app/runtime_config`（由环境变量 `AIWRITEX_CONFIG_DIR` 指定），**而非** Python 包目录 `src/ai_write_x/config`（那里存放 `config.py` 源码，若被 bind mount 遮蔽会导致 import 失败）。
+
+生产环境建议把 `AIWRITEX_DATA_DIR` 指向独立数据盘的绝对路径（如 `/srv/aiwritex/data`），便于扩容与备份。
+
+---
+
 ## 配置 LLM 和微信
 
 ### 配置 LLM API
@@ -105,14 +137,14 @@ docker exec -it aiwritex-server bash
 vi /app/src/ai_write_x/config/config.yaml
 ```
 
-或通过挂载 volume 后在外部编辑：
+或直接编辑宿主机上的配置文件（bind mount，无需进容器）：
 
 ```bash
-# 查看 volume 挂载位置
-docker volume inspect aiwritex-config
+# 编辑宿主机 data/config/config.yaml
+vi ./data/config/config.yaml
 
-# 编辑外部路径的 config.yaml
-# ...
+# 改完后重启容器使配置生效
+docker compose restart aiwritex
 ```
 
 配置示例：
@@ -200,12 +232,14 @@ docker logs -f aiwritex-server
 
 ### 查看应用日志
 
-日志文件位于 volume 中：
+日志文件位于宿主机 `data/logs/`（bind mount）：
 
 ```bash
-docker exec aiwritex-server ls -la /app/logs/
+# 宿主机直接查看
+ls -la data/logs/
+cat data/logs/WEB_$(date +%Y-%m-%d).log
 
-# 查看当天日志
+# 或进容器
 docker exec aiwritex-server cat /app/logs/WEB_$(date +%Y-%m-%d).log
 ```
 
@@ -231,25 +265,19 @@ docker stop aiwritex-server
 
 ### 备份数据
 
-备份所有 volume：
+所有持久化数据都在宿主机 `./data`（或 `AIWRITEX_DATA_DIR` 指定的目录）下，直接整目录备份即可：
 
 ```bash
-# 备份配置
-docker run --rm -v aiwritex-config:/data -v $(pwd):/backup alpine tar czf /backup/config-backup.tar.gz -C /data .
+# 停服后备份（推荐，避免写入中文件不一致）
+docker compose down
+tar czf aiwritex-data-backup-$(date +%F).tar.gz data/
 
-# 备份输出文件
-docker run --rm -v aiwritex-output:/data -v $(pwd):/backup alpine tar czf /backup/output-backup.tar.gz -C /data .
-
-# 备份图片
-docker run --rm -v aiwritex-image:/data -v $(pwd):/backup alpine tar czf /backup/image-backup.tar.gz -C /data .
+# 恢复：解压回原位再启动
+tar xzf aiwritex-data-backup-YYYY-MM-DD.tar.gz
+docker compose up -d
 ```
 
-恢复数据：
-
-```bash
-# 恢复配置
-docker run --rm -v aiwritex-config:/data -v $(pwd):/backup alpine tar xzf /backup/config-backup.tar.gz -C /data
-```
+> 从旧版（命名卷）升级到 bind mount 后，旧命名卷内的数据不会自动迁移。如需迁移，参考 PR 说明中的迁移命令。
 
 ---
 

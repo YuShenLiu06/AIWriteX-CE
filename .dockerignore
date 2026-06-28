@@ -50,3 +50,6 @@ config.yaml
 # Markdown 文档
 *.md
 !README.md
+
+# Docker 持久化数据（运行期 bind-mount 目标，非构建输入）
+data
