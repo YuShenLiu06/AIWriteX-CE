@@ -41,3 +41,6 @@ src/ai_write_x/config/config.yaml
 
 # SKILL 测试 workspace (skill-creator 测试产物, 本地保留不入库)
 aiwritex-cli-workspace/
+
+# 测试的截图
+docs/issue1-screenshots
