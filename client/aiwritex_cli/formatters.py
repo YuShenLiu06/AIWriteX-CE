@@ -1,5 +1,6 @@
 """Output formatters using rich for CLI."""
 
+import json
 from typing import Any, Optional
 from rich.console import Console
 from rich.table import Table
@@ -47,7 +48,9 @@ def print_table(
 def print_json(data: Any, pretty: bool = True) -> None:
     """Print JSON data."""
     if pretty:
-        console.print(JSON(data))
+        # rich.JSON expects a JSON string; serialize dicts/objects first.
+        payload = data if isinstance(data, str) else json.dumps(data, ensure_ascii=False)
+        console.print(JSON(payload))
     else:
         console.print(data)
 
