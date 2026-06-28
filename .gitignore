@@ -47,3 +47,6 @@ docs/issue1-screenshots
 
 # Docker 持久化数据（bind-mount 目标，含 config.yaml 等 API 密钥，禁止入库）
 data/
+
+# 其他测试产物
+test-results

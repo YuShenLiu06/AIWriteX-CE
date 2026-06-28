@@ -242,6 +242,36 @@ log.print_log("错误信息", "error")     # 错误事件
 
 ---
 
+## 版本管理
+
+### 统一版本源 (Single Source of Truth)
+
+前端 footer 显示的版本号 **不是硬编码**，而是从统一版本定义逐层渲染：
+
+```
+footer.html {{ version }}  →  web/app.py:186 get_version_with_prefix()  →  src/ai_write_x/version.py __version__
+```
+
+| 文件 | 作用 |
+|------|------|
+| `src/ai_write_x/version.py` | **唯一真实源** (`__version__`)；`get_version_with_prefix()` 返回 `v{__version__}` |
+| `web/app.py:186` | 渲染 `index.html` 时注入 `{"version": get_version_with_prefix()}` |
+| `web/templates/components/footer.html` | `<span class="version-text">{{ version }}</span>` |
+| `pyproject.toml` | 构建版本，**需与 `version.py` 同步** |
+
+> **修改版本号时**：改 `src/ai_write_x/version.py` 的 `__version__`，并同步 `pyproject.toml` 的 `version`。footer 中的 `v` 前缀由 `get_version_with_prefix()` 自动添加，无需手写。当前版本：`1.1.2`。
+
+### CLI 客户端 (独立版本，勿联动)
+
+`client/` 目录下的 `aiwritex_cli` 是 **独立包**，拥有独立的版本生命周期，**不要**与 Web 应用版本耦合：
+
+| 文件 | 作用 |
+|------|------|
+| `client/aiwritex_cli/__init__.py` | CLI `__version__` |
+| `client/pyproject.toml` | CLI 构建版本 |
+
+---
+
 ## 文档位置
 
 项目文档存放于 `docs/service/` 目录下：
