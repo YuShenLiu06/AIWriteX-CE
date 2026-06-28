@@ -20,10 +20,12 @@ __pycache__
 
 # 项目特定
 aiforge_work
-knowledge
+# 注意:knowledge(默认文章模板)不再排除,需随镜像发布,否则容器内 /api/templates/* 缺目录报 500
 knowledge_storage
 tempt
 tests
+# 回归测试需随镜像发布,便于在容器内执行 pytest(见 Dockerfile COPY tests)
+!tests
 docs
 
 # 静态资源（排除）

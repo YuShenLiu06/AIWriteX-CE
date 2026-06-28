@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AIWriteX - 登录</title>
+
+    <link rel="icon" href="data:," />
+
+    <!-- 复用主应用样式: CSS 变量 / 主题 / 按钮 / 表单 -->
+    <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/themes/light-theme.css">
+    <link rel="stylesheet" href="/static/css/components/buttons.css">
+    <link rel="stylesheet" href="/static/css/components/forms.css">
+
+    <!-- 登录页专属布局 (主应用无对应样式) -->
+    <style>
+        html, body {
+            height: 100%;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: auto;
+            background-color: var(--background-color);
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 360px;
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            box-shadow: var(--shadow-lg);
+            padding: 32px 28px;
+        }
+
+        .login-title {
+            text-align: center;
+            color: var(--text-primary);
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .login-subtitle {
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 13px;
+            margin-bottom: 24px;
+        }
+
+        .login-field {
+            display: block;
+            width: 100%;
+            padding: 9px 12px;
+            font-size: 14px;
+            color: var(--text-primary);
+            background: var(--surface-color);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            outline: none;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .login-field:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.15);
+        }
+
+        .login-field + .login-field {
+            margin-top: 14px;
+        }
+
+        .login-submit {
+            display: block;
+            width: 100%;
+            margin-top: 20px;
+            padding: 10px 16px;
+            font-size: 15px;
+            font-weight: 500;
+        }
+
+        #login-error {
+            min-height: 18px;
+            margin-top: 12px;
+            color: var(--error-color);
+            font-size: 13px;
+            text-align: center;
+        }
+
+        .login-submit[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="login-card" role="main">
+        <h1 class="login-title">AIWriteX</h1>
+        <p class="login-subtitle">智能内容创作平台</p>
+
+        <form id="login-form" novalidate>
+            <input class="login-field" type="text" name="username" id="username"
+                   autocomplete="username" placeholder="用户名" required>
+            <input class="login-field" type="password" name="password" id="password"
+                   autocomplete="current-password" placeholder="密码" required>
+            <p id="login-error" role="alert" aria-live="assertive"></p>
+            <button class="btn btn-primary login-submit" type="submit" id="login-button">登录</button>
+        </form>
+    </main>
+
+    <!-- 注意: 此页不加载 auth-redirect.js, 避免登录请求 401 时陷入重定向死循环 -->
+    <script>
+        (function () {
+            var form = document.getElementById('login-form');
+            var button = document.getElementById('login-button');
+            var errorEl = document.getElementById('login-error');
+            var ORIGINAL_LABEL = button.textContent;
+
+            function showError(message) {
+                errorEl.textContent = message;
+            }
+
+            function setSubmitting(isLoading) {
+                button.disabled = isLoading;
+                button.textContent = isLoading ? '登录中...' : ORIGINAL_LABEL;
+            }
+
+            form.addEventListener('submit', async function (event) {
+                event.preventDefault();
+                setSubmitting(true);
+                showError('');
+
+                try {
+                    var resp = await fetch('/api/auth/login', {
+                        method: 'POST',
+                        body: new FormData(form)
+                    });
+
+                    if (resp.ok) {
+                        window.location.assign('/');
+                        return;
+                    }
+
+                    // 401 或其它失败均视为凭据错误
+                    showError('用户名或密码错误');
+                } catch (err) {
+                    // 网络层异常 (断网 / DNS / CORS 等)
+                    showError('登录失败,请检查网络');
+                } finally {
+                    setSubmitting(false);
+                }
+            });
+        })();
+    </script>
+</body>
+</html>

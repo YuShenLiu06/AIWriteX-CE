@@ -47,8 +47,11 @@ class PathManager:
     def get_template_dir():
         """获取模板目录 - 始终返回用户可写目录"""
         if not utils.get_is_release_ver():
-            # 开发模式：使用项目目录
-            return PathManager.get_app_data_dir() / "knowledge/templates"
+            # 开发模式：使用项目目录,并确保目录存在(容器从零起步时不会自动创建,
+            # 否则 templates.iterdir() 会抛 FileNotFoundError 导致 /api/templates/* 500)
+            template_dir = PathManager.get_app_data_dir() / "knowledge/templates"
+            template_dir.mkdir(parents=True, exist_ok=True)
+            return template_dir
         else:
             # 发布模式：使用用户数据目录
             template_dir = PathManager.get_app_data_dir() / "templates"

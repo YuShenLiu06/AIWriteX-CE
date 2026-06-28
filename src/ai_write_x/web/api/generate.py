@@ -21,6 +21,14 @@ from src.ai_write_x.utils import utils, log
 
 router = APIRouter(prefix="/api", tags=["generate"], dependencies=[Depends(verify_auth)])
 
+# WebSocket 路由专用路由器:严禁挂路由级 dependencies=[Depends(verify_auth)]。
+# FastAPI 会把路由级依赖套用到其下的 WebSocket 路由,但 WS 依赖解析器无法为
+# verify_auth(request: Request) 注入 request,导致零参调用 → TypeError,连接在
+# accept 之前被掐断、前端日志面板静默断流。WS 鉴权在 websocket_logs 内通过
+# _check_websocket_auth 自行处理(session cookie 由 Starlette SessionMiddleware
+# 在 ws 握手时填入 scope["session"])。
+ws_router = APIRouter(prefix="/api", tags=["generate"])
+
 # 全局任务管理
 _current_process = None
 _current_log_queue = None
@@ -28,9 +36,14 @@ _task_status = {"status": "idle", "error": None}
 
 
 def _check_websocket_auth(websocket: WebSocket) -> bool:
-    """WebSocket 鉴权检查 - 支持 Basic Auth 和 API Key"""
+    """WebSocket 鉴权检查 - 支持 Session Cookie / Basic Auth / API Key"""
     auth_cfg = get_auth_config()
     if not auth_cfg.enabled:
+        return True
+
+    # 会话 cookie(浏览器登录后 WS 握手自动携带;SessionMiddleware 已解入 scope["session"])
+    session = websocket.scope.get("session") or {}
+    if session.get("user"):
         return True
 
     # 检查 Authorization 头 (Basic Auth)
@@ -268,7 +281,7 @@ async def get_generation_status():
     return _task_status
 
 
-@router.websocket("/ws/generate/logs")
+@ws_router.websocket("/ws/generate/logs")
 async def websocket_logs(websocket: WebSocket):
     """WebSocket日志连接 - 统一处理主进程和子进程日志"""
     # 鉴权检查
