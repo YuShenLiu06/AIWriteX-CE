@@ -40,7 +40,7 @@ class ConfigStore:
         try:
             cls._config_path.parent.mkdir(parents=True, exist_ok=True)
             with open(cls._config_path, "w", encoding="utf-8") as f:
-                yaml.dump(config, allow_unicode=True, default_flow_style=False)
+                yaml.dump(config, f, allow_unicode=True, default_flow_style=False)
             return True
         except Exception:
             return False

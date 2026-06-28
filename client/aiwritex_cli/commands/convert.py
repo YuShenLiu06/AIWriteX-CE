@@ -32,7 +32,7 @@ def wechat(
                 "name": name or "",
             },
         )
-        task_id = response.get("data", {}).get("task_id")
+        task_id = response.get("task_id") or response.get("data", {}).get("task_id")
 
         if async_mode:
             print_info(f"任务已提交: {task_id}")
@@ -51,11 +51,12 @@ def wechat(
             time.sleep(poll_interval)
 
             status_response = client.get_json("/api/convert/status", params={"task_id": task_id})
-            status = status_response.get("data", {}).get("status")
+            data = status_response.get("data", status_response)
+            status = data.get("status") or status_response.get("status")
 
             if status == "completed":
                 print_success("转换完成")
-                result = status_response.get("data", {})
+                result = data if isinstance(data, dict) and data else status_response
                 if html_file:
                     import pathlib
                     pathlib.Path(html_file).write_text(result.get("html", ""), encoding="utf-8")
@@ -64,15 +65,17 @@ def wechat(
                     print_json(result)
                 return
             elif status == "failed":
-                error = status_response.get("data", {}).get("error", "未知错误")
+                error = data.get("error") or status_response.get("error", "未知错误")
                 print_error(f"转换失败: {error}")
                 raise typer.Exit(1)
-            elif status in ("pending", "running"):
+            elif status in ("pending", "running", "started"):
                 print_info("转换中...")
             else:
                 print_error(f"未知状态: {status}")
                 raise typer.Exit(1)
 
+    except typer.Exit:
+        raise
     except Exception as e:
         print_error(f"转换失败: {e}")
         raise typer.Exit(1)

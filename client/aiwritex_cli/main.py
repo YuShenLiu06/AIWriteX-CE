@@ -5,7 +5,7 @@ from rich.console import Console
 
 from . import __version__
 from .commands import config_cmd, articles, generate, templates, knowledge, tasks, system, convert
-from .client import AIWriteXClient
+from .client import AIWriteXClient, set_overrides
 from .errors import AIWriteXError
 from .formatters import print_error
 
@@ -35,12 +35,16 @@ def main(
     version: bool = typer.Option(False, "--version", "-v", help="显示版本信息"),
     base_url: str = typer.Option(None, "--base-url", help="服务器地址"),
     api_key: str = typer.Option(None, "--api-key", help="API 密钥"),
+    username: str = typer.Option(None, "--username", help="Basic 认证用户名"),
+    password: str = typer.Option(None, "--password", help="Basic 认证密码"),
     timeout: int = typer.Option(None, "--timeout", help="请求超时时间"),
 ) -> None:
     """AIWriteX CLI - 轻量级命令行客户端。
 
     使用 `aiwritex <命令> --help` 查看具体命令帮助。
     """
+    # Propagate top-level options so every subcommand's AIWriteXClient() picks them up.
+    set_overrides(base_url=base_url, api_key=api_key, username=username, password=password, timeout=timeout)
     if version:
         console.print(f"AIWriteX CLI v{__version__}")
         raise typer.Exit()

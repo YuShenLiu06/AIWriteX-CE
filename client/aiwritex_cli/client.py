@@ -7,6 +7,16 @@ from .config_store import ConfigStore
 from .errors import AuthError, ConnectionError, NotFoundError, ServerError
 
 
+# Top-level CLI overrides (--base-url / --api-key / --username / --password / --timeout),
+# populated by the main() callback. Priority: explicit arg > override > config file.
+_CLI_OVERRIDES: dict[str, Any] = {}
+
+
+def set_overrides(**overrides: Any) -> None:
+    """Record top-level CLI options as in-process overrides (None values ignored)."""
+    _CLI_OVERRIDES.update({k: v for k, v in overrides.items() if v is not None})
+
+
 class AIWriteXClient:
     """HTTP client for AIWriteX server."""
 
@@ -20,11 +30,11 @@ class AIWriteXClient:
     ):
         """Initialize client with optional overrides."""
         config = ConfigStore.load()
-        self.base_url = base_url or config.get("base_url", "http://127.0.0.1:8888")
-        self.api_key = api_key or config.get("api_key")
-        self.username = username or config.get("username")
-        self.password = password or config.get("password")
-        self.timeout = timeout or config.get("timeout", 30)
+        self.base_url = base_url or _CLI_OVERRIDES.get("base_url") or config.get("base_url", "http://127.0.0.1:8888")
+        self.api_key = api_key or _CLI_OVERRIDES.get("api_key") or config.get("api_key")
+        self.username = username or _CLI_OVERRIDES.get("username") or config.get("username")
+        self.password = password or _CLI_OVERRIDES.get("password") or config.get("password")
+        self.timeout = timeout or _CLI_OVERRIDES.get("timeout") or config.get("timeout", 30)
 
     def _headers(self) -> dict[str, str]:
         """Build request headers."""
