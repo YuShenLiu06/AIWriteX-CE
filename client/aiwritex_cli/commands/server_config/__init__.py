@@ -47,14 +47,15 @@ def get(
 @app.command("set")
 def set_(
     section: str = typer.Argument(
-        ..., help="顶层 section 名，如 article_format / auto_publish / api"
+        ...,
+        help="顶层 section 名或点号路径（如 article_format / api.OpenRouter.api_key）",
     ),
     value: str = typer.Argument(
         ...,
-        help='该 section 的新值，JSON 字符串（如 \'"markdown"\' / \'true\' / \'{"key":1}\'）',
+        help='该字段的新值，JSON 字符串（如 \'"markdown"\' / \'true\' / \'["xxx"]\' / \'{"key":1}\'）',
     ),
 ) -> None:
-    """通用配置写入：PATCH {section: <parsed-value>} + 自动落盘。"""
+    """通用配置写入：支持点号路径嵌套（a.b.c → {a:{b:{c:v}}}），PATCH + 自动落盘。"""
     import json as _json
 
     try:
@@ -62,9 +63,15 @@ def set_(
     except _json.JSONDecodeError as e:
         print_error(f"无法解析 JSON 值: {e}")
         raise typer.Exit(1)
+
+    # 点号路径 → 嵌套 dict；单段（无点号）保持 {section: parsed} 兼容旧用法。
+    payload: object = parsed
+    for key in reversed(section.split(".")):
+        payload = {key: payload}
+
     client = AIWriteXClient()
     try:
-        _patch_and_save(client, {section: parsed})
+        _patch_and_save(client, payload)
         print_success(f"已更新 {section} 并落盘")
     except AIWriteXError as e:
         print_error(f"更新配置失败: {e}")
@@ -135,10 +142,11 @@ def import_(
 def reset(
     yes: bool = typer.Option(False, "--yes", "-y", help="跳过确认提示"),
 ) -> None:
-    """将服务端配置恢复为默认（不可逆）。"""
+    """将已知字段恢复为默认值（不删除 default 未列出的自定义 section；不可逆）。"""
     if not yes:
         confirm = typer.confirm(
-            "此操作将覆盖所有服务端配置为默认值，确认继续？", default=False
+            "此操作将已知字段覆盖为默认值（不删除自定义 section），确认继续？",
+            default=False,
         )
         if not confirm:
             print_warning("已取消")

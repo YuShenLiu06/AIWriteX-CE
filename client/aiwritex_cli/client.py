@@ -196,6 +196,9 @@ class AIWriteXClient:
             url = f"{url}?{urlencode(query)}"
 
         state: dict[str, Any] = {"final": None, "error": None}
+        # state 同时被 WS 回调线程与 timeout 定时器线程读写，用锁防止
+        # check-then-act 竞态（例如 _kill_on_timeout 在 final 刚置位时误写 error）。
+        state_lock = threading.Lock()
 
         def _on_message(_ws, raw: str) -> None:
             try:
@@ -205,14 +208,16 @@ class AIWriteXClient:
             on_message(data)
             msg_type = data.get("type", "")
             if msg_type in ("completed", "failed"):
-                state["final"] = msg_type
+                with state_lock:
+                    state["final"] = msg_type
                 try:
                     _ws.close()
                 except Exception:
                     pass
 
         def _on_error(_ws, err: Exception) -> None:
-            state["error"] = err
+            with state_lock:
+                state["error"] = err
 
         app = websocket.WebSocketApp(
             url,
@@ -222,12 +227,15 @@ class AIWriteXClient:
         )
 
         def _kill_on_timeout() -> None:
-            if state["final"] is None and state["error"] is None:
+            with state_lock:
+                if state["final"] is not None or state["error"] is not None:
+                    return
                 state["error"] = TimeoutError(f"WebSocket 跟随超时（{timeout}s）")
-                try:
-                    app.close()
-                except Exception:
-                    pass
+            # close() 移到锁外，避免阻塞 WS 内部线程
+            try:
+                app.close()
+            except Exception:
+                pass
 
         timer = threading.Timer(timeout, _kill_on_timeout)
         timer.daemon = True
@@ -237,11 +245,15 @@ class AIWriteXClient:
         finally:
             timer.cancel()
 
-        if state["final"]:
-            return state["final"]
-        if isinstance(state["error"], TimeoutError):
-            raise state["error"]
-        if state["error"] is not None:
-            raise ConnectionError(f"WebSocket 连接失败: {state['error']}")
+        with state_lock:
+            final = state["final"]
+            error = state["error"]
+
+        if final:
+            return final
+        if isinstance(error, TimeoutError):
+            raise error
+        if error is not None:
+            raise ConnectionError(f"WebSocket 连接失败: {error}")
         # run_forever returned without terminal message or error (e.g. server closed cleanly)
         raise ConnectionError("WebSocket 连接意外关闭")

@@ -11,8 +11,9 @@ from rich.syntax import Syntax
 
 console = Console()
 
-# Matches server-side stage markers like [PROGRESS:WRITING:END]
-_PROGRESS_RE = re.compile(r"\[PROGRESS:[A-Z]+:[A-Z]+\]")
+# Matches server-side stage markers like [PROGRESS:WRITING:END] and
+# [PROGRESS:IMAGE_MATCH:START] — stage tokens may contain underscores.
+_PROGRESS_RE = re.compile(r"\[PROGRESS:[A-Z_]+:[A-Z]+\]")
 
 
 def print_success(message: str) -> None:
@@ -85,9 +86,9 @@ def print_status(status: str, message: str = "") -> None:
 def print_log_line(msg_type: str, message: str) -> None:
     """Print a single streaming log line, colored by type and stage markers.
 
-    Server (generate.py) emits messages with type in {info, system, error,
-    completed, failed} and embeds [PROGRESS:STAGE:START|END] markers in
-    message text to signal stage transitions.
+    Server (generate.py) emits messages with type in {info, internal,
+    completed, failed}; the system/error branches below are defensive and
+    reserved for future server-side log routing.
     """
     text = message or ""
     # Stage transitions get the strongest visual cue, overriding type color.

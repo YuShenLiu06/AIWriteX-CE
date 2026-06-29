@@ -3,9 +3,19 @@
 from typing import Optional
 import typer
 from ..client import AIWriteXClient
+from ..errors import AIWriteXError
 from ..formatters import print_success, print_error, print_info, print_table, print_status
 
 app = typer.Typer(help="管理文章")
+
+
+def _mask_appid(appid: str) -> str:
+    """脱敏 appid：保留前 4 + 后 4，不足则全打码。"""
+    if not appid:
+        return "-"
+    if len(appid) <= 8:
+        return "***"
+    return f"{appid[:4]}...{appid[-4:]}"
 
 
 @app.command()
@@ -63,7 +73,7 @@ def accounts(
     client = AIWriteXClient()
     try:
         data = client.get_json("/api/config/").get("data", {})
-    except Exception as e:
+    except AIWriteXError as e:
         print_error(f"读取配置失败: {e}")
         raise typer.Exit(1)
     creds = (data.get("wechat", {}) or {}).get("credentials", []) or []
@@ -76,7 +86,7 @@ def accounts(
         secret = c.get("appsecret", "") or ""
         author = c.get("author", "") or "-"
         sendall = "是" if c.get("sendall") else "否"
-        appid_display = appid if verbose else (appid[:6] + "..." + appid[-4:] if len(appid) >= 10 else appid)
+        appid_display = appid if verbose else _mask_appid(appid)
         status = "已配置" if appid and secret else "缺 key"
         rows.append([str(idx), author, appid_display, sendall, status])
     print_table(["Index", "Author", "AppID", "群发(sendall)", "状态"], rows, title="微信公众号账号")

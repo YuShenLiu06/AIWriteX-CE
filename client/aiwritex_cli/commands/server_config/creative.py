@@ -32,11 +32,19 @@ def _fetch_dc(client: AIWriteXClient) -> dict:
 
 def _check_manual_mode(client: AIWriteXClient, force: bool) -> None:
     """对齐 Web: auto_dimension_selection=true 时拒绝细分维度操作。
-    用户需先关闭该开关（与 Web UI 一致），或显式 --force 强制。"""
+    用户需先关闭该开关（与 Web UI 一致），或显式 --force 强制。
+
+    读失败时不静默放行：未带 --force 则拒绝，避免网络抖动绕过保护。
+    """
     try:
         dc = _fetch_dc(client)
-    except AIWriteXError:
-        return  # 读失败交给后续 PATCH 报错
+    except AIWriteXError as e:
+        print_warning(f"无法读取 auto_dimension_selection 状态: {e}")
+        if not force:
+            print_error("拒绝执行：无法确认当前模式。请重试，或加 --force 强制（不推荐）")
+            raise typer.Exit(1)
+        print_warning("--force 已启用，继续执行")
+        return
     if dc.get("auto_dimension_selection", True):
         print_warning("当前 auto_dimension_selection=true（系统自动选维度）")
         print_info("Web 行为：关闭此开关后才可单独配置细分维度")

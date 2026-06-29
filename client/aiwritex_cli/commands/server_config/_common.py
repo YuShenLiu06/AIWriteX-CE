@@ -16,7 +16,7 @@ from ...formatters import print_error, print_warning
 # Constants — keep here to prevent drift across command files
 # ---------------------------------------------------------------------------
 
-# 15 creative dimensions (config.py:263-279). CLAUDE.md mis-states 16.
+# 15 creative dimensions (config.py:263-279).
 DIMENSIONAL_KEYS: list[str] = [
     "style", "culture", "time", "personality", "emotion", "format",
     "scene", "audience", "theme", "technique", "language", "tone",

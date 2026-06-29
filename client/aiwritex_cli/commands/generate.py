@@ -9,22 +9,35 @@ from ..formatters import print_success, print_error, print_info, print_warning, 
 
 app = typer.Typer(help="内容生成")
 
+# 单次轮询失败时容忍 N 次再放弃，避免服务端短暂抖动误判任务失败。
+_MAX_CONSECUTIVE_ERRORS = 3
+
 
 def _poll_status(client: AIWriteXClient, timeout: int, interval: float) -> int:
     """轮询 /api/generate/status 直至任务结束或超时。
 
     返回退出码：0=completed, 1=failed/stopped, 2=timeout。
+    单次查询失败不立即放弃，连续 _MAX_CONSECUTIVE_ERRORS 次才返回 1。
     """
     print_info(f"开始轮询任务状态（间隔 {interval}s，超时 {timeout}s）...")
     deadline = time.monotonic() + timeout
     last_status: Optional[str] = None
+    consecutive_errors = 0
 
     while time.monotonic() < deadline:
         try:
             response = client.get_json("/api/generate/status")
+            consecutive_errors = 0
         except AIWriteXError as e:
-            print_error(f"查询状态失败: {e}")
-            return 1
+            consecutive_errors += 1
+            if consecutive_errors >= _MAX_CONSECUTIVE_ERRORS:
+                print_error(f"连续 {consecutive_errors} 次查询失败，放弃: {e}")
+                return 1
+            print_warning(
+                f"查询状态失败（{consecutive_errors}/{_MAX_CONSECUTIVE_ERRORS}），将重试: {e}"
+            )
+            time.sleep(interval)
+            continue
 
         status = response.get("status", "unknown")
         if status != last_status:
