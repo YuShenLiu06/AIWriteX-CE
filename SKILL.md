@@ -37,9 +37,11 @@ aiwritex config list            # 查看当前配置
 | 生成(提示词) | `aiwritex generate run --topic "主题"` |
 | 生成(仿写) | `aiwritex generate run --topic "主题" --mode rewrite --urls "u1\|u2" --ratio 30` |
 | 生成(模板) | `aiwritex generate run --topic "主题" --mode template --template-category TechDigital --template-name xxx` |
+| 生成(异步,不阻塞) | `aiwritex generate run --topic "主题" --async` |
 | 查生成状态 | `aiwritex generate status` |
 | 热搜选题 | `aiwritex generate hot-topics` |
 | 文章列表 | `aiwritex articles list` |
+| 查公众号账号 | `aiwritex articles accounts [-v]` |
 | 发布文章 | `aiwritex articles publish --article-paths /path/a.html --account-indices 0 --platform wechat` |
 | 模板列表 | `aiwritex templates list` |
 | 建模板 | `aiwritex templates create --name N --category C --content-file tpl.html` |
@@ -47,6 +49,14 @@ aiwritex config list            # 查看当前配置
 | 微信转模板 | `aiwritex convert wechat --url "https://mp.weixin.qq.com/s/xxx" --output-type template --category TechDigital --name tpl` |
 | 知识库统计 | `aiwritex knowledge stats` |
 | 加文本知识 | `aiwritex knowledge text-create --title T --content C --tags "AI,技术" --category 科技` |
+| 读服务端配置 | `aiwritex server-config get [-s dimensional_creative]` |
+| 改 LLM Key | `aiwritex server-config llm set-key OpenRouter sk-or-v1-xxx` |
+| 切换 LLM | `aiwritex server-config llm switch Deepseek` |
+| 切 LLM 模型 | `aiwritex server-config llm use-model OpenRouter 2` |
+| 创意总览 | `aiwritex server-config creative show` |
+| 启用创意维度 | `aiwritex server-config creative enable emotion,culture` |
+| 选创意预设 | `aiwritex server-config creative pick style poetry` |
+| 导出/导入配置 | `aiwritex server-config export -f cfg.yaml` / `import -f cfg.yaml` |
 
 ## 核心命令详解
 
@@ -74,12 +84,22 @@ aiwritex generate run \
   --template-name 爆款开头
 ```
 
-生成在服务器后台异步执行。轮询与控制:
+生成在服务器后台异步执行。默认行为是 **CLI 阻塞到完成**:通过 WebSocket 实时拉取进度日志并打印,WebSocket 不可用时自动降级为 2 秒一次的轮询。
 
 ```bash
 aiwritex generate status    # running / completed / failed
 aiwritex generate stop      # 中止当前生成
 ```
+
+进阶选项(`generate run`):
+
+- `--async`:不阻塞,提交后立即返回,自行用 `generate status` 轮询。
+- `--poll`:强制走轮询,跳过 WebSocket。
+- `--no-fallback`:WebSocket 连接失败时不降级,直接报错退出(退出码 3)。
+- `--timeout 600`:最大等待秒数,超时退出码 2。
+- `--interval 2.0`:轮询间隔秒。
+
+退出码:0=completed,1=failed(含鉴权/参数错误),2=超时,3=WebSocket 失败且 `--no-fallback`。
 
 ### 2. 发布文章(articles publish)
 
@@ -97,7 +117,14 @@ aiwritex articles publish \
   --platform wechat
 ```
 
-账号索引自 0,可用 `aiwritex config show` 或服务器 `/api/articles/platforms` 查看已配置账号。
+账号索引自 0,发布前用 `aiwritex articles accounts` 查看 index 对应哪个公众号:
+
+```bash
+aiwritex articles accounts        # 列出所有已配置微信账号(Index/Author/AppID 脱敏/群发/状态)
+aiwritex articles accounts -v     # 显示完整 appid(默认仅前 6 + 后 4 位)
+```
+
+未配置或 `appid/appsecret` 为空的账号会标记「缺 key」,需先用 `aiwritex server-config set wechat '{"credentials":[...]}'` 或直接改服务端配置补全。
 
 ### 3. 定时任务(tasks)— 支持完整生成配置
 
@@ -190,6 +217,52 @@ aiwritex knowledge stats
 aiwritex knowledge refresh
 ```
 
+### 6. 服务端配置(server-config)
+
+`server-config` 让 CLI 能管理**服务端业务配置**(LLM Key、模型切换、创意维度、文章格式等),能力与 Web 设置页对齐。**所有写命令末尾自动落盘**(对齐 Web UI 行为),无需手动 save。
+
+底层通用(5 个):
+
+```bash
+aiwritex server-config get                              # 读全量配置(JSON)
+aiwritex server-config get -s dimensional_creative      # 按 section 过滤
+aiwritex server-config set article_format '"markdown"'  # PATCH 单字段 + 落盘
+aiwritex server-config set wechat '{"credentials":[...]}'  # PATCH 整段 + 落盘(JSON 字符串)
+aiwritex server-config export -f cfg.yaml               # 导出全量到文件(默认 stdout)
+aiwritex server-config import -f cfg.yaml               # 整批 PATCH + 落盘
+aiwritex server-config reset --yes                      # 拉默认配置覆盖写回(不可逆)
+```
+
+LLM 管理(4 个,高层语义):
+
+```bash
+aiwritex server-config llm list                         # 表格:provider / keys / 当前模型 / 是否当前
+aiwritex server-config llm list -p OpenRouter           # 详情:列出该 provider 全部模型与 key 数
+aiwritex server-config llm set-key OpenRouter sk-or-v1-xxx   # 设 key + 落盘
+aiwritex server-config llm switch Deepseek              # 切换 api_type(切换主 LLM 提供商)
+aiwritex server-config llm use-model OpenRouter 2       # 切换到该 provider 的 model[2]
+```
+
+创意维度(11 个,5 分组 / 15 维度,与 Web 设置页严格对齐):
+
+```bash
+aiwritex server-config creative show                    # 总览:开关/强度/启用维度数
+aiwritex server-config creative groups                  # 列出 5 个分组(文体/文化/角色/结构/受众)
+aiwritex server-config creative list                    # 全维度表格:key/中文名/启用/当前选择
+aiwritex server-config creative list -g expression      # 仅看「文体表达维度」组
+aiwritex server-config creative enable emotion,culture  # 启用维度(可逗号分隔多个)
+aiwritex server-config creative disable emotion         # 禁用维度
+aiwritex server-config creative options style           # 列出某维度的全部预设选项 + 当前选中
+aiwritex server-config creative pick style poetry       # 选中预设(自动清空 custom)
+aiwritex server-config creative custom style "口语化"   # 自定义(需 allow_custom=true,自动清空 selected)
+aiwritex server-config creative config get              # 全局字段表(7 项:总开关/强度/自动选择/上限等)
+aiwritex server-config creative config set auto_dimension_selection false   # 关闭自动维度选择
+```
+
+> **依赖约束(对齐 Web)**:`auto_dimension_selection=true` 时,系统按上下文自动选维度,`enable/disable/pick/custom` 会被拒绝。需先 `creative config set auto_dimension_selection false` 切到手动模式,或加 `--force` 强制执行。
+
+完整合法维度 key(15):`style culture time personality emotion format scene audience theme technique language tone perspective structure rhythm`。完整合法分组(5):`expression culture character structure audience`。
+
 ## 典型工作流
 
 ### 工作流 A:生成 → 发布
@@ -222,6 +295,27 @@ aiwritex tasks list
 aiwritex tasks records <task_id>
 ```
 
+### 工作流 D:首次部署 → 配 LLM → 生成
+
+```bash
+# 1. 配好连接(假设服务器已启动)
+aiwritex config set base_url http://127.0.0.1:8888
+aiwritex config set api_key awx-你的key
+aiwritex test-connection
+
+# 2. 配 LLM(全程 CLI,无需开 Web)
+aiwritex server-config llm set-key OpenRouter sk-or-v1-xxx
+aiwritex server-config llm switch OpenRouter
+aiwritex server-config llm use-model OpenRouter 0       # 选第 0 个模型
+
+# 3. 开 2 个创意维度(先关自动选择)
+aiwritex server-config creative config set auto_dimension_selection false
+aiwritex server-config creative enable emotion,style
+
+# 4. 生成
+aiwritex generate run --topic "AI 编程趋势"
+```
+
 ## 常见错误
 
 | 现象 | 排查 |
@@ -235,9 +329,21 @@ aiwritex tasks records <task_id>
 
 ## 参数速查(常用)
 
-- `generate run`:`--topic/-t`(必填) `--mode/-m` `--platform/-P` `--urls/-u`(仿写) `--ratio/-r`(仿写,0-100) `--template-category/-c`(模板) `--template-name/-n`(模板)
+- `generate run`:`--topic/-t`(必填) `--mode/-m` `--platform/-P` `--urls/-u`(仿写) `--ratio/-r`(仿写,0-100) `--template-category/-c`(模板) `--template-name/-n`(模板) `--async`(不阻塞) `--poll`(强制轮询) `--no-fallback` `--timeout` `--interval`
 - `articles publish`:`--article-paths/-p`(必填,逗号分隔) `--account-indices/-a`(必填,逗号分隔) `--platform/-P`
+- `articles accounts`:`--verbose/-v`(显示完整 appid)
 - `tasks create`:`--name/-n` `--topic/-t` `--schedule-type/-s` `--time-of-day/-T` `--cron/-c` `--enabled/--disabled` `--auto-publish` `--platform/-P` `--urls/-u` `--ratio` `--template-category/-C` `--template-name/-N`
 - `convert wechat`:`--url/-u`(必填) `--output-type/-o` `--category/-c` `--name/-n` `--timeout` `--retries/-r` `--html-file/-f` `--async`
+- `server-config get`:`--section/-s`(api/dimensional_creative/wechat/...)
+- `server-config set`:`<section> <json>`(JSON 字符串)
+- `server-config export/import`:`--file/-f`(必填,import;export 默认 stdout)
+- `server-config reset`:`--yes`(跳过确认)
+- `server-config llm list`:`--provider/-p`(详情模式)
+- `server-config llm set-key`:`<provider> <key>`
+- `server-config llm switch`:`<provider>`(OpenRouter/Deepseek/Grok/Claude/Qwen/Gemini/Ollama/SiliconFlow/Kimi/GLM/MiniMax)
+- `server-config llm use-model`:`<provider> <index>`
+- `server-config creative list`:`--group/-g`(expression/culture/character/structure/audience)
+- `server-config creative enable/disable`:`<dim1,dim2,...>` `--force`
+- `server-config creative options/pick/custom`:`<dim>` + 选项 key / 自定义文本;`--force`
 
 > 完整参数见 `aiwritex <命令> --help`;完整 REST API 见 `docs/api-reference.md`;部署见 `docs/deployment.md`。

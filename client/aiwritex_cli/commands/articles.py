@@ -3,9 +3,19 @@
 from typing import Optional
 import typer
 from ..client import AIWriteXClient
+from ..errors import AIWriteXError
 from ..formatters import print_success, print_error, print_info, print_table, print_status
 
 app = typer.Typer(help="管理文章")
+
+
+def _mask_appid(appid: str) -> str:
+    """脱敏 appid：保留前 4 + 后 4，不足则全打码。"""
+    if not appid:
+        return "-"
+    if len(appid) <= 8:
+        return "***"
+    return f"{appid[:4]}...{appid[-4:]}"
 
 
 @app.command()
@@ -53,6 +63,34 @@ def delete(path: str) -> None:
     except Exception as e:
         print_error(f"删除文章失败: {e}")
         raise typer.Exit(1)
+
+
+@app.command()
+def accounts(
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="显示 appid 完整值"),
+) -> None:
+    """列出已配置的微信公众号（发布前用此查看 index 对应哪个号）。"""
+    client = AIWriteXClient()
+    try:
+        data = client.get_json("/api/config/").get("data", {})
+    except AIWriteXError as e:
+        print_error(f"读取配置失败: {e}")
+        raise typer.Exit(1)
+    creds = (data.get("wechat", {}) or {}).get("credentials", []) or []
+    if not creds:
+        print_info("未配置任何微信公众号（wechat.credentials 为空）")
+        return
+    rows = []
+    for idx, c in enumerate(creds):
+        appid = c.get("appid", "") or ""
+        secret = c.get("appsecret", "") or ""
+        author = c.get("author", "") or "-"
+        sendall = "是" if c.get("sendall") else "否"
+        appid_display = appid if verbose else _mask_appid(appid)
+        status = "已配置" if appid and secret else "缺 key"
+        rows.append([str(idx), author, appid_display, sendall, status])
+    print_table(["Index", "Author", "AppID", "群发(sendall)", "状态"], rows, title="微信公众号账号")
+    print_info(f"发布用法: aiwritex articles publish -p <path> -a <index>")
 
 
 @app.command()
