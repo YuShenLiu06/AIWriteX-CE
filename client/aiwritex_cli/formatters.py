@@ -53,8 +53,10 @@ def print_table(
 def print_json(data: Any, pretty: bool = True) -> None:
     """Print JSON data."""
     if pretty:
-        # rich.JSON expects a JSON string; serialize dicts/objects first.
-        payload = data if isinstance(data, str) else json.dumps(data, ensure_ascii=False)
+        # rich.JSON expects a JSON string; serialize Python objects first.
+        # Always dumps — scalar values (str/int/bool) must be JSON-encoded too,
+        # otherwise JSON("html") fails parsing the bare token.
+        payload = json.dumps(data, ensure_ascii=False)
         console.print(JSON(payload))
     else:
         console.print(data)
