@@ -1,6 +1,11 @@
 """HTTP client for AIWriteX server API."""
 
-from typing import Any, Optional
+from typing import Any, Callable, Optional
+import base64
+import json
+import threading
+from urllib.parse import urlencode
+
 import requests
 
 from .config_store import ConfigStore
@@ -134,3 +139,109 @@ class AIWriteXClient:
         """POST request with file upload."""
         response = self.request("POST", path, files=files, data=data)
         return response.json()
+
+    # ----- WebSocket streaming (for /api/ws/generate/logs) -----
+
+    def get_ws_url(self, path: str) -> str:
+        """Convert base_url http(s):// to ws(s):// and append path."""
+        base = self.base_url.rstrip("/")
+        if base.startswith("https://"):
+            ws_base = "wss://" + base[len("https://"):]
+        elif base.startswith("http://"):
+            ws_base = "ws://" + base[len("http://"):]
+        else:
+            ws_base = base
+        return f"{ws_base}/{path.lstrip('/')}"
+
+    def _apply_ws_auth(self, query: dict, headers: list) -> None:
+        """Populate auth for WS handshake per server's _check_websocket_auth.
+
+        Server (generate.py:38-74) accepts: Basic Auth header OR ?api_key= query.
+        Username/password via query is NOT supported, so we prefer api_key in query
+        and fall back to Basic header when only username/password is configured.
+        """
+        if self.api_key:
+            query["api_key"] = self.api_key
+            return
+        if self.username and self.password:
+            token = base64.b64encode(f"{self.username}:{self.password}".encode("utf-8")).decode("ascii")
+            headers.append(f"Authorization: Basic {token}")
+
+    def stream_generate_logs(
+        self,
+        on_message: Callable[[dict], None],
+        timeout: float,
+    ) -> str:
+        """Subscribe to WS /api/ws/generate/logs until task ends or timeout.
+
+        Args:
+            on_message: called for every received message dict {type, message, ...}.
+            timeout: total seconds before raising TimeoutError.
+
+        Returns:
+            Final server status: "completed" or "failed".
+
+        Raises:
+            ConnectionError: WS handshake/transport failure (caller may downgrade to polling).
+            TimeoutError: timeout reached before server sent a terminal message.
+        """
+        import websocket  # websocket-client (added to pyproject.toml)
+
+        query: dict[str, str] = {}
+        header_lines: list[str] = []
+        self._apply_ws_auth(query, header_lines)
+
+        url = self.get_ws_url("/api/ws/generate/logs")
+        if query:
+            url = f"{url}?{urlencode(query)}"
+
+        state: dict[str, Any] = {"final": None, "error": None}
+
+        def _on_message(_ws, raw: str) -> None:
+            try:
+                data = json.loads(raw)
+            except (ValueError, TypeError):
+                data = {"type": "info", "message": str(raw)}
+            on_message(data)
+            msg_type = data.get("type", "")
+            if msg_type in ("completed", "failed"):
+                state["final"] = msg_type
+                try:
+                    _ws.close()
+                except Exception:
+                    pass
+
+        def _on_error(_ws, err: Exception) -> None:
+            state["error"] = err
+
+        app = websocket.WebSocketApp(
+            url,
+            header=header_lines,
+            on_message=_on_message,
+            on_error=_on_error,
+        )
+
+        def _kill_on_timeout() -> None:
+            if state["final"] is None and state["error"] is None:
+                state["error"] = TimeoutError(f"WebSocket 跟随超时（{timeout}s）")
+                try:
+                    app.close()
+                except Exception:
+                    pass
+
+        timer = threading.Timer(timeout, _kill_on_timeout)
+        timer.daemon = True
+        timer.start()
+        try:
+            app.run_forever(ping_interval=30, ping_timeout=10)
+        finally:
+            timer.cancel()
+
+        if state["final"]:
+            return state["final"]
+        if isinstance(state["error"], TimeoutError):
+            raise state["error"]
+        if state["error"] is not None:
+            raise ConnectionError(f"WebSocket 连接失败: {state['error']}")
+        # run_forever returned without terminal message or error (e.g. server closed cleanly)
+        raise ConnectionError("WebSocket 连接意外关闭")

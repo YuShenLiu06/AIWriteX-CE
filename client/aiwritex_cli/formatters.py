@@ -1,6 +1,7 @@
 """Output formatters using rich for CLI."""
 
 import json
+import re
 from typing import Any, Optional
 from rich.console import Console
 from rich.table import Table
@@ -9,6 +10,9 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 
 console = Console()
+
+# Matches server-side stage markers like [PROGRESS:WRITING:END]
+_PROGRESS_RE = re.compile(r"\[PROGRESS:[A-Z]+:[A-Z]+\]")
 
 
 def print_success(message: str) -> None:
@@ -76,3 +80,27 @@ def print_status(status: str, message: str = "") -> None:
         print_warning(message or status)
     else:
         print_info(message or status)
+
+
+def print_log_line(msg_type: str, message: str) -> None:
+    """Print a single streaming log line, colored by type and stage markers.
+
+    Server (generate.py) emits messages with type in {info, system, error,
+    completed, failed} and embeds [PROGRESS:STAGE:START|END] markers in
+    message text to signal stage transitions.
+    """
+    text = message or ""
+    # Stage transitions get the strongest visual cue, overriding type color.
+    if _PROGRESS_RE.search(text):
+        console.print(f"[cyan]{text}[/cyan]")
+        return
+    if msg_type == "completed":
+        console.print(f"[bold green]✓ {text}[/bold green]")
+    elif msg_type == "failed":
+        console.print(f"[bold red]✗ {text}[/bold red]")
+    elif msg_type == "error":
+        console.print(f"[red]✗ {text}[/red]")
+    elif msg_type == "system":
+        console.print(f"[blue]{text}[/blue]")
+    else:  # info and unknown
+        console.print(f"[dim]{text}[/dim]")

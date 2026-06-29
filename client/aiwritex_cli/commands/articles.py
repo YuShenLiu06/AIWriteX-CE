@@ -56,6 +56,34 @@ def delete(path: str) -> None:
 
 
 @app.command()
+def accounts(
+    verbose: bool = typer.Option(False, "--verbose", "-v", help="显示 appid 完整值"),
+) -> None:
+    """列出已配置的微信公众号（发布前用此查看 index 对应哪个号）。"""
+    client = AIWriteXClient()
+    try:
+        data = client.get_json("/api/config/").get("data", {})
+    except Exception as e:
+        print_error(f"读取配置失败: {e}")
+        raise typer.Exit(1)
+    creds = (data.get("wechat", {}) or {}).get("credentials", []) or []
+    if not creds:
+        print_info("未配置任何微信公众号（wechat.credentials 为空）")
+        return
+    rows = []
+    for idx, c in enumerate(creds):
+        appid = c.get("appid", "") or ""
+        secret = c.get("appsecret", "") or ""
+        author = c.get("author", "") or "-"
+        sendall = "是" if c.get("sendall") else "否"
+        appid_display = appid if verbose else (appid[:6] + "..." + appid[-4:] if len(appid) >= 10 else appid)
+        status = "已配置" if appid and secret else "缺 key"
+        rows.append([str(idx), author, appid_display, sendall, status])
+    print_table(["Index", "Author", "AppID", "群发(sendall)", "状态"], rows, title="微信公众号账号")
+    print_info(f"发布用法: aiwritex articles publish -p <path> -a <index>")
+
+
+@app.command()
 def publish(
     article_paths: str = typer.Option(..., "--article-paths", "-p", help="文章路径，用逗号分隔"),
     account_indices: str = typer.Option(..., "--account-indices", "-a", help="账号索引，用逗号分隔"),
