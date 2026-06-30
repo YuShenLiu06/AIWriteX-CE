@@ -259,7 +259,7 @@ footer.html {{ version }}  →  web/app.py:186 get_version_with_prefix()  →  s
 | `web/templates/components/footer.html` | `<span class="version-text">{{ version }}</span>` |
 | `pyproject.toml` | 构建版本，**需与 `version.py` 同步** |
 
-> **修改版本号时**：改 `src/ai_write_x/version.py` 的 `__version__`，并同步 `pyproject.toml` 的 `version`。footer 中的 `v` 前缀由 `get_version_with_prefix()` 自动添加，无需手写。当前版本：`1.1.3`。
+> **修改版本号时**：改 `src/ai_write_x/version.py` 的 `__version__`，并同步 `pyproject.toml` 的 `version`。footer 中的 `v` 前缀由 `get_version_with_prefix()` 自动添加，无需手写。当前版本：`1.1.5`。
 
 ### CLI 客户端 (独立版本，勿联动)
 
