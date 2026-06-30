@@ -1,6 +1,6 @@
 [project]
 name = "aiwritex-cli"
-version = "1.1.0"
+version = "1.1.1"
 description = "Lightweight CLI client for AIWriteX server"
 readme = "README.md"
 requires-python = ">=3.10"

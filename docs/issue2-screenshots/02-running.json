@@ -1,0 +1,40 @@
+{
+  "status": "success",
+  "data": {
+    "records": [
+      {
+        "record_id": "rec_0f24bf46",
+        "task_id": "task_2bd4f655",
+        "started_at": "2026-06-30T14:29:00.005630+08:00",
+        "finished_at": "2026-06-30T16:12:11.253993+08:00",
+        "status": "failed",
+        "retry_attempt": 0,
+        "message": "服务重启，任务中断",
+        "article_path": null,
+        "published": false
+      },
+      {
+        "record_id": "rec_f0056168",
+        "task_id": "task_2bd4f655",
+        "started_at": "2026-06-30T16:39:41.297675+08:00",
+        "finished_at": "2026-06-30T16:43:52.421156+08:00",
+        "status": "success",
+        "retry_attempt": 0,
+        "message": "发布失败：所有 1 个账号都发布失败",
+        "article_path": "/app/output/article/AI 驱动的自动化内容生产.html",
+        "published": false
+      },
+      {
+        "record_id": "rec_9724c8f1",
+        "task_id": "task_2bd4f655",
+        "started_at": "2026-06-30T16:49:37.839112+08:00",
+        "finished_at": null,
+        "status": "running",
+        "retry_attempt": 0,
+        "message": null,
+        "article_path": null,
+        "published": false
+      }
+    ]
+  }
+}

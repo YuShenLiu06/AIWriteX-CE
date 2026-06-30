@@ -2,6 +2,10 @@
  * 定时任务管理器
  * 职责：定时任务列表、表单、执行记录与运行状态展示
  */
+// 自动刷新节奏:运行中高频,空闲低频探活(以及时发现调度器触发的任务)
+const AUTO_REFRESH_RUNNING_MS = 4000;
+const AUTO_REFRESH_IDLE_MS = 20000;
+
 class ScheduledTaskManager {
     constructor() {
         this.tasks = [];
@@ -14,6 +18,9 @@ class ScheduledTaskManager {
         this.selectedTaskId = '';
         this.initialized = false;
         this.apiWarningShown = false;
+        this._autoRefreshTimer = null;
+        this._autoRefreshIntervalMs = null;
+        this._sessionExpiredHandled = false;
 
         this.init();
     }
@@ -201,6 +208,44 @@ class ScheduledTaskManager {
             this.updateSidebarStats();
             this.handleApiError(error, options);
         }
+
+        this._syncAutoRefresh();
+    }
+
+    _ensureRefreshTimer(intervalMs) {
+        // 已在相同间隔运行则不重建,避免定时器抖动
+        if (this._autoRefreshTimer && this._autoRefreshIntervalMs === intervalMs) {
+            return;
+        }
+        this.stopAutoRefresh();
+        this._autoRefreshIntervalMs = intervalMs;
+        this._autoRefreshTimer = setInterval(async () => {
+            // 视图被隐藏时跳过刷新,避免后台无谓请求(无需 destroy 钩子)
+            const root = this.getViewRoot();
+            if (!root || root.style.display === 'none' || root.offsetParent === null) {
+                return;
+            }
+            try {
+                await this.refreshData({ silent: true });
+            } catch (error) {
+                // 静默刷新失败不影响后续轮询(鉴权过期已在 fetchJson 内处理跳转)
+            }
+            this._syncAutoRefresh();
+        }, intervalMs);
+    }
+
+    stopAutoRefresh() {
+        if (this._autoRefreshTimer) {
+            clearInterval(this._autoRefreshTimer);
+            this._autoRefreshTimer = null;
+        }
+        this._autoRefreshIntervalMs = null;
+    }
+
+    _syncAutoRefresh() {
+        const running = !!(this.runtimeStatus && this.runtimeStatus.is_running);
+        // 运行中:高频刷新进度;空闲:低频探活,以便及时感知调度器触发的任务
+        this._ensureRefreshTimer(running ? AUTO_REFRESH_RUNNING_MS : AUTO_REFRESH_IDLE_MS);
     }
 
     async loadTaskRecords(taskId, options = {}) {
@@ -983,6 +1028,18 @@ class ScheduledTaskManager {
         }
 
         const response = await fetch(url, requestOptions);
+
+        // 鉴权过期:401/403 或被重定向到登录页 → 停止轮询并强制重新登录,
+        // 避免静默刷新长期吞掉鉴权失败、UI 停留在缓存数据上。
+        if (
+            response.status === 401 ||
+            response.status === 403 ||
+            (response.redirected && /\/login(?:[/?#]|$)/.test(response.url))
+        ) {
+            this._handleSessionExpired();
+            throw new Error('会话已过期,请重新登录');
+        }
+
         let result = null;
 
         try {
@@ -997,6 +1054,17 @@ class ScheduledTaskManager {
         }
 
         return result;
+    }
+
+    _handleSessionExpired() {
+        this.stopAutoRefresh();
+        if (this._sessionExpiredHandled) {
+            return;
+        }
+        this._sessionExpiredHandled = true;
+        if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+        }
     }
 
     handleApiError(error, options = {}) {

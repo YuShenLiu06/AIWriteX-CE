@@ -42,15 +42,21 @@
 
 因此“留空自动热搜”只是创意工坊页面的前端交互，不是后端通用能力。定时任务初版必须要求填写 `topic`，不支持留空后自动补热搜。
 
-### 2.3 auto_publish 由全局 Config 决定
+### 2.3 auto_publish 由任务级开关决定(1.1.4 起,任务级独占)
 
-自动发布开关由 `src/ai_write_x/config/config.py` 中的 `Config.auto_publish` 提供，实际执行判断位于 `src/ai_write_x/core/unified_workflow.py::_should_publish()`。
+发布开关为任务级 `ScheduledTask.auto_publish` 字段(任务级独占语义)。
+执行时 `ScheduledTaskExecutor._build_config_data()` 将其放入 `config_data`,
+经 `src/ai_write_x/config_data.py::apply_config_data(override_auto_publish=True)`
+在子进程内写入 `config.config["auto_publish"]`,最终由
+`src/ai_write_x/core/unified_workflow.py::_should_publish()` 判断是否真正发布
+(同时仍校验全局微信凭据 `Config.wechat_credentials`)。
 
-结论：
+结论:
 
-- 初版定时任务不新增任务级 `auto_publish` 覆盖项。
-- 定时任务执行时直接沿用全局 `Config.auto_publish`。
-- 前端可以展示“当前生效的自动发布状态”，但不允许在任务表单中单独修改。
+- 任务级 `auto_publish` 决定该任务是否发布(True→发布,False→不发布),全局 `Config.auto_publish` 对定时任务不再起作用。
+- 子进程内的覆盖不回写父进程全局单例,因此不影响手动生成路径。
+- 前端可在任务表单中单独设置每个任务的自动发布开关。
+- 全局 `Config.auto_publish` 仍对手动生成(`/api/generate`)生效。
 
 ---
 
@@ -183,8 +189,8 @@ UnifiedContentWorkflow.execute()
 说明：
 
 - `topic` 必填，不支持空值热搜回填。
-- 不定义任务级 `auto_publish` 字段。
-- 前端若需要展示发布行为，应读取“全局生效状态”。
+- 任务级 `auto_publish` 字段控制该任务是否发布(任务级独占,见 §2.3)。
+- 前端可在任务表单中单独设置自动发布开关。
 
 ### 6.2 ScheduledTaskExecutionRecord
 
@@ -271,6 +277,6 @@ UnifiedContentWorkflow.execute()
 
 1. 它是对现有单任务生成链路的调度包装，不是新的内容生产系统。
 2. 它必须明确要求填写 `topic`，因为空话题热搜只存在于创意工坊前端逻辑。
-3. 它必须沿用全局 `Config.auto_publish`，不做任务级覆盖。
+3. 它以任务级 `auto_publish`(任务级独占)控制是否发布,执行时在子进程内覆盖,详见 §2.3。
 4. 它必须采用严格串行执行，冲突时跳过并记录。
 5. 它必须使用 JSON + `PathManager` 做轻量持久化，并在 `app.py` 生命周期中完成恢复与清理。

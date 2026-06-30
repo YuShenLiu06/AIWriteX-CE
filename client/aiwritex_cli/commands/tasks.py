@@ -7,6 +7,23 @@ from ..formatters import print_success, print_error, print_info, print_table
 
 app = typer.Typer(help="定时任务管理")
 
+# 执行记录状态 → 中文标签映射（覆盖服务端所有可能状态）
+RECORD_STATUS_LABELS = {
+    "running": "执行中",
+    "success": "成功",
+    "completed": "成功",
+    "failed": "失败",
+    "retrying": "重试中",
+    "skipped": "已跳过",
+    "idle": "空闲",
+}
+
+# 调度器运行状态 → 中文标签映射
+SCHEDULER_STATUS_LABELS = {
+    "running": "运行中",
+    "stopped": "已停止",
+}
+
 
 @app.command()
 def list() -> None:
@@ -17,7 +34,7 @@ def list() -> None:
         data = response.get("data", {}).get("tasks", [])
         rows = [
             [
-                item.get("id", ""),
+                item.get("task_id", ""),
                 item.get("name", ""),
                 item.get("topic", ""),
                 item.get("schedule_type", ""),
@@ -104,15 +121,42 @@ def records(task_id: str) -> None:
         data = response.get("data", {}).get("records", [])
         rows = [
             [
-                item.get("timestamp", ""),
-                str(item.get("success", False)),
-                item.get("error_message", ""),
+                item.get("started_at", ""),
+                RECORD_STATUS_LABELS.get(
+                    item.get("status", ""), item.get("status", "")
+                ),
+                "已发布" if item.get("published") else "未发布",
+                str(item.get("retry_attempt", 0)),
+                (item.get("message") or "")[:80],
             ]
             for item in data
         ]
-        print_table(["时间", "成功", "错误信息"], rows)
+        print_table(["开始时间", "状态", "发布", "重试", "说明"], rows)
     except Exception as e:
         print_error(f"获取执行记录失败: {e}")
+        raise typer.Exit(1)
+
+
+@app.command(name="status")
+def runtime_status() -> None:
+    """查看调度器运行时状态。"""
+    client = AIWriteXClient()
+    try:
+        response = client.get_json("/api/scheduled-tasks/runtime/status")
+        data = response.get("data", {})
+        scheduler_label = SCHEDULER_STATUS_LABELS.get(
+            data.get("scheduler_status", ""), data.get("scheduler_status", "")
+        )
+        rows = [
+            ["调度器状态", scheduler_label],
+            ["是否运行中", "是" if data.get("is_running") else "否"],
+            ["待执行任务数", str(data.get("pending_tasks", 0))],
+            ["下次运行时间", data.get("next_run_at") or "-"],
+            ["下次运行任务", data.get("next_task_name") or "-"],
+        ]
+        print_table(["项目", "值"], rows)
+    except Exception as e:
+        print_error(f"获取运行状态失败: {e}")
         raise typer.Exit(1)
 
 

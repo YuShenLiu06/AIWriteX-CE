@@ -168,6 +168,48 @@ class ScheduledTaskService:
 
         return None
 
+    def reconcile_orphaned_executions(self) -> int:
+        """启动时把残留的 running 记录/任务标记为 failed。幂等。
+
+        Returns:
+            修复的记录/任务数量。
+        """
+        from datetime import datetime as dt
+        from zoneinfo import ZoneInfo
+
+        repaired = 0
+        now_iso = dt.now(ZoneInfo("Asia/Shanghai")).isoformat()
+        failure_msg = "服务重启，任务中断"
+
+        # 修复残留的 running 记录
+        for rec in self._records:
+            if rec.status == "running":
+                rec.status = "failed"
+                if not rec.finished_at:
+                    rec.finished_at = now_iso
+                if rec.message:
+                    rec.message = rec.message + " " + failure_msg
+                else:
+                    rec.message = failure_msg
+                repaired += 1
+
+        # 修复残留的 running 任务状态
+        for task in self._tasks:
+            if task.last_status == "running":
+                task.last_status = "failed"
+                task.last_error = failure_msg
+                repaired += 1
+
+        if repaired > 0:
+            self._persist_records()
+            self._persist_tasks()
+            log.print_log(
+                f"[定时任务] 启动一致性修复: {repaired} 条 running 记录/任务标记为 failed",
+                "warning",
+            )
+
+        return repaired
+
     @staticmethod
     def _validate_schedule(task: ScheduledTask) -> None:
         if task.schedule_type == "fixed_time" and not task.time_of_day:
