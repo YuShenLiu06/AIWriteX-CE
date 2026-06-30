@@ -1,7 +1,7 @@
 # AIWriteX 项目记忆
 
 > 此文件由 AI 自动生成，记录项目架构、规范和关键入口点。
-> 最后更新: 2026-05-12
+> 最后更新: 2026-06-30
 
 ---
 
@@ -282,6 +282,7 @@ footer.html {{ version }}  →  web/app.py:186 get_version_with_prefix()  →  s
 | `docs/service/coding-standards.md` | 编码规范 |
 | `docs/service/patterns.md` | 封装模式 |
 | `docs/service/entry-points.md` | 关键函数入口 |
+| `docs/service/release-standard.md` | 发布书写标准(版本号 / tag / CHANGELOG / Release Notes / 发版时机) |
 
 ---
 

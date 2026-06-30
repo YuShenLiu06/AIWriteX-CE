@@ -1,6 +1,6 @@
 # -*- coding: UTF-8 -*-
 
-__version__ = "1.1.5"
+__version__ = "1.1.6"
 __author__ = "AIWriteX-CE Community"
 
 
