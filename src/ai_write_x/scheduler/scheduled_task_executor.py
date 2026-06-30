@@ -36,6 +36,49 @@ def _terminate_and_join(process) -> None:
         process.join(timeout=5)
 
 
+# 子进程终态 internal 消息的精确标识(用相等判断,避免子串误匹配其它 internal 日志)
+_TERMINAL_MESSAGES = ("任务执行完成", "任务执行失败")
+
+
+def _is_terminal_internal(msg: Any) -> bool:
+    """判断是否为子进程回传的终态 internal 消息。"""
+    return (
+        isinstance(msg, dict)
+        and msg.get("type") == "internal"
+        and msg.get("message") in _TERMINAL_MESSAGES
+    )
+
+
+def _drain_once(log_queue) -> Optional[Dict[str, Any]]:
+    """排空队列一轮;返回捕获的首个终态 internal 消息(若有)。
+
+    每轮只取一次 file handler(取不到则降级为不写文件日志),
+    避免逐条消息重复查找 handler,也防止 handler 获取异常影响排空。
+    """
+    captured: Optional[Dict[str, Any]] = None
+    try:
+        file_handler = _log.LogManager.get_instance().get_file_handler()
+    except Exception:
+        file_handler = None
+
+    while True:
+        try:
+            msg = log_queue.get_nowait()
+        except queue.Empty:
+            break
+
+        if _is_terminal_internal(msg) and captured is None:
+            captured = msg
+
+        if file_handler is not None:
+            try:
+                file_handler.write_log(msg)
+            except Exception:
+                pass
+
+    return captured
+
+
 def _summarize_from_internal(result_dict: Optional[Dict[str, Any]]) -> Dict[str, Any]:
     """从子进程回传的 result dict 提取发布摘要。
 
@@ -74,28 +117,6 @@ def _summarize_from_internal(result_dict: Optional[Dict[str, Any]]) -> Dict[str,
         "message": publish_result.get("message") or "发布失败",
         "article_path": article_path,
     }
-
-
-def _drain_generation_result(log_queue) -> Dict[str, Any]:
-    """排空子进程日志队列,提取生成结果摘要(兼容旧接口)。
-
-    旧实现已抽取为 _summarize_from_internal,本函数保留为薄包装器。
-    """
-    result_dict: Optional[Dict[str, Any]] = None
-
-    try:
-        while True:
-            msg = log_queue.get_nowait()
-            if (
-                isinstance(msg, dict)
-                and msg.get("type") == "internal"
-                and isinstance(msg.get("result"), dict)
-            ):
-                result_dict = msg["result"]
-    except queue.Empty:
-        pass
-
-    return _summarize_from_internal(result_dict)
 
 
 class ScheduledTaskExecutor:
@@ -235,29 +256,9 @@ class ScheduledTaskExecutor:
 
         # 并发排空循环:持续排空队列,同时监控进程退出与超时
         while True:
-            # 每次轮询尽可能排空队列,避免堆积
-            while True:
-                try:
-                    msg = log_queue.get_nowait()
-
-                    # 捕获首个 internal 结果消息(任务完成/失败标记)
-                    if (
-                        isinstance(msg, dict)
-                        and msg.get("type") == "internal"
-                        and ("任务执行完成" in msg.get("message", "") or "任务执行失败" in msg.get("message", ""))
-                    ):
-                        if captured_internal is None:
-                            captured_internal = msg
-
-                    # 尝试写入文件日志(静默失败)
-                    fh = _log.LogManager.get_instance().get_file_handler()
-                    if fh:
-                        try:
-                            fh.write_log(msg)
-                        except Exception:
-                            pass
-                except queue.Empty:
-                    break
+            captured = _drain_once(log_queue)
+            if captured_internal is None:
+                captured_internal = captured
 
             # 进程已退出,退出循环(随后再做最后一次排空以捕获内部消息)
             if not process.is_alive():
@@ -271,26 +272,9 @@ class ScheduledTaskExecutor:
             time.sleep(DRAIN_POLL)
 
         # 进程退出后的最后一次排空,捕获可能的内部结果消息
-        while True:
-            try:
-                msg = log_queue.get_nowait()
-                if (
-                    isinstance(msg, dict)
-                    and msg.get("type") == "internal"
-                    and ("任务执行完成" in msg.get("message", "") or "任务执行失败" in msg.get("message", ""))
-                ):
-                    if captured_internal is None:
-                        captured_internal = msg
-
-                # 继续尝试写入文件日志
-                fh = _log.LogManager.get_instance().get_file_handler()
-                if fh:
-                    try:
-                        fh.write_log(msg)
-                    except Exception:
-                        pass
-            except queue.Empty:
-                break
+        final_captured = _drain_once(log_queue)
+        if captured_internal is None:
+            captured_internal = final_captured
 
         exit_code = process.exitcode
 

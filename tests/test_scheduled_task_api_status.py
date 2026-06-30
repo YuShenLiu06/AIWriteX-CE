@@ -29,17 +29,6 @@ from src.ai_write_x.web.app import app
 from src.ai_write_x.scheduler.scheduled_task_executor import ScheduledTaskExecutor
 
 
-def _client(tmp_path) -> TestClient:
-    """创建指向临时配置目录的 TestClient。"""
-    # 使用传入的 tmp_path
-    monkeypatch.setenv("AIWRITEX_CONFIG_DIR", str(tmp_path))
-    # 局部关闭鉴权:lifespan 会按当前环境重新 load_auth_config,
-    # 用 monkeypatch 确保仅本用例生效,用例结束自动还原。
-    monkeypatch.setenv("AIWRITEX_AUTH_ENABLED", "false")
-
-    return TestClient(app)
-
-
 def test_run_now_creates_success_record_with_finished_at(tmp_path, monkeypatch):
     """立即执行成功 → 记录 status=success,finished_at 非空。"""
     monkeypatch.setenv("AIWRITEX_CONFIG_DIR", str(tmp_path))

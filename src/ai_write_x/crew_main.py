@@ -75,12 +75,22 @@ def run_crew_in_process(inputs, log_queue, base_config, aiforge_config, config_d
         result = run(inputs)
         run_ok = True
 
-        # 发送成功消息
+        # 发送成功消息:仅回传发布摘要(save_result / publish_result),
+        # 不把整篇文章塞进队列,避免 os._exit 前后台 feeder 线程来不及刷盘
+        # 而被父进程误判为失败(进而触发重试与重复发布)。
+        result_summary = (
+            {
+                "save_result": result.get("save_result"),
+                "publish_result": result.get("publish_result"),
+            }
+            if isinstance(result, dict)
+            else None
+        )
         log_queue.put(
             {
                 "type": "internal",
                 "message": "任务执行完成",
-                "result": result,
+                "result": result_summary,
                 "timestamp": time.time(),
             }
         )
