@@ -1,6 +1,6 @@
 # AIWriteX 定时任务 API 说明
 
-> 最后更新: 2026-05-19
+> 最后更新: 2026-06-30
 
 ---
 
@@ -12,7 +12,7 @@
 
 - 当前系统是单任务模型
 - 空话题自动热搜不是后端通用能力
-- 自动发布沿用全局 `Config.auto_publish`
+- 自动发布由任务级 `auto_publish` 控制(任务级独占,见 §3.2)
 - 任务定义与执行记录采用 JSON 持久化
 
 建议新增路由文件：`src/ai_write_x/web/api/scheduled_tasks.py`。
@@ -53,16 +53,17 @@
 
 原因：当前空话题自动热搜逻辑只存在于 `src/ai_write_x/web/static/js/creative-workshop.js`，由创意工坊页面在调用生成接口前先行补全。后端任务调度层没有这一步，因此不能把空 topic 视为合法输入。
 
-### 3.2 不提供任务级 auto_publish
+### 3.2 任务级 auto_publish(1.1.4 起,任务级独占)
 
-任务接口不接受 `auto_publish` 字段。
+任务接口接受 `auto_publish: bool` 字段(默认 `False`)。
 
-发布行为完全沿用全局配置：
+发布行为由任务级开关决定:
 
-- 读取 `Config.auto_publish`
-- 由 `UnifiedContentWorkflow._should_publish()` 判断是否真正发布
+- `ScheduledTaskExecutor._build_config_data()` 将 `task.auto_publish` 放入 `config_data`
+- 子进程内经 `apply_config_data(override_auto_publish=True)` 写入 `config.config["auto_publish"]`
+- 由 `UnifiedContentWorkflow._should_publish()` 据此判断是否发布(仍校验全局微信凭据)
 
-前端如果需要展示，可通过全局配置接口或定时任务运行状态接口返回“当前全局自动发布是否开启”。
+语义:`auto_publish=True`→生成后发布;`False`→仅生成。全局 `Config.auto_publish` 对定时任务不再起作用(仍对手动生成生效)。执行记录的 `published` 字段如实反映本次是否真正发布。
 
 ### 3.3 单任务互斥
 
@@ -472,7 +473,7 @@
 定时任务 API 首版必须坚持以下原则：
 
 1. 所有任务都必须填写 `topic`，不支持空值热搜补全。
-2. 不开放任务级 `auto_publish` 字段，直接沿用全局 Config。
+2. 任务级 `auto_publish` 字段以任务级独占语义控制是否发布(1.1.4 起)。
 3. 所有执行入口都必须遵守当前单任务互斥模型。
 4. 路由以独立业务域形式接入，但执行链路必须复用现有生成能力。
 5. 所有数据最终落在 JSON 持久化文件中，并通过 `PathManager` 统一定位。

@@ -11,6 +11,7 @@ from src.ai_write_x.tools import hotnews
 from src.ai_write_x.utils import utils
 from src.ai_write_x.utils import log
 from src.ai_write_x.config.config import Config
+from src.ai_write_x.config_data import apply_config_data
 from src.ai_write_x.core.system_init import setup_aiwritex
 
 
@@ -26,6 +27,7 @@ def run_crew_in_process(inputs, log_queue, base_config, aiforge_config, config_d
     """在独立进程中运行 CrewAI 工作流"""
 
     env_file_path = ""
+    run_ok = False
     try:
         # 设置信号处理器
         def signal_handler(signum, frame):
@@ -63,18 +65,15 @@ def run_crew_in_process(inputs, log_queue, base_config, aiforge_config, config_d
         config.config = base_config
         config.aiforge_config = aiforge_config
 
-        # 同步主进程的配置数据到子进程
-        if config_data:
-            for key, value in config_data.items():
-                # 跳过环境文件路径，这个不是配置属性
-                if key != "env_file_path":
-                    setattr(config, key, value)
+        # 同步主进程的配置数据到子进程(auto_publish 等任务级开关在此覆盖)
+        apply_config_data(config, config_data, override_auto_publish=True)
 
         # 添加调试信息
         log.print_log(f"任务参数：API类型={config.api_type}，模型={config.api_model} ", "status")
 
         # 执行任务
         result = run(inputs)
+        run_ok = True
 
         # 发送成功消息
         log_queue.put(
@@ -109,7 +108,8 @@ def run_crew_in_process(inputs, log_queue, base_config, aiforge_config, config_d
                 pass
 
         time.sleep(0.5)
-        os._exit(0)
+        # 成功 exitcode=0;异常 exitcode=1,让父进程(手动 /generate 与定时执行器)能据 exitcode 如实判定失败
+        os._exit(0 if run_ok else 1)
 
 
 def run(inputs):
@@ -197,8 +197,8 @@ def ai_write_x_main(config_data=None):
     config = Config.get_instance()
     # 如果是 UI 启动会传递配置数据，应用到当前进程
     if config_data:
-        for key, value in config_data.items():
-            setattr(config, key, value)
+        # 父进程:任务级 auto_publish 不下发给全局单例(只读 property,且避免污染影响后续手动生成)
+        apply_config_data(config, config_data, override_auto_publish=False)
     else:
         # 非UI启动，不传递config_data，需要验证配置
         if not config.load_config():

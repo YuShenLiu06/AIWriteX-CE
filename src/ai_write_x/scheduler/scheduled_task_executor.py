@@ -2,13 +2,66 @@
 
 from __future__ import annotations
 
+import queue
 import threading
-from typing import Optional
+from typing import Any, Dict, Optional
 
 from src.ai_write_x.utils import log
 
 from .scheduled_task_models import ScheduledTask, ScheduledTaskExecutionRecord
 from .scheduled_task_service import ScheduledTaskService
+
+
+def _drain_generation_result(log_queue) -> Dict[str, Any]:
+    """排空子进程日志队列,提取生成结果摘要。
+
+    子进程在 crew_main.run_crew_in_process 成功时会放入
+    {"type": "internal", "result": <workflow.execute() 返回 dict>} ,
+    其中的 publish_result / save_result 反映发布与保存的真实结果。
+
+    返回:{published, message, article_path}
+      - publish_result.success=True → published=True
+      - publish_result 为 None      → published=False,message 标注「未发布」
+      - publish_result.success=False → published=False,message 透传失败原因
+    """
+    summary: Dict[str, Any] = {
+        "published": False,
+        "message": "任务执行完成",
+        "article_path": None,
+    }
+    result_dict: Optional[Dict[str, Any]] = None
+
+    try:
+        while True:
+            msg = log_queue.get_nowait()
+            if (
+                isinstance(msg, dict)
+                and msg.get("type") == "internal"
+                and isinstance(msg.get("result"), dict)
+            ):
+                result_dict = msg["result"]
+    except queue.Empty:
+        pass
+
+    if not result_dict:
+        summary["message"] = "未发布(子进程未回传生成结果)"
+        return summary
+
+    save_result = result_dict.get("save_result") or {}
+    publish_result = result_dict.get("publish_result")
+    summary["article_path"] = save_result.get("path")
+
+    if publish_result is None:
+        summary["published"] = False
+        summary["message"] = "未发布(任务级 auto_publish=False 或凭据无效,已跳过发布)"
+    elif publish_result.get("success"):
+        summary["published"] = True
+        summary["message"] = publish_result.get("message") or "发布成功"
+    else:
+        summary["published"] = False
+        summary["message"] = publish_result.get("message") or "发布失败"
+
+    return summary
 
 
 class ScheduledTaskExecutor:
@@ -52,14 +105,19 @@ class ScheduledTaskExecutor:
 
         try:
             config_data = self._build_config_data(task)
-            self._run_generation(config_data)
+            gen_summary = self._run_generation(config_data)
 
             record.status = "success"
-            record.message = "任务执行完成"
+            record.published = bool(gen_summary.get("published", False))
+            record.article_path = gen_summary.get("article_path")
+            record.message = gen_summary.get("message") or "任务执行完成"
             self._service.update_task_status(task.task_id, "success")
             task.current_retry_count = 0
 
-            log.print_log(f"[定时任务] 执行成功: {task.name}", "info")
+            log.print_log(
+                f"[定时任务] 执行成功: {task.name}(published={record.published})",
+                "info",
+            )
 
         except Exception as e:
             error_msg = str(e)
@@ -117,18 +175,24 @@ class ScheduledTaskExecutor:
             "custom_template_category": task.template_category or "",
             "custom_template": task.template_name or "",
             "platform": task.platform or "",
+            # 任务级发布开关:子进程内覆盖 config.auto_publish(任务级独占语义)
+            "auto_publish": task.auto_publish,
         }
 
     @staticmethod
-    def _run_generation(config_data: dict) -> None:
-        """调用现有生成链路（同步阻塞）"""
+    def _run_generation(config_data: dict) -> dict:
+        """调用现有生成链路(同步阻塞),返回生成结果摘要。
+
+        子进程异常退出时 crew_main 会以 exitcode=1 退出(不再被 os._exit(0) 吞掉),
+        本方法据此抛错,由 execute_task 记为失败;成功则排空日志队列,解析发布结果。
+        """
         from src.ai_write_x.crew_main import ai_write_x_main
 
         result = ai_write_x_main(config_data)
         if not result or not result[0] or not result[1]:
             raise RuntimeError("生成任务启动失败")
 
-        process = result[0]
+        process, log_queue = result[0], result[1]
         process.start()
         process.join(timeout=600)
 
@@ -140,3 +204,5 @@ class ScheduledTaskExecutor:
         exit_code = process.exitcode
         if exit_code != 0:
             raise RuntimeError(f"生成任务异常退出 (exitcode={exit_code})")
+
+        return _drain_generation_result(log_queue)
