@@ -87,6 +87,10 @@ async def lifespan(app: FastAPI):
 
         repository = ScheduledTaskRepository()
         service = ScheduledTaskService(repository)
+
+        # 启动一致性修复:将残留的 running 记录/任务标记为 failed
+        service.reconcile_orphaned_executions()
+
         executor = ScheduledTaskExecutor(service)
         scheduler = ScheduledTaskScheduler(service, executor)
 

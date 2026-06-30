@@ -14,6 +14,7 @@ class ScheduledTaskManager {
         this.selectedTaskId = '';
         this.initialized = false;
         this.apiWarningShown = false;
+        this._autoRefreshTimer = null;
 
         this.init();
     }
@@ -200,6 +201,38 @@ class ScheduledTaskManager {
             this.renderSidebarTree();
             this.updateSidebarStats();
             this.handleApiError(error, options);
+        }
+
+        this._syncAutoRefresh();
+    }
+
+    startAutoRefresh() {
+        if (this._autoRefreshTimer) {
+            return;
+        }
+        this._autoRefreshTimer = setInterval(async () => {
+            try {
+                await this.refreshData({ silent: true });
+            } catch (error) {
+                // 静默刷新失败不影响后续轮询
+            }
+            this._syncAutoRefresh();
+        }, 4000);
+    }
+
+    stopAutoRefresh() {
+        if (this._autoRefreshTimer) {
+            clearInterval(this._autoRefreshTimer);
+            this._autoRefreshTimer = null;
+        }
+    }
+
+    _syncAutoRefresh() {
+        const running = !!(this.runtimeStatus && this.runtimeStatus.is_running);
+        if (running) {
+            this.startAutoRefresh();
+        } else {
+            this.stopAutoRefresh();
         }
     }
 
